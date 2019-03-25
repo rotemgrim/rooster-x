@@ -3,6 +3,8 @@ import * as fs from "fs";
 import * as winattr from "winattr";
 import * as Worker from "tiny-worker";
 import {Stats} from "fs";
+import * as md5File from "md5-file";
+
 declare const __static: any;
 
 export function isValidGuid(guid: string): boolean {
@@ -74,6 +76,18 @@ export async function isFileExistsAsync(filePath: string) {
                 reject();
             } else {
                 resolve();
+            }
+        });
+    });
+}
+
+export function getFileMd5(filePath: string): Promise<string|Error> {
+    return new Promise((resolve, reject) => {
+        md5File(filePath, (err, hash) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(hash);
             }
         });
     });

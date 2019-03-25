@@ -57,7 +57,7 @@ export default class AppListener {
             await AppController.preOpenWindows();
             await AppController.bootstrapApp();
             console.log("app is ready!");
-            await FilesController.doFullSweep("Z:\\Videos");
+            await FilesController.doFullSweep("u:\\videos");
             // FilesController.getAllVideos("Z:\\Complete\\Rotem");
             // FilesController.getAllVideos("Z:\\Complete\\Rotem\\[bonkai77] Fairy Tail [BD-1080p] [DUAL-AUDIO]
             // [x265] [HEVC] [AAC] [10bit]");

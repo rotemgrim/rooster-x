@@ -7,4 +7,5 @@ export interface IFSEntry {
     parentDir: string;
     fullParentDir: string;
     stat: Stats;
+    hash?: string;
 }
