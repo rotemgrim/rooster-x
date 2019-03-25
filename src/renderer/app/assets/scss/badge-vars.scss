@@ -1,0 +1,88 @@
+$animation-delay: 2000ms;
+
+$badge-title-bg-color: #3a6ec1;
+$badge-title-side-out-bg-color: #879094;
+$badge-subTitle-bg-color: #f0f6ff;
+$badge-selected-color: #6faaff;
+$badge-selected-border-color: #d7dae6;
+$badge-calendar-border-color: #5296ff;
+$badge-tooltip-bg-color: #e4eef9;
+$badge-outer-border-color: rgba(46, 114, 191, 0.2);
+$badge-content-bg-color: #ffffff;
+$white: #ffffff;
+$black: #000000;
+$dataRails-color: #2e72bf;
+$bagde-menuButton-text-color: #5c5c5c;
+$bagde-menuButton-text-hover: #3d8eff;
+$bagde-menuButton-text-active: #2e72bf;
+$bagde-menuButton-border: #eff0f5;
+
+
+$dataRails-color: #1f68cc;
+
+
+$dataRails-blue-text: #fff;
+$dataRails-gray-text: #78879e;
+
+$dataRails-blue: #3d8eff;
+$dataRails-blue-hover: #2d7ae6;
+$dataRails-blue-active: #1f68cc;
+
+$dataRails-blue-disable: 0.2;
+$dataRails-gray-disable: 0.5;
+
+$dataRails-gray: #eff0f5;
+$dataRails-gray-hover: #e6e7ec;
+$dataRails-gray-active: #d7dae6;
+
+
+
+$graish: #d7dae6;
+$border-lightBlue: #68aeff;
+$table-selected:#e1efff;
+$table-hover:#F3F3F9;
+$header-bg-hover:#145ab1;
+$header-bg: #1968cd;
+$text-color: #404040;
+
+
+// workflow progress bar colors:
+$color-approve: #2bc4ab;  // or final
+$color-final: $color-approve;
+$color-inProgress: #449bff;
+$color-rejected: #ed5b65;
+$color-pending: #f5b325; // or draft
+$color-draft: $color-pending;
+$color-notStarted: #818aa0;
+
+
+$error-color: #a94442;
+$defaultFont: 'Roboto';
+$badge-title-font: bold 13px #{$defaultFont}, sans-serif;
+
+//
+//$TAB_MARGE: 55px;
+//$TAB: 0px;
+//$HEADER: 38px;
+//$BUTTONS_PANEL: 33px;
+//$QUICK_PANEL: 46px;
+//$MESSAGE: 32px;
+//$MESSAGE_REMOVE_ALL: 17px;
+//$BADGE_CONTEXT_SIZE: 500px;
+//$CLOSED_BADGE: 5px;
+//$MINIMIZED_BADGE: 0px;
+//$MIN_WINDOW: 250px;
+
+$BADGE_WIDTH: 300px;
+$BADGE_WIDTH_INNER: 268px;
+$BUTTONS_PANEL: 33px;
+
+$BADGE_MAX_OPEN_HEIGHT: 500px;
+$BADGE_CLOSED_HEIGHT: 25px;
+$BADGE_CLOSED_HEIGHT_NO_AERO: 40px;
+$BADGE_MINIMIZED_HEIGHT: 5px;
+$BADGE_MINIMUM_WINDOW_HEIGHT: 250px;
+$BADGE_SCROLLING_PART_HEIGHT: 300px;
+$BADGE_ICON_DIMENSION: 17px;
+
+$marg: 15px;

@@ -1,0 +1,79 @@
+@import "../css/bootstrap.css";
+/* '~@angular/material/prebuilt-themes/indigo-pink.css';*/
+@import "angular-custom-theme";
+@import "angular-override";
+@import "../../assets/fonts/MatirialIcons/material-icons.css";
+@import "../css/style.css";
+@import "badge-vars";
+@import "grid/grid";
+@import "badge-layout";
+@import "badge-buttons";
+@import "diagnostic-screen";
+@import "animista";
+
+h1 {
+  color: green;
+}
+
+.b-loading {
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: white;
+  z-index: 10;
+  position: absolute;
+  padding: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img {
+  width: 35px;
+  height: 35px;
+  background-size: 100%;
+  margin-right: 0.5em;
+}
+// .img-Pending {background-image: url("../images/excel/excel_48_timeline.png")}
+.img-Pending {background-image: url("../images/excel/excel_50_sync.png")}
+.img-Success {background-image: url("../images/excel/excel_48_latest.png")}
+// .img-Fail {background-image: url("../images/excel/excel_48_not_connected.png")}
+.img-Fail {background-image: url("../images/excel/excel_50_alert.png")}
+.img-FileNotManaged {background-image: url("../images/excel/excel_48.png")}
+// .img-NoPermission {background-image: url("../images/excel/excel_48_not_connected.png")}
+.img-NoPermission {background-image: url("../images/excel/excel_50_alert.png")}
+.img-Locked {background-image: url("../images/excel/excel_48_not_latest.png")}
+.img-FileNotFound {background-image: url("../images/excel/excel_48_not_latest.png")}
+.img-ServerFileNotFound {background-image: url("../images/excel/excel_48_not_latest.png")}
+
+.img-SyncOnline {background-image: url("../images/excel/checkmark.png")}
+.img-SyncOffline {background-image: url("../images/excel/alert.png")}
+
+.animated {
+  -webkit-animation-duration: $animation-delay;
+  animation-duration: $animation-delay;
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+}
+
+@-webkit-keyframes fadeOut {
+  0% {opacity: 1;}
+  100% {opacity: 0;}
+}
+
+@keyframes fadeOut {
+  0% {opacity: 1;}
+  100% {opacity: 0;}
+}
+
+.fadeOut {
+  -webkit-animation-name: fadeOut;
+  animation-name: fadeOut;
+}
+
+a, .pointer {
+  cursor: pointer;
+}

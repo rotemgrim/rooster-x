@@ -1,0 +1,221 @@
+<div class="statusWindow" style="margin: 0 auto; position: relative;">
+    <div>
+        <div class="textHeader flex-between-center">
+            <h4>Settings Window</h4>
+            <small style="user-select: none;" (dblclick)="showDevSettings = !showDevSettings">v{{version}}</small>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <ul>
+                    <li><strong>Email:</strong> {{user.getEmail()}}</li>
+                    <li><strong>Username:</strong> {{user.getUserName()}}</li>
+                </ul>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-xs-12">
+                <mat-checkbox [checked]="preLoadHistory && keepWindowsAlive"
+                              [disabled]="!keepWindowsAlive"
+                              (change)="togglePreLoad($event)" >
+                    Pre-load history window
+                </mat-checkbox>
+            </div>
+            <div class="col-xs-12">
+                <mat-checkbox [checked]="keepWindowsAlive" (change)="toggleKeepWindowsAlive($event)" >
+                    Keep windows alive (quicker window loading at expense of memory).
+                </mat-checkbox>
+            </div>
+        </div>
+        <br>
+        <div class="row">
+            <div class="col-xs-12 flex-between-center">
+                <mat-form-field style="height: 41px;" class="w-60">
+                    <input matInput placeholder="Server Url" [(ngModel)]="serverUrl">
+                </mat-form-field>
+            </div>
+        </div>
+        <hr>
+        <div class="flex-between-center">
+            <mat-slide-toggle color="primary"
+                    [checked]="isProxySettingsEnabled"
+                    [(ngModel)]="isProxySettingsEnabled">
+                Proxy settings <small>(leave off for auto-detect)</small>
+            </mat-slide-toggle>
+            <mat-slide-toggle color="primary"
+                    *ngIf="isProxySettingsEnabled"
+                    [checked]="bypassProxy"
+                    [(ngModel)]="bypassProxy">
+                <small>Bypass Proxy</small>
+            </mat-slide-toggle>
+        </div>
+        <div class="row" *ngIf="isProxySettingsEnabled && bypassProxy">
+            <br>
+            <div class="col-xs-12">
+                <mat-form-field class="w-100" matTooltip="Use semicolons ( ; ) to separate entries">
+                    <input matInput placeholder="Do not use proxy server for addresses:"
+                           [(ngModel)]="bypassAddresses">
+                </mat-form-field>
+            </div>
+        </div>
+        <div class="row" *ngIf="isProxySettingsEnabled && !bypassProxy">
+            <br>
+            <div class="col-xs-6">
+                <mat-form-field class="w-100">
+                    <input matInput placeholder="Address"
+                           (keyup)="removeProtocol()"
+                           [(ngModel)]="proxyAddress">
+                </mat-form-field>
+            </div>
+            <div class="col-xs-6">
+                <mat-form-field class="w-100">
+                    <input matInput placeholder="Port"
+                           [(ngModel)]="proxyPort">
+                </mat-form-field>
+            </div>
+            <div class="col-xs-6">
+                <mat-form-field class="w-100">
+                    <input matInput placeholder="User"
+                           [(ngModel)]="proxyUser">
+                </mat-form-field>
+            </div>
+            <div class="col-xs-6">
+                <mat-form-field class="w-100">
+                    <input matInput placeholder="Password"
+                           type="password"
+                           [(ngModel)]="proxyPass">
+                </mat-form-field>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-xs-8" *ngIf="configErrMsg">
+                <span class="error-msg2">{{configErrMsg}}</span>
+            </div>
+            <div class="col-xs-4 pull-right">
+                <button type="button" class="btn b-btn w-100 marg-hf-r"
+                        (click)="saveConfig()">
+                    Save Config
+                </button>
+            </div>
+        </div>
+        <hr>
+        <div class="row marg-hf-b">
+            <div class="col-xs-12 marg-b">
+                <a (click)="toggleShowAdvanced()">Show Advanced Options >></a>
+            </div>
+        </div>
+        <div class="row" *ngIf="showAdvanced">
+            <div class="col-xs-4 marg-hf-b">
+                <button type="button" class="btn b-btn w-100 marg-hf-r"
+                        (click)="generateLogs()">
+                    Generate logs
+                </button>
+            </div>
+            <div class="col-xs-4 marg-hf-b">
+                <button type="button" class="btn b-btn w-100 marg-hf-r"
+                        (click)="clearCache()">
+                    Clear Cache
+                </button>
+            </div>
+            <div class="col-xs-4 marg-hf-b" *ngIf="showDevSettings">
+                <button type="button" class="btn b-btn w-100 marg-hf-r"
+                        (click)="openAppData()">
+                    Open AppData
+                </button>
+            </div>
+            <div class="col-xs-4 marg-hf-b" *ngIf="showDevSettings">
+                <button type="button" class="btn b-btn w-100 marg-hf-r"
+                        (click)="openDevTools()">
+                    Open DevTools
+                </button>
+            </div>
+            <div class="col-xs-4 marg-hf-b">
+                <button *ngIf="!restartingExplorer" type="button" class="btn b-btn w-100 marg-hf-r"
+                        (click)="restartExplorer()">
+                    Restart Explorer
+                </button>
+                <button *ngIf="restartingExplorer" type="button" class="btn b-btn w-100 marg-hf-r">
+                    <mat-icon style="font-size: 20px;">hourglass_empty</mat-icon>
+                </button>
+            </div>
+            <div class="col-xs-4 marg-hf-b">
+                <button type="button" class="{{isExtendedLogsActive ? '':'off'}} btn b-btn w-100 marg-hf-r"
+                        (click)="toggleExtendedLogsActive()">
+                    Extended Logs
+                </button>
+            </div>
+            <div class="col-xs-4 marg-hf-b">
+                <button type="button" class="btn b-btn w-100 marg-hf-r"
+                        style="display:flex;align-items:center;justify-content:center;padding:0;"
+                        (click)="diagnostic()">
+                    Diagnostic <mat-icon style="margin-left:5px;font-size:18px;width:auto;height:auto;">build</mat-icon>
+                </button>
+            </div>
+            <div class="col-xs-4 marg-hf-b" *ngIf="addinInstallPath">
+                <button type="button" class="btn b-btn w-100 marg-hf-r"
+                        style="display:flex;align-items:center;justify-content:center;padding:0;"
+                        (click)="installExcelAddin()">
+                    Excel Addin <mat-icon style="margin-left:5px;font-size:18px;width:auto;height:auto;">cloud_download</mat-icon>
+                </button>
+            </div>
+            <div class="col-xs-4 marg-hf-b">
+                <button type="button" class="{{isAllMenuItemsActive ? '':'off'}} btn b-btn w-100 marg-hf-r"
+                        (click)="toggleAllMenuItemsActive()">
+                    All Menu Items
+                </button>
+            </div>
+            <div class="col-xs-12" *ngIf="buttonsErrorText">
+                <span class="error-msg2">{{buttonsErrorText}}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="diagnostic" *ngIf="isDiagnosticRunning">
+        <div class="textHeader flex-between-center">
+            <h4>Diagnostic</h4>
+            <small style="user-select: none;">v{{version}}</small>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <p>Please do not turn off Rooster-X, this may take several minutes...</p>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-xs-12 slide-in-blurred-left">
+                <ul>
+                    <li>
+                        <div class="{{testClass[1][1]}}"><mat-icon>{{testClass[1][0]}}</mat-icon>
+                        </div> Rest Communication with Rooster-X Server</li>
+                    <li>
+                        <div class="{{testClass[2][1]}}"><mat-icon>{{testClass[2][0]}}</mat-icon>
+                        </div> Shell Extension Up & Running</li>
+                    <li>
+                        <div class="{{testClass[3][1]}}"><mat-icon>{{testClass[3][0]}}</mat-icon>
+                        </div> Shell Extension Validate Icons</li>
+                    <li>
+                        <div class="{{testClass[4][1]}}"><mat-icon>{{testClass[4][0]}}</mat-icon>
+                        </div> Test file Download / Upload</li>
+                    <li>
+                        <div class="{{testClass[5][1]}}"><mat-icon>{{testClass[5][0]}}</mat-icon>
+                        </div> Save results to log</li>
+                    <li *ngIf="testClass[5][0]" class="slide-in-blurred-left marg-t">
+                        <button type="button" class="btn b-btn w-30" style="margin-left: 33px"
+                                (click)="isDiagnosticRunning = false">
+                            Done
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="b-loading" *ngIf="isLoading">
+        <mat-spinner></mat-spinner>
+    </div>
+    <div class="b-loading" *ngIf="isLoadingDeterminate">
+        <mat-spinner mode="determinate" [value]="generateLogsPercent"></mat-spinner>
+        <div style="position: absolute; color: #565ec3;">{{generateLogsPercent}}%</div>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+
+.xs{}
+.sm{}
+.md{}
+.lg{}
+
+@for $i from 0 through 20 {
+  .w-#{$i*5} {
+    width: 0% + $i*5;
+  }
+}
+.w-33 {
+  width: 33.3333%;
+}
+.w-66 {
+  width: 66.6667%;
+}

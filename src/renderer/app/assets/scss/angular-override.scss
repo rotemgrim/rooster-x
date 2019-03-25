@@ -1,0 +1,30 @@
+
+
+.mat-checkbox-layout {
+  font-weight: normal;
+  .mat-checkbox-inner-container {
+
+    .mat-checkbox-frame {
+      background-color: transparent;
+      transition: border-color 90ms cubic-bezier(0,0,.2,.1);
+      border-width: 1px;
+      border-color: #3d8eff !important;
+      /* box-shadow: inset 1px 1px 1px #000; */
+      z-index: 1;
+      border-radius: 0;
+    }
+
+
+    .mat-checkbox-background {
+      background-color: #ffffff !important;
+      .mat-checkbox-checkmark-path {
+        stroke: #2d7ae6 !important;
+      }
+    }
+
+    .mat-checkbox-checked.mat-accent .mat-checkbox-background,
+    .mat-checkbox-indeterminate.mat-accent .mat-checkbox-background {
+      background-color: #ffffff !important;
+    }
+  }
+}

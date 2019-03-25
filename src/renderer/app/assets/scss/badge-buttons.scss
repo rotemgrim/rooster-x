@@ -1,0 +1,228 @@
+@import "badge-vars";
+
+.link-gray {
+  color: $dataRails-gray-active;
+  cursor: pointer;
+  &:hover,
+  &:focus {
+    color: $dataRails-gray-text;
+  }
+  &:active {
+    color: $dataRails-blue;
+  }
+  &[disabled] {
+    color: $dataRails-gray-text;
+    opacity: 0.5;
+    &:hover {
+      opacity: 0.5;
+    }
+  }
+}
+
+.b-btn {
+  text-align: center;
+  border-radius: 3px;
+  border: 2px solid $dataRails-blue;
+  border-radius: 3px;
+  background-color: $dataRails-blue;
+  color:#fff;
+  height: 30px;
+  padding: 5px 25px;
+  margin:0;
+
+  cursor: pointer;
+  display: inline-block;
+  letter-spacing: normal;
+  line-height: 15px;
+  font-size: 12px!important;
+  text-decoration: none;
+  text-transform: capitalize;
+  &:hover,
+  &:focus{
+    background-color: $dataRails-blue-hover;
+    color: #fff;
+    border-color: $dataRails-blue-hover;
+    outline-color: $dataRails-blue-hover;
+  }
+  &:active{
+    background-color: $dataRails-blue-active;
+    outline-color: $dataRails-blue-active;
+  }
+  &[disabled]{
+    pointer-events: auto;
+    opacity: $dataRails-blue-disable !important;
+    &:hover{
+      background-color: $dataRails-blue-active !important;
+      opacity: $dataRails-blue-disable !important;
+      cursor: not-allowed !important;
+    }
+  }
+
+  &.gray{
+    color: $dataRails-gray-text;
+    border-color: $dataRails-gray;
+    background-color: $dataRails-gray;
+    &:hover,
+    &:focus{
+      background-color: $dataRails-gray-hover;
+      color: $dataRails-gray-text;
+      border-color: $dataRails-gray-hover;
+    }
+    &:active{
+      color: $dataRails-blue;
+      background-color: $dataRails-gray-active;
+    }
+    &[disabled]{
+      color: $dataRails-gray-text;
+      border-color: $dataRails-gray;
+      opacity: 0.5;
+      &:hover{
+        color: $dataRails-gray-text;
+        border-color: $dataRails-gray;
+        opacity: 0.5;
+      }
+    }
+  }
+}
+
+.nav-menu + div button.btn.b-btn{
+  margin-top:15px;
+}
+
+.b-btn.no_upper{
+  text-transform: none;
+}
+
+
+fieldset[disabled]{
+  background: 0 0;
+  color: #2e72bf;
+}
+
+.b-btn-not-primary{
+  color: #2b2b2b;
+}
+
+.b-btn-not-primary:hover{
+  color: #2e72bf;
+  text-decoration: underline;
+}
+
+.b-btn_link{
+  font-family: Roboto;
+  font-size: 12px;
+  font-weight: 500;
+  font-style: normal;
+  font-stretch: normal;
+  letter-spacing: normal;
+  text-align: center;
+  color: $dataRails-blue !important;
+}
+
+.b-btn_link:hover {
+  color: #1f68cc !important;
+}
+
+
+.rooster-x-button-big {
+  border-radius: 3px;
+  color: $dataRails-color;
+  background: $white;
+  font-family: Roboto, Sans-Serif;
+  font-weight: bold;
+  font-size: 16px;
+  text-align: center;
+  border: 2px solid $dataRails-color;
+
+  &:focus {
+    border: 2px solid $dataRails-color;
+    background: $white;
+    color: $dataRails-color;
+  }
+  &:hover, &:focus:hover {
+    border-color: $dataRails-color;
+    background: $dataRails-color;
+    color: $white;
+  }
+  &:active, &:active:hover {
+    border-color: $dataRails-color;
+    background: $dataRails-color;
+    color: $white;
+    font-weight: 900;
+  }
+}
+
+.rooster-x-button-flip {
+  @extend .rooster-x-button-big;
+  background: $dataRails-color;
+  color: $white;
+
+  &:focus {
+    color: $white;
+    background: $dataRails-color;
+  }
+}
+
+.rooster-x-button-normal {
+  @extend .rooster-x-button-big;
+  border-radius: 0px;
+  font-weight: normal;
+  font-size: 12px;
+  height: 30px;
+  line-height: 12px;
+}
+
+.rooster-x-button-flip-normal {
+  @extend .rooster-x-button-normal;
+  @extend .rooster-x-button-flip;
+}
+
+.rooster-x-button-small {
+  @extend .rooster-x-button-normal;
+  color: $dataRails-blue;
+  border: 1px solid $dataRails-blue;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 100;
+  line-height: 13px;
+  height: 30px;
+  font-size: 11px;
+
+  &:hover,
+  &:focus {
+    color: $white;
+    background: $dataRails-blue;
+    border:1px solid $dataRails-blue;
+    font-weight: 600;
+  }
+  &:active{
+    background: $dataRails-blue-active;
+  }
+}
+
+.ats-switch.switch-mini .knob,
+.ats-switch.switch-mini .switch-left,
+.ats-switch.switch-mini .switch-right{
+  line-height: 12px;
+}
+
+.arrow_blue{
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid $dataRails-blue;
+  display: inline-block;
+  margin-left: 5px;
+}
+
+.arrow_blue.down{
+  width: 0;
+  height: 0;
+  border-right:4px solid transparent;
+  border-top: 4px solid $dataRails-blue;
+  border-left: 4px solid transparent;
+  display: inline-block;
+  margin-left: 2px;
+  margin-top: 2px;
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "../node_modules/electron-webpack/tsconfig-base.json",
+  "include": ["**/*.ts"],
+  "exclude": ["unit"],
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
+    "noUnusedLocals": false,
+    "outDir": "electron/testBuild/",
+    "allowSyntheticDefaultImports": true
+  }
+}

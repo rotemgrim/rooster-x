@@ -1,0 +1,410 @@
+
+
+html {
+  background-color: transparent;
+  height: 100%;
+
+}
+
+body, .root {
+  height: 100%;
+}
+
+.fixed-width{
+  width: $BADGE_WIDTH;
+}
+
+.hidden-by-timer {
+  display: none !important;
+}
+
+.flex-center{
+  display: flex;
+  justify-content: center;
+}
+
+.flex-center-start {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+.flex-center-end {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+.flex-between{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.flex-between-center{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-column {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: column;
+}
+
+.textHeader {
+  padding: 1.2em 0;
+}
+
+.absolute-size {
+  .btn {
+    //width: 100%;
+
+    &.toggle-handle, &.toggle-on {
+      width: 0;
+    }
+    &.toggle-off {
+      width: 42px;
+    }
+  }
+}
+
+.tooltip .tooltip-inner {
+  border-radius: 3px;
+  box-shadow: 1.4px 1.4px 2px 0 rgba(9, 29, 57, 0.15);
+  background-color: #f5f5f7;
+  border: solid 1px #c0c3c7;
+  color: #2b2b2b;
+}
+.tooltip.bottom .tooltip-arrow {
+  border-bottom-color: #f5f5f7 !important;
+}
+.tooltip.right .tooltip-arrow {
+  border-top-color: #f5f5f7 !important;
+}
+.tooltip.top .tooltip-arrow {
+  border-top-color: #f5f5f7 !important;
+}
+.tooltip.left .tooltip-arrow {
+  border-left-color: #f5f5f7 !important;
+}
+
+.b-body>.b-loading {
+}
+.badge-loading {
+  color: $white;
+  font-weight: normal;
+  width: 100%;
+  text-align: center;
+
+  .b-loading {
+    background: none;
+  }
+}
+
+.scope-msgs {
+  & > div {
+    padding: 0 $marg;
+    font-weight: 400;
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+}
+
+.footer-button {
+  text-align: center;
+  padding-top: 10px;
+  position: relative;
+  width: 100%;
+  padding-bottom: 10px;
+  border-top: 1px solid $badge-outer-border-color;
+}
+
+.div-for-hide {
+  // this is the scope of all transparent space in excel window.
+  height: 100%;
+
+  .b-main-container {
+    // the badge main container and all of its windows
+    // some of sub windows stick out of this container!
+    height: 100%;
+    box-shadow: none;
+    background-color: $badge-content-bg-color;
+
+    .b-tab {
+      cursor: pointer;
+    }
+
+    .b-body {
+      // Badge body.
+      height: inherit;
+      display: flex;
+      flex-direction: column;
+
+      .user-info-more{
+        text-align: left;
+        font-size: 11px;
+        color: #959595;
+        letter-spacing: 0.5px;
+        line-height:15px;
+      }
+
+      .bottom_shift{
+        //height: calc(100% - 120px);
+        display: flex;
+        flex-direction: column-reverse;
+      }
+      .flex-column{
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: calc(100% - 10px);
+      }
+      .flex-row {
+        flex-direction: row;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+      .topTextHeader{
+        h2{
+          color: #2b2b2b;
+          font-size: 14px;
+        }
+      }
+      .b-quick-panel {
+        display: none !important; // no more quick panel
+      }
+
+      #b-tooltip {
+        background-color: $badge-tooltip-bg-color;
+        border-top: 1px solid $badge-title-bg-color;
+        border-left: 1px solid $badge-title-bg-color;
+        border-right: 1px solid $badge-title-bg-color;
+        display: none;
+        position: relative;
+        // min-height: $BADGE_CLOSED_HEIGHT;
+        line-height: $BADGE_CLOSED_HEIGHT;
+        font-size: 11px;
+        text-align: left;
+        padding-left: 5px;
+
+        &.active {
+          display: block;
+        }
+
+        &::after {
+           position: absolute;
+           bottom: 0;
+           content: " ";
+           width: 0;
+           height: 0;
+           border-style: solid;
+           border-width: 0 7px 6px 7px;
+           border-color: transparent transparent $badge-title-bg-color transparent;
+        }
+        &.left::after {
+          left: 5px;
+        }
+        &.center::after {
+          left: calc(50% - 14px);
+        }
+
+        .x-btn {
+          display: none;
+        }
+        &.closeable .x-btn{
+          display: block;
+        }
+      }
+
+      .b-actions-container {
+
+        .user-box{
+          display: flex;
+          flex-direction: column;
+          .user-holder{
+            display: flex;
+          }
+          .user_box-title{
+            display: flex;
+            justify-content: flex-start;
+            padding: 7px 0;
+            margin-left: -5px;
+            font-size: 12px;
+          }
+          .user_box-email{
+            font-size: 12px;
+            margin-left:6px;
+          }
+          .HovImgfeed {
+            display: inline-block;
+            float: left;
+          }
+
+        }
+        // badge body minus the buttons and quick action
+        overflow: hidden;
+        //height: calc(100% - #{$BUTTONS_PANEL + $BADGE_CLOSED_HEIGHT});
+        height: 100%;
+
+        & > div {
+          overflow: visible;
+          // height: 500px;
+        }
+        .b-state {
+          height: 100%;
+          overflow: hidden;
+          border-right: 1px solid $badge-outer-border-color;
+          border-left: 1px solid $badge-outer-border-color;
+          margin: 0;
+          padding: 0;
+
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: flex-start;
+
+          &.b-state-document {
+            padding-left: $marg;
+            //padding-right: $marg;
+          }
+
+          .h2-wrap {
+            height: $BUTTONS_PANEL;
+            min-height: $BUTTONS_PANEL;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+          }
+        }
+        .scrolling-part {
+          height: 100%;
+          max-height: 100%;
+          padding-bottom: 10px;
+          background-color: white;
+          z-index: 10;
+
+          // max-height: calc(100% - #{$BUTTONS_PANEL * 2});
+          & > * {
+            max-width: $BADGE_WIDTH_INNER;
+            margin: 0 auto;
+          }
+          .checkbox {
+            margin: 10px 0 0 0;
+          }
+        }
+
+        .submitBtnSec {
+          width: 100%;
+          padding: 0;
+          margin: 10px 0 0 0;
+
+          label {
+            width: 100%;
+          }
+          button {
+            min-width: 80px;
+            margin: 0;
+          }
+          .workflow-large-btn {
+            max-width: none;
+            margin-bottom: $marg;
+          }
+          .workflow-small-btn {
+            margin-bottom: $marg;
+            border-radius: 3px;
+            padding: 5px 25px;
+            text-overflow: ellipsis;
+            height: auto;
+            margin-right: 5px;
+          }
+        }
+      }
+
+      .form-control {
+        height: 30px;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-radius: 0;
+        border: 1px solid $badge-outer-border-color;
+        font-size: 12px;
+      ;
+
+
+        &.has-error {
+          border-color: $error-color;
+        }
+      }
+
+      //.btn-group>.btn:first-child:not(:last-child):not(.dropdown-toggle)
+      .btn-group {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        margin-top: 20px;
+
+        & > .btn {
+          border-radius: 15px;
+          padding: 6px;
+          font-size: 11px;
+        }
+
+        &.workflow-btns {
+          justify-content: center;
+          flex-wrap: wrap;
+          align-items: center;
+          flex-direction: column;
+          // margin-bottom: $marg;
+
+          & > .btn {
+            border-radius: 3px;
+          }
+        }
+
+        label {
+          background: white;
+          border: 1px solid $badge-selected-color;
+          font-weight: normal;
+          margin-right: 5px;
+          height: 21px;
+          line-height: 7px;
+          font-size: 12px;
+          box-shadow: none;
+          &.active {
+            color: #fff !important;
+            background-color: $badge-selected-color;
+          }
+        }
+      }
+    }
+  }
+}
+
+input[type=search] {
+  margin-top: 4px;
+}
+
+.error-msg {
+  color: $error-color;
+  padding-left: 1.7em;
+  position: relative;
+
+  &:before {
+    font: normal normal normal 14px/1 FontAwesome;
+    content: "\f071";
+    width: 1em;
+    height: 1em;
+    position: absolute;
+    left: 0;
+  }
+}
+
+.error-msg2 {
+  color: $error-color;
+  position: relative;
+}
