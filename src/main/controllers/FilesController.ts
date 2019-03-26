@@ -8,7 +8,9 @@ import {User} from "../../entity/User";
 import {IFSEntry} from "../../common/models/IFSEntry";
 import {getFileMd5} from "../helpers/Utils";
 import {to} from "../../common/commonUtils";
-import {Media} from "../../entity/Media";
+import {MediaFile} from "../../entity/MediaFile";
+import {MetaData} from "../../entity/MetaData";
+import {Episode} from "../../entity/Episode";
 
 export default class FilesController {
 
@@ -22,25 +24,45 @@ export default class FilesController {
                 database: "database.sqlite",
                 entities: [
                     User,
-                    Media,
+                    MediaFile,
+                    MetaData,
+                    Episode,
                 ],
                 synchronize: true,
             }).then(async connection => {
-                const mediaRows: Media[] = [];
+                const mediaFiles: MediaFile[] = [];
+                const metaDataRepo = connection.getRepository(MetaData);
+                const episodeRepo = connection.getRepository(Episode);
+                const seriesArr: MetaData[] = await metaDataRepo.find({type: "series"});
+                const moviesArr: MetaData[] = await metaDataRepo.find({type: "movie"});
+                const episodesArr: Episode[] = await episodeRepo.find();
                 for (const e of entries) {
-                    const media = new Media();
-                    media.hash = e.sEntry.hash || "";
-                    media.path = e.sEntry.fullPath;
-                    media.raw = e.sEntry.name;
+                    const file = new MediaFile();
+                    file.hash = e.sEntry.hash || "";
+                    file.path = e.sEntry.fullPath;
+                    file.raw = e.sEntry.name;
+                    file.resolution = e.mEntry.resolution || "";
+                    file.quality = e.mEntry.quality || "";
+                    file.codec = e.mEntry.codec || "";
+                    file.audio = e.mEntry.audio || "";
+                    file.group = e.mEntry.group || "";
+                    file.region = e.mEntry.region || "";
+                    file.language = e.mEntry.language || "";
+                    file.extended = e.mEntry.extended || false;
+                    file.hardcoded = e.mEntry.hardcoded || false;
+                    file.proper = e.mEntry.proper || false;
+                    file.repack = e.mEntry.repack || false;
+                    file.wideScreen = e.mEntry.widescreen || false;
 
                     if (e.mEntry.episode || e.mEntry.season) {
-                        media.type = "series";
+                        file.metaData = this.getMetaData(seriesArr, e, "series");
+                        file.episode = this.getEpisode(file.metaData, episodesArr, e);
                     } else {
-                        media.type = "movie";
+                        file.metaData = this.getMetaData(moviesArr, e, "movie");
                     }
-                    mediaRows.push(media);
+                    mediaFiles.push(file);
                 }
-                await connection.manager.save(mediaRows);
+                await connection.manager.save(mediaFiles);
             }).catch(console.error);
         });
     }
@@ -87,5 +109,37 @@ export default class FilesController {
             }
             resolve();
         });
+    }
+
+    public static getMetaData(metaDataArr: MetaData[], e: IEntry, type: "series" | "movie"): MetaData {
+        const tmpArr = metaDataArr.filter((s) => s.title === e.mEntry.title);
+        if (tmpArr && tmpArr.length > 0) {
+            return tmpArr[0];
+        } else {
+            const metaData = new MetaData();
+            metaData.title = e.mEntry.title;
+            metaData.type = type;
+            metaDataArr.push(metaData);
+            return metaData;
+        }
+    }
+
+    public static getEpisode(metaData: MetaData, episodesArr: Episode[], e: IEntry): Episode {
+        const tmpArr = episodesArr.filter((s) => {
+            return s.metaData && s.metaData.title === e.mEntry.title
+                && s.season === e.mEntry.season
+                && s.episode === e.mEntry.episode;
+        });
+        if (tmpArr && tmpArr.length > 0) {
+            return tmpArr[0];
+        } else {
+            const tmpEpisode = new Episode();
+            tmpEpisode.title = e.mEntry.title;
+            tmpEpisode.episode = e.mEntry.episode || 0;
+            tmpEpisode.season = e.mEntry.season;
+            tmpEpisode.metaData = metaData;
+            episodesArr.push(tmpEpisode);
+            return tmpEpisode;
+        }
     }
 }
