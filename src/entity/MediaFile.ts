@@ -24,6 +24,9 @@ export class MediaFile {
     @ManyToOne(() => Episode, episode => episode.mediaFiles, {cascade: true})
     public episode: Episode;
 
+    @Column({type: "int", nullable: true})
+    public year?: number;
+
     @Column({type: "varchar", length: 40, nullable: true})
     public resolution?: string;
 

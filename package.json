@@ -63,6 +63,7 @@
     "electron-json-storage": "^4.1.0",
     "find-process": "^1.1.1",
     "html-entities": "^1.2.1",
+    "imdb-api": "^4.0.2",
     "lodash": "^4.17.10",
     "md5-file": "^4.0.0",
     "mixpanel": "^0.9.2",

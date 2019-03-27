@@ -11,6 +11,7 @@ import {to} from "../../common/commonUtils";
 import {MediaFile} from "../../entity/MediaFile";
 import {MetaData} from "../../entity/MetaData";
 import {Episode} from "../../entity/Episode";
+import IMDBController from "./IMDBController";
 
 export default class FilesController {
 
@@ -31,16 +32,29 @@ export default class FilesController {
                 synchronize: true,
             }).then(async connection => {
                 const mediaFiles: MediaFile[] = [];
+                const filesRepo = connection.getRepository(MediaFile);
                 const metaDataRepo = connection.getRepository(MetaData);
                 const episodeRepo = connection.getRepository(Episode);
                 const seriesArr: MetaData[] = await metaDataRepo.find({type: "series"});
                 const moviesArr: MetaData[] = await metaDataRepo.find({type: "movie"});
                 const episodesArr: Episode[] = await episodeRepo.find();
+                const allFiles = await filesRepo.createQueryBuilder()
+                    .select(["MediaFile.id", "MediaFile.hash", "MediaFile.path"])
+                    .getMany();
+                const allPaths = {};
+                for (const f of allFiles) {
+                    allPaths[f.path] = {id: f.id, hash: f.hash};
+                }
                 for (const e of entries) {
+                    if (allPaths[e.sEntry.fullPath]) {
+                        delete allPaths[e.sEntry.fullPath];
+                        continue;
+                    }
                     const file = new MediaFile();
                     file.hash = e.sEntry.hash || "";
                     file.path = e.sEntry.fullPath;
                     file.raw = e.sEntry.name;
+                    file.year = e.mEntry.year;
                     file.resolution = e.mEntry.resolution || "";
                     file.quality = e.mEntry.quality || "";
                     file.codec = e.mEntry.codec || "";
@@ -60,9 +74,33 @@ export default class FilesController {
                     } else {
                         file.metaData = this.getMetaData(moviesArr, e, "movie");
                     }
-                    mediaFiles.push(file);
+
+                    delete allPaths[file.path];
+
+                    await IMDBController.getMetaDataFromInternetByMediaFile(file)
+                        .then(async (res) => {
+                            mediaFiles.push(res);
+                            res.metaData.status = "omdb";
+                            await connection.manager.save(res);
+                            console.log(mediaFiles.length);
+                        }).catch(async () => {
+                            mediaFiles.push(file);
+                            file.metaData.status = "failed";
+                            await connection.manager.save(file);
+                            console.log(mediaFiles.length);
+                        });
                 }
-                await connection.manager.save(mediaFiles);
+                // await connection.manager.save(mediaFiles);
+
+                const idsToDelete: any[] = [];
+                for (const i in allPaths) {
+                    if (allPaths.hasOwnProperty(i)) {
+                        idsToDelete.push(allPaths[i].id);
+                    }
+                }
+                await filesRepo.createQueryBuilder()
+                    .delete().where("id IN (:...ids)", {ids: idsToDelete})
+                    .execute();
             }).catch(console.error);
         });
     }

@@ -36,7 +36,6 @@ export class IpcService {
                 .then(tmpConfig => {
                     const config: IConfig = {
                         serverUrl: new URL(tmpConfig.serverUrl),
-                        preLoadHistory: tmpConfig.preLoadHistory !== undefined ? tmpConfig.preLoadHistory : true,
                         keepWindowsAlive: tmpConfig.keepWindowsAlive !== undefined ? tmpConfig.keepWindowsAlive : true,
                     };
                     if (tmpConfig.proxySettings) {

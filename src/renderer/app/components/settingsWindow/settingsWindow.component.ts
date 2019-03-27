@@ -126,7 +126,6 @@ export class SettingsWindowComponent implements OnInit, OnDestroy {
             if (this.config.serverUrl && this.config.serverUrl.href) {
                 this.serverUrl = this.config.serverUrl.href;
             }
-            this.preLoadHistory = this.config.preLoadHistory !== undefined ? this.config.preLoadHistory : true;
             this.keepWindowsAlive = this.config.keepWindowsAlive !== undefined ? this.config.keepWindowsAlive : true;
             console.log("config in renderer: ", this.serverUrl);
 
@@ -193,7 +192,6 @@ export class SettingsWindowComponent implements OnInit, OnDestroy {
         this.configErrMsg = "";
         let config: IConfig = {
             serverUrl: new URL(this.serverUrl),
-            preLoadHistory: this.preLoadHistory,
             keepWindowsAlive: this.keepWindowsAlive,
         };
         const proxySettingsPayload: IProxySettingsPayload = {

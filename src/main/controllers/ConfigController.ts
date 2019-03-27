@@ -94,12 +94,8 @@ export default class ConfigController {
                 console.info("serverUrl: " + tmpData.serverUrl);
                 const res: IConfig = {
                     serverUrl: new URL(tmpData.serverUrl),
-                    preLoadHistory: tmpData.preLoadHistory !== undefined ? tmpData.preLoadHistory : true,
                     keepWindowsAlive: tmpData.keepWindowsAlive !== undefined ? tmpData.keepWindowsAlive : true,
-                    autoSyncDownloadFolder: tmpData.autoSyncDownloadFolder !== undefined ?
-                        tmpData.autoSyncDownloadFolder : false,
-                    recordDownload: tmpData.recordDownload !== undefined ?
-                        tmpData.recordDownload : false,
+                    omdbApiKey: tmpData.omdbApiKey !== undefined ? tmpData.omdbApiKey : "",
                 };
                 if (tmpData.proxySettings !== undefined) {
                     res.proxySettings = tmpData.proxySettings;
@@ -113,12 +109,7 @@ export default class ConfigController {
             // create the config file
             const config: IConfig = {
                 serverUrl: new URL("{%HOST_URL%}"),
-                preLoadHistory: true,
                 keepWindowsAlive: true,
-                autoSyncDownloadFolder: false,
-                recordDownload: false,
-                // only for harel
-                // serverUrl: new URL("https://plmedtrlap01/"),
             };
             return ConfigController.saveConfigToFile(config);
         }

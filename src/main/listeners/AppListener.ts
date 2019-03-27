@@ -9,7 +9,6 @@ import ZipperController from "../controllers/ZipperController";
 import ConfigController from "../controllers/ConfigController";
 import CommandListener from "./CommandListener";
 import ProxyService from "../services/ProxyService";
-import FilesListener from "./FilesListener";
 import FilesController from "../controllers/FilesController";
 declare const __static: any;
 
@@ -51,13 +50,12 @@ export default class AppListener {
             AppListener.listenForProcessEvents();
             CommandListener.init();
             // TrayBuilder.init();
-            if (AppGlobal.getConfig().autoSyncDownloadFolder) {
-                FilesListener.init();
-            }
             await AppController.preOpenWindows();
             await AppController.bootstrapApp();
             console.log("app is ready!");
             await FilesController.doFullSweep("u:\\videos");
+
+            // const meta = await IMDBController.getMetaDataFromInternet("Aquaman", 2018);
             // FilesController.getAllVideos("Z:\\Complete\\Rotem");
             // FilesController.getAllVideos("Z:\\Complete\\Rotem\\[bonkai77] Fairy Tail [BD-1080p] [DUAL-AUDIO]
             // [x265] [HEVC] [AAC] [10bit]");
