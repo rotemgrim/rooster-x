@@ -12,9 +12,12 @@ export default class AppController {
         return new Promise(async (resolve, reject) => {
             if (AppGlobal.getConfig().keepWindowsAlive) {
                 const promiseArr = [
-                    WindowManager.getMultipurposeWindow().createWindow()
-                        .then(() => console.info("multipurposeWindow created!"))
-                        .catch(e => console.warn("could not create multipurpose window on startup", e)),
+                    WindowManager.getMainWindow().createWindow()
+                        .then(() => console.info("MainWindow created!"))
+                        .catch(e => console.warn("could not create mainWindow on startup", e)),
+                    // WindowManager.getMultipurposeWindow().createWindow()
+                    //     .then(() => console.info("multipurposeWindow created!"))
+                    //     .catch(e => console.warn("could not create multipurpose window on startup", e)),
                 ];
 
                 Promise.all(promiseArr).then(resolve).catch((e) => {

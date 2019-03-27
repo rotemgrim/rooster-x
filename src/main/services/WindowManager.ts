@@ -3,22 +3,29 @@ import AbstractWindowController from "../controllers/AbstractWindowController";
 import MultipurposeWindowController from "../controllers/MultipurposeWindowController";
 import {IConfig} from "../../common/models/IConfig";
 import {BrowserWindow} from "electron";
-import MixPanelService from "./MixPanelService";
+import MainWindowController from "../controllers/MainWindowController";
 
 export default class WindowManager {
 
     private static allWindows: AbstractWindowController[];
     private static multipurposeWindow: MultipurposeWindowController;
+    private static mainWindow: MainWindowController;
 
     public static init(config: IConfig) {
         WindowManager.multipurposeWindow = new MultipurposeWindowController();
+        WindowManager.mainWindow = new MainWindowController();
         WindowManager.allWindows = [
             WindowManager.multipurposeWindow,
+            WindowManager.mainWindow,
         ];
     }
 
     public static getMultipurposeWindow() {
         return WindowManager.multipurposeWindow;
+    }
+
+    public static getMainWindow() {
+        return WindowManager.mainWindow;
     }
 
     public static hideAll() {
@@ -70,7 +77,7 @@ export default class WindowManager {
     }
 
     public static openDevTools() {
-        MixPanelService.track("OpenDevTools", "Settings Window");
+        // MixPanelService.track("OpenDevTools", "Settings Window");
         for (const winCon of WindowManager.allWindows) {
             if (winCon.isExist) {
                 winCon.openDevTool();
