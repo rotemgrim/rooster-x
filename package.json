@@ -1,5 +1,5 @@
 {
-  "name": "boilerplate",
+  "name": "rooster-x",
   "version": "1.0.0",
   "main": "dist/main/main.js",
   "license": "MIT",
@@ -9,7 +9,8 @@
     "build": "webpack --config webpack.config.js",
     "run-electron": "electron .",
     "rebuild-sqlite": "electron-rebuild -f -w sqlite3",
-    "resync-typeorm": "ts-node typeorm schema:sync"
+    "resync-typeorm": "ts-node typeorm schema:sync",
+    "postinstall": "npm-run-all rebuild-sqlite"
   },
   "dependencies": {
     "@webcomponents/webcomponentsjs": "^2.2.7",

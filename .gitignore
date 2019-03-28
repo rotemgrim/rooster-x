@@ -16,3 +16,6 @@ test/electron/testBuild
 build/
 tmp/
 temp/
+
+database.sqlite
+package-lock.json

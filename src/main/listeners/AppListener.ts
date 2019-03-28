@@ -51,7 +51,7 @@ export default class AppListener {
             await AppController.bootstrapApp();
             console.log("app is ready!");
 
-            await FilesController.doFullSweep("u:\\videos");
+            await FilesController.doFullSweep("z:\\videos");
 
             // const meta = await IMDBController.getMetaDataFromInternet("Aquaman", 2018);
             // FilesController.getAllVideos("Z:\\Complete\\Rotem");
