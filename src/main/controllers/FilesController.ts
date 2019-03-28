@@ -120,7 +120,7 @@ export default class FilesController {
 
                 stream
                     .on("data", (sEntry: IFSEntry) => {
-                        const mEntry: IMediaEntry = ptn(sEntry.name, sEntry.fullParentDir);
+                        const mEntry: IMediaEntry = ptn(sEntry.name);
                         if (Object.keys(mEntry).length >= 4) {
                             console.log(mEntry);
                             entries.push({mEntry, sEntry});

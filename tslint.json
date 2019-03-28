@@ -23,6 +23,7 @@
     "no-var-requires": false,
     "ordered-imports": false,
     "object-literal-sort-keys": false,
+    "strict-null-checks": false,
 
 
 

@@ -2,7 +2,7 @@ import {app, BrowserWindowConstructorOptions} from "electron";
 import AbstractWindowController from "./AbstractWindowController";
 import AppGlobal from "../helpers/AppGlobal";
 import * as path from "path";
-declare const __static: any;
+import __static from "../../common/static";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 export default class MultipurposeWindowController extends AbstractWindowController {

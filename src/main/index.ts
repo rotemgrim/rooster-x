@@ -1,4 +1,3 @@
-
 // catches uncaught exceptions
 process.on("uncaughtException", e => console.warn("uncaughtException was fired", e));
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";

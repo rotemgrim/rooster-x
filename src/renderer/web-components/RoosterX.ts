@@ -1,8 +1,8 @@
 
 import {LitElement, html} from "lit-element";
 
-class RoosterX extends LitElement {
-    render() {
+export class RoosterX extends LitElement {
+    public render() {
         return html`<p>A paragraph</p>`;
     }
 }

@@ -5,12 +5,10 @@ import TrayBuilder from "../helpers/TrayBuilder";
 import WindowManager from "../services/WindowManager";
 import {MainPromiseIpc} from "../../common/lib/ipcPromise/MainPromiseIpc";
 import {rendererLogger} from "../helpers/Logger";
-import ZipperController from "../controllers/ZipperController";
 import ConfigController from "../controllers/ConfigController";
-import CommandListener from "./CommandListener";
 import ProxyService from "../services/ProxyService";
+import __static from "../../common/static";
 import FilesController from "../controllers/FilesController";
-declare const __static: any;
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -38,8 +36,8 @@ export default class AppListener {
             ipcMain.on("change-win-height", (e, height) => WindowManager.changeSenderHeight(e, height));
             ipcMain.on("send-to-logger", (e, data) => rendererLogger(data));
             ipcMain.on("open-all-dev-tools", () => WindowManager.openDevTools());
-            ipcMain.on("generate-logs", () => ZipperController.generateLogs());
-            ipcMain.on("clear-cache", () => ZipperController.clearCache());
+            // ipcMain.on("generate-logs", () => ZipperController.generateLogs());
+            // ipcMain.on("clear-cache", () => ZipperController.clearCache());
             ipcMain.on("quit-force", () => AppController.quit(true));
             ipcMain.on("logout-force", () => AppController.logout(true));
 
@@ -47,14 +45,13 @@ export default class AppListener {
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
 
             AppListener.isListening = true;
-            AppListener.listenForProcessEvents();
-            CommandListener.init();
+            // CommandListener.init();
             // TrayBuilder.init();
             await AppController.preOpenWindows();
             await AppController.bootstrapApp();
             console.log("app is ready!");
 
-            // await FilesController.doFullSweep("u:\\videos");
+            await FilesController.doFullSweep("u:\\videos");
 
             // const meta = await IMDBController.getMetaDataFromInternet("Aquaman", 2018);
             // FilesController.getAllVideos("Z:\\Complete\\Rotem");
@@ -69,39 +66,4 @@ export default class AppListener {
             }
         }, 100);
     }
-
-    // private static on(channel: string, func: any) {
-    //     ipcMain.on(channel, (...args) => {
-    //         console.debug("ipcMain", channel);
-    //         if (args && args.length > 0) {
-    //             func(...args);
-    //         } else {
-    //             func();
-    //         }
-    //     });
-    // }
-
-    private static listenForProcessEvents() {
-        // the script below is for cleanup on unexpected exit
-        // process.stdin.resume(); // so the program will not close instantly
-
-        // do something when app is closing
-        // process.on('exit', AppListener.exitHandler.bind(null, {cleanup: true}));
-
-        // catches ctrl+c event
-        // process.on('SIGINT', AppListener.exitHandler.bind(null, {cleanup: true}));
-
-        // catches "kill pid" (for example: nodemon restart)
-        // process.on('SIGUSR1', AppListener.exitHandler.bind(null, {cleanup: true}));
-        // process.on('SIGUSR2', AppListener.exitHandler.bind(null, {cleanup: true}));
-    }
-
-    // private static exitHandler(options, exitCode) {
-    //     if (options.cleanup) {
-    //         AppController.quit();
-    //     }
-    //     if (options.exit) {
-    //         process.exit();
-    //     }
-    // }
 }

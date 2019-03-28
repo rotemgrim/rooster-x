@@ -1,5 +1,4 @@
-
-declare const __static: any;
+import __static from "../../common/static";
 import * as Electron from "electron";
 import * as path from "path";
 import { URL, format as formatUrl } from "url";

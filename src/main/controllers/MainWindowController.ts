@@ -2,12 +2,12 @@ import {app, BrowserWindow, BrowserWindowConstructorOptions} from "electron";
 import AbstractWindowController from "./AbstractWindowController";
 import * as path from "path";
 import {format as formatUrl} from "url";
-declare const __static: any;
+import __static from "../../common/static";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 export default class MainWindowController extends AbstractWindowController {
 
-    public windowName: string = "Multipurpose";
+    public windowName: string = "Main";
 
     protected options: BrowserWindowConstructorOptions = {
         title: "Rooster-X",
@@ -41,18 +41,18 @@ export default class MainWindowController extends AbstractWindowController {
         this.win.setMenu(null);
         this.registerEvents();
 
-        console.log(process.env.ELECTRON_WEBPACK_WDS_PORT);
         this.win.webContents.openDevTools();
 
-        if (isDevelopment) {
-            this.win.loadURL(`http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT}/index.html`);
-        } else {
-            this.win.loadURL(formatUrl({
-                pathname: path.join(__dirname, "index.html"),
-                protocol: "file",
-                slashes: true,
-            }));
-        }
+        // if (isDevelopment) {
+        //     this.win.loadURL(`http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT}/index.html`);
+        // } else {
+        console.log("dir", path.join(__dirname, "../../../src/renderer/index.html"));
+        this.win.loadURL(formatUrl({
+            pathname: path.join(__dirname, "../../../src/renderer/index.html"),
+            protocol: "file",
+            slashes: true,
+        }));
+        // }
 
         console.info(`Creating ${this.windowName} Window...`);
         // this.win.loadFile("../renderer/mainWindow.html");
