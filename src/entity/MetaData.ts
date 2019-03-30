@@ -89,10 +89,10 @@ export class MetaData {
     @Column({type: "text", nullable: true})
     public trailer?: string;
 
-    @OneToMany(() => MediaFile, mediaFile => mediaFile.metaData)
+    @OneToMany(() => MediaFile, mediaFile => mediaFile.metaData, {eager: true})
     public mediaFiles: MediaFile[];
 
-    @OneToMany(() => Episode, episode => episode.metaData)
+    @OneToMany(() => Episode, episode => episode.metaData, {eager: true})
     public episodes: Episode[];
 
     @Column({type: "varchar", length: 10, default: "not-scanned"})

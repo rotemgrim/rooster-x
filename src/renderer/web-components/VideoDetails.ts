@@ -16,6 +16,9 @@ export class VideoDetails extends LitElement {
 
     constructor() {
         super();
+        setTimeout(() => {
+            this.focus();
+        });
     }
 
     public static getRuntime(vid: MetaData): string {
@@ -55,6 +58,7 @@ export class VideoDetails extends LitElement {
 
     public close() {
         this.card.isShowDetails = false;
+        document.body.style.overflow = "auto";
         this.requestUpdate();
     }
 
@@ -85,6 +89,14 @@ export class VideoDetails extends LitElement {
                 ${this.video.imdburl}<br><br>
                 <br><br>
             </div>
+
+            ${this.video.type === "series" && this.video.episodes
+                && this.video.episodes.length > 0 ?
+                html`<div class="episodes">
+                    ${this.video.episodes.map(ep => {
+                        return html`<div>${ep.title}<br><img src="${ep.poster}" alt=""></div><br>`;
+                    })}
+                </div>` : ""}
         </div>`;
     }
 }

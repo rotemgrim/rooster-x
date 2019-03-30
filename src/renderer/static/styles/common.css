@@ -45,11 +45,12 @@ video-details {
     width: 100%;
     left: 0;
     top: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.85);
     height: 100%;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: auto;
     padding: 5em;
+    outline: none;
 }
 .video-details {
     position: relative;

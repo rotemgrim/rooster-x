@@ -21,6 +21,7 @@ export class VideoCard extends LitElement {
 
     public showDetails() {
         this.isShowDetails = true;
+        document.body.style.overflow = "hidden";
         this.requestUpdate();
     }
 
@@ -31,7 +32,7 @@ export class VideoCard extends LitElement {
                 html`<img src="" alt="${this.video.poster}"/>`}
         </div>
         ${this.isShowDetails ?
-            html`<video-details
+            html`<video-details tabindex="${this.video.id}"
                     .card="${this}"
                     .video=${this.video}>
                 </video-details>` : ""}`;
