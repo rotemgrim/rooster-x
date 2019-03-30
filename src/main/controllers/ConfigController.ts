@@ -7,7 +7,7 @@ import AppGlobal from "../helpers/AppGlobal";
 import MixPanelService from "../services/MixPanelService";
 import ProxyService from "../services/ProxyService";
 
-const RO_FOLDER = path.join(process.env.APPDATA || "", "Rooster-X Sync App");
+const RO_FOLDER = path.join(process.env.APPDATA || "", "Rooster-X");
 const RO_CONFIG_FILE = path.join(RO_FOLDER, "config.json");
 
 export default class ConfigController {
@@ -108,8 +108,9 @@ export default class ConfigController {
         } else {
             // create the config file
             const config: IConfig = {
-                serverUrl: new URL("{%HOST_URL%}"),
+                serverUrl: new URL("http://127.0.0.1"),
                 keepWindowsAlive: true,
+                omdbApiKey: "",
             };
             return ConfigController.saveConfigToFile(config);
         }

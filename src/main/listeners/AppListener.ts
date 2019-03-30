@@ -8,6 +8,7 @@ import {rendererLogger} from "../helpers/Logger";
 import ConfigController from "../controllers/ConfigController";
 import ProxyService from "../services/ProxyService";
 import __static from "../../common/static";
+import {getAllMedia} from "../controllers/MediaController";
 import FilesController from "../controllers/FilesController";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
@@ -43,6 +44,7 @@ export default class AppListener {
 
             promiseIpc.on("get-config", ConfigController.getConfigPromise);
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
+            promiseIpc.on("get-all-media", getAllMedia);
 
             AppListener.isListening = true;
             // CommandListener.init();
@@ -51,7 +53,8 @@ export default class AppListener {
             await AppController.bootstrapApp();
             console.log("app is ready!");
 
-            await FilesController.doFullSweep("z:\\videos");
+            // await FilesController.doF1ullSweep("z:\\videos");
+            // await FilesController.doFullSweep("Z:\\Complete\\Shirley");
 
             // const meta = await IMDBController.getMetaDataFromInternet("Aquaman", 2018);
             // FilesController.getAllVideos("Z:\\Complete\\Rotem");

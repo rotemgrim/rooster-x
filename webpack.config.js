@@ -18,8 +18,14 @@ let common_config = {
                 ]
             },
             {
-                test: /\.(html)$/,
-                use:  "html-loader"
+                test: /\.(html|css)$/,
+                loader: 'raw-loader',
+                exclude: /\.async\.(html|css)$/
+            },
+            /* Async loading. */
+            {
+                test: /\.async\.(html|css)$/,
+                loaders: ['file?name=[name].[hash].[ext]', 'extract']
             }
         ]
     },
@@ -47,6 +53,16 @@ module.exports = [
         },
         output: {
             filename: '[name].js',
+            path: path.resolve(__dirname, 'dist/renderer')
+        },
+    }),
+    Object.assign({}, common_config, {
+        target: 'electron-renderer',
+        entry: {
+            index: './src/renderer/index.html',
+        },
+        output: {
+            filename: '[name].html',
             path: path.resolve(__dirname, 'dist/renderer')
         },
     })

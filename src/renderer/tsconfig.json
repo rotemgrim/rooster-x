@@ -7,12 +7,30 @@
         "newLine": "LF",
         "allowSyntheticDefaultImports": true,
         "strict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
         "sourceMap": true,
         "skipLibCheck": true,
         "allowJs": true,
-        "jsx": "preserve"
+        "jsx": "preserve",
+
+
+        "noImplicitAny": false,
+
+
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "lib": ["es5", "es6", "dom"],
+        "module": "commonjs",
+        "importHelpers": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "stripInternal": true,
+        "strictNullChecks": true,
+        "downlevelIteration": true,
+        "strictPropertyInitialization": false,
+
+        "noUnusedParameters": false,
+        "noUnusedLocals": false
     },
     "exclude": [
       "node_modules",

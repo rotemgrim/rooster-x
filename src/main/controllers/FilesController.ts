@@ -16,7 +16,6 @@ import IMDBController from "./IMDBController";
 export default class FilesController {
 
     public static doFullSweep(directory: string): Promise<any> {
-
         return new Promise(async (resolve, reject) => {
             const entries = await FilesController.getAllVideos(directory);
             console.log(entries.length);
@@ -31,6 +30,7 @@ export default class FilesController {
                 ],
                 synchronize: true,
             }).then(async connection => {
+                console.info("db connection made");
                 const mediaFiles: MediaFile[] = [];
                 const filesRepo = connection.getRepository(MediaFile);
                 const metaDataRepo = connection.getRepository(MetaData);
@@ -127,8 +127,17 @@ export default class FilesController {
                         }
                     })
                     .on("end", () => {
-                        const promises = entries.map((e) => FilesController.calcEntryHash(e));
-                        Promise.all(promises).then(() => resolve(entries));
+                        // console.info("calculating hashes");
+                        // const promises = entries.map((e) => FilesController.calcEntryHash(e));
+                        // Promise.all(promises).then(() => resolve(entries)).catch(e => {
+                        //    console.error(e);
+                        //    reject(e);
+                        // });
+                        resolve(entries);
+                    })
+                    .on("error", (e) => {
+                        console.error(e);
+                        reject(e);
                     });
             } catch (e) {
                 reject(e);
@@ -138,14 +147,16 @@ export default class FilesController {
     }
 
     public static calcEntryHash(e: IEntry): Promise<any> {
-        return new Promise(async (resolve) => {
+        return new Promise(async (resolve, reject) => {
             let hash; let err;
             [err, hash] = await to(getFileMd5(e.sEntry.fullPath));
             e.sEntry.hash = "";
             if (!err) {
                 e.sEntry.hash = hash;
+                resolve();
+            } else {
+                reject(err);
             }
-            resolve();
         });
     }
 

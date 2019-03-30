@@ -3,6 +3,7 @@ import AbstractWindowController from "./AbstractWindowController";
 import * as path from "path";
 import {format as formatUrl} from "url";
 import __static from "../../common/static";
+import __basedir from "../../basepath";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 export default class MainWindowController extends AbstractWindowController {
