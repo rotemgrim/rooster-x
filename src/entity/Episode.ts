@@ -13,7 +13,7 @@ export class Episode {
     public title?: string;
 
     @Column({type: "text", nullable: true})
-    public description?: string;
+    public plot?: string;
 
     @Column({type: "int", nullable: true})
     public season?: number;
@@ -22,16 +22,31 @@ export class Episode {
     public episode: number;
 
     @Column({type: "text", nullable: true})
-    public image: string;
+    public poster: string;
 
-    @Column({type: "text", nullable: true})
-    public trailer: string;
+    @Column({type: "varchar", length: 255, nullable: true})
+    public released?: string;
+
+    @Column({type: "int", nullable: true})
+    public runtime?: number;
+
+    @Column({type: "varchar", length: 255, nullable: true})
+    public directro?: string;
+
+    @Column({type: "varchar", length: 255, nullable: true})
+    public writer?: string;
+
+    @Column({type: "varchar", length: 255, nullable: true})
+    public imdbId?: string;
+
+    @Column({type: "varchar", length: 255, nullable: true})
+    public imdbSeriesId?: string;
+
+    @Column({type: "int", nullable: true})
+    public imdbVotes?: number;
 
     @Column({type: "float", nullable: true})
-    public IMDBScore: number;
-
-    @Column({type: "float", nullable: true})
-    public IMDBLink: number;
+    public imdbRating?: number;
 
     @OneToMany(() => MediaFile, mediaFile => mediaFile.episode)
     public mediaFiles: MediaFile[];

@@ -12,6 +12,7 @@ import {MediaFile} from "../../entity/MediaFile";
 import {MetaData} from "../../entity/MetaData";
 import {Episode} from "../../entity/Episode";
 import IMDBController from "./IMDBController";
+import IMDBService from "../services/IMDBService";
 
 export default class FilesController {
 
@@ -70,7 +71,7 @@ export default class FilesController {
 
                     if (e.mEntry.episode || e.mEntry.season) {
                         file.metaData = this.getMetaData(seriesArr, e, "series");
-                        file.episode = this.getEpisode(file.metaData, episodesArr, e);
+                        file.episode = await this.getEpisode(file.metaData, episodesArr, e);
                     } else {
                         file.metaData = this.getMetaData(moviesArr, e, "movie");
                     }
@@ -173,22 +174,28 @@ export default class FilesController {
         }
     }
 
-    public static getEpisode(metaData: MetaData, episodesArr: Episode[], e: IEntry): Episode {
-        const tmpArr = episodesArr.filter((s) => {
-            return s.metaData && s.metaData.title === e.mEntry.title
-                && s.season === e.mEntry.season
-                && s.episode === e.mEntry.episode;
+    public static getEpisode(metaData: MetaData, episodesArr: Episode[], e: IEntry): Promise<Episode> {
+        return new Promise((resolve) => {
+            const tmpArr = episodesArr.filter((s) => {
+                return s.metaData && s.metaData.title === e.mEntry.title
+                    && s.season === e.mEntry.season
+                    && s.episode === e.mEntry.episode;
+            });
+            if (tmpArr && tmpArr.length > 0) {
+                resolve(tmpArr[0]);
+            } else {
+                const tmpEpisode = new Episode();
+                tmpEpisode.title = e.mEntry.title;
+                tmpEpisode.episode = e.mEntry.episode || 0;
+                tmpEpisode.season = e.mEntry.season;
+                tmpEpisode.metaData = metaData;
+                IMDBController.getEpisodeMetaDataFromInternetByEpisode(tmpEpisode)
+                    .then(ep => {
+                        episodesArr.push(ep);
+                        resolve(ep);
+                    })
+                    .catch(() => resolve(tmpEpisode));
+            }
         });
-        if (tmpArr && tmpArr.length > 0) {
-            return tmpArr[0];
-        } else {
-            const tmpEpisode = new Episode();
-            tmpEpisode.title = e.mEntry.title;
-            tmpEpisode.episode = e.mEntry.episode || 0;
-            tmpEpisode.season = e.mEntry.season;
-            tmpEpisode.metaData = metaData;
-            episodesArr.push(tmpEpisode);
-            return tmpEpisode;
-        }
     }
 }

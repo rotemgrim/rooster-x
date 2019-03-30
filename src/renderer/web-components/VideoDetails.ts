@@ -45,14 +45,9 @@ export class VideoDetails extends LitElement {
         if (vid.year) {
             return vid.year + " |";
         } else if (vid.released) {
-            try {
-                const tmp = vid.released.getFullYear();
-                return tmp + " |";
-            } catch (e) {
-                const tmp = (vid.released.toString()).split("-");
-                if (tmp.length > 0) {
-                    return tmp[0] + " |";
-                }
+            const tmp = (vid.released.toString()).split("-");
+            if (tmp.length > 0) {
+                return tmp[0] + " |";
             }
         }
         return "";

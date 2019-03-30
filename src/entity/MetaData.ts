@@ -9,7 +9,7 @@ export class MetaData {
     public id: number;
 
     @Column({type: "varchar", length: 40})
-    public type: "movie" | "series";
+    public type: "movie" | "series" | string;
 
     @Column({type: "varchar", length: 255})
     public title: string;
@@ -83,8 +83,8 @@ export class MetaData {
     public actors: string;
 
     /** date that the movie was originally released */
-    @Column({type: "date", nullable: true})
-    public released?: Date;
+    @Column({type: "varchar", length: 255, nullable: true})
+    public released?: string;
 
     @Column({type: "text", nullable: true})
     public trailer?: string;

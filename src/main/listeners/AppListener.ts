@@ -10,6 +10,9 @@ import ProxyService from "../services/ProxyService";
 import __static from "../../common/static";
 import {getAllMedia} from "../controllers/MediaController";
 import FilesController from "../controllers/FilesController";
+import {Episode} from "../../entity/Episode";
+import IMDBController from "../controllers/IMDBController";
+import {MetaData} from "../../entity/MetaData";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
