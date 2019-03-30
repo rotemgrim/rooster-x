@@ -51,8 +51,8 @@ export class MetaData {
     public rating: number;
 
     /** the runtime of the movie */
-    @Column({type: "varchar", nullable: true})
-    public runtime: string;
+    @Column({type: "int", nullable: true})
+    public runtime: number;
 
     /** year the movie was released */
     @Column({type: "int", nullable: true})

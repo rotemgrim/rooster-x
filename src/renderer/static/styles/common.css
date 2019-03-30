@@ -6,6 +6,7 @@
 
 body {
     background-color: #000;
+    font-family: SansSerif;
 }
 
 .videos {
@@ -35,4 +36,50 @@ video-card {
     width: 224px;
     height: 314px;
     z-index: -1;
+}
+
+
+video-details {
+    display: block;
+    position: fixed;
+    width: 100%;
+    left: 0;
+    top: 0;
+    background: rgba(0, 0, 0, 0.9);
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 5em;
+}
+.video-details {
+    position: relative;
+    width: 100%;
+    height: 100%;
+
+    color: white;
+    letter-spacing: 0.2em;
+    font-family: sans-serif;
+}
+.video-details .poster {
+    float: left;
+    margin-right: 5em;
+    height: 100%;
+}
+.video-details h1 {
+    font-size: 6em;
+    font-family: fantasy;
+    padding-right: 0.5em;
+}
+.video-details p {
+    font-size: 2em;
+    letter-spacing: 1px;
+}
+.video-details .close {
+    cursor: pointer;
+    color: red;
+    position: absolute;
+    right: 0;
+    top: 0;
+    font-weight: 900;
+    font-size: 3em;
 }

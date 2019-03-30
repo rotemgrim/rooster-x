@@ -18,7 +18,7 @@ export default class IMDBController {
                     file.metaData.votes = data.votes;
                     file.metaData.series = data.series;
                     file.metaData.rating = data.rating;
-                    file.metaData.runtime = data.runtime;
+                    file.metaData.runtime = IMDBController.extractRuntime(data.runtime);
                     file.metaData.year = data.year;
                     file.metaData.poster = data.poster;
                     file.metaData.metascore = data.metascore;
@@ -31,6 +31,19 @@ export default class IMDBController {
                     resolve(file);
             }).catch(reject);
         });
+    }
+
+    public static extractRuntime(runtimeStr: string): number {
+        if (runtimeStr === "N/A") {
+            return 0;
+        }
+
+        if (runtimeStr.endsWith("min")) {
+            const tmp = runtimeStr.split(" min");
+            return parseInt(tmp[0], 10);
+        }
+
+        return parseInt(runtimeStr, 10);
     }
 
     public static getMetaDataFromInternet(title: string, year?: number): Promise<Movie> {
