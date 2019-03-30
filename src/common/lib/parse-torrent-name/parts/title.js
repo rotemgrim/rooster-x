@@ -46,6 +46,6 @@ core.on('common', function () {
   core.emit('part', {
     name: 'title',
     raw: raw,
-    clean: clean
+    clean: clean.toLowerCase()
   });
 });
