@@ -10,9 +10,6 @@ import ProxyService from "../services/ProxyService";
 import __static from "../../common/static";
 import {getAllMedia} from "../controllers/MediaController";
 import FilesController from "../controllers/FilesController";
-import {Episode} from "../../entity/Episode";
-import IMDBController from "../controllers/IMDBController";
-import {MetaData} from "../../entity/MetaData";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -56,7 +53,7 @@ export default class AppListener {
             await AppController.bootstrapApp();
             console.log("app is ready!");
 
-            // await FilesController.doF1ullSweep("z:\\videos");
+            // await FilesController.doFullSweep("u:\\videos");
             // await FilesController.doFullSweep("Z:\\Complete\\Shirley");
 
             // const meta = await IMDBController.getMetaDataFromInternet("Aquaman", 2018);

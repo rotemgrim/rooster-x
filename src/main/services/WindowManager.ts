@@ -1,7 +1,6 @@
 
 import AbstractWindowController from "../controllers/AbstractWindowController";
 import MultipurposeWindowController from "../controllers/MultipurposeWindowController";
-import {IConfig} from "../../common/models/IConfig";
 import {BrowserWindow} from "electron";
 import MainWindowController from "../controllers/MainWindowController";
 
@@ -11,7 +10,7 @@ export default class WindowManager {
     private static multipurposeWindow: MultipurposeWindowController;
     private static mainWindow: MainWindowController;
 
-    public static init(config: IConfig) {
+    public static init() {
         WindowManager.multipurposeWindow = new MultipurposeWindowController();
         WindowManager.mainWindow = new MainWindowController();
         WindowManager.allWindows = [

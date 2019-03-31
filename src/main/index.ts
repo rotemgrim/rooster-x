@@ -18,8 +18,8 @@ app.commandLine.appendSwitch("ignore-certificate-errors");
 (async () => {
     try {
         await MakeSingular.init();
-        const config = await ConfigController.loadConfig();
-        WindowManager.init(config);
+        await ConfigController.loadConfig();
+        WindowManager.init();
         await AppListener.init();
     } catch (e) {
         console.error(e);

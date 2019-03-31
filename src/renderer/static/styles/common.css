@@ -60,12 +60,74 @@ video-details {
     color: white;
     letter-spacing: 0.2em;
     font-family: sans-serif;
+
+    display: flex;
+    align-items: start;
 }
 .video-details .poster {
     float: left;
     margin-right: 5em;
     height: 100%;
+    max-width: 300px;
+    position: fixed;
+    width: 300px;
 }
+
+.video-details .poster .rating {
+    font-size: 10em;
+    clear: both;
+    width: 100%;
+    display: block;
+    text-align: center;
+    letter-spacing: 0.05em;
+    color: #f5c518;
+}
+.video-details .poster .votes {
+    font-size: 2em;
+    text-align: center;
+    width: 100%;
+    display: block;
+    margin-top: -0.5em;
+    color: #e8b708;
+}
+.video-details .poster .votes small {
+    color: antiquewhite;
+}
+.video-details .poster .imdb {
+    font-family: fantasy;
+    font-size: 5em;
+    color: #000;
+    background: #f5c518;
+    border-radius: 10px;
+    text-align: center;
+    margin: 0.2em 0.4em 0.4em 0.4em;
+    cursor: pointer;
+}
+.video-details .poster .imdb:hover {
+    background: #e8b708;
+}
+
+.video-details .poster .trailer {
+    font-family: fantasy;
+    font-size: 4em;
+    color: #e6e6e6;
+    background: #d80a0a;
+    border-radius: 10px;
+    text-align: center;
+    width: 236px;
+    margin: auto;
+    cursor: pointer;
+}
+.video-details .poster .trailer:hover {
+    color: #ffffff;
+}
+
+.video-details .main-details {
+    float: left;
+    padding-left: calc(300px + 5em);
+    padding-bottom: 15em;
+}
+
 .video-details h1 {
     font-size: 6em;
     font-family: fantasy;
@@ -83,4 +145,54 @@ video-details {
     top: 0;
     font-weight: 900;
     font-size: 3em;
+}
+
+.video-details .small-details {
+    margin-bottom: 4em;
+    color: #6bec5d;
+    font-weight: 900;
+    font-size: 0.8em;
+}
+
+.video-details .episodes {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+episode-card {
+    margin-bottom: 1.7em;
+}
+.video-details .episode {
+    width: 300px;
+}
+.video-details .episode .title {
+    display: inline-block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    width: calc(100% - 1em);
+    overflow: hidden;
+    text-align: left;
+}
+
+.video-details .episode .image {
+    height: 165px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.video-details .episode .image i{
+    position: absolute;
+    font-size: 7em;
+    opacity: 0.5;
+}
+
+.video-details .episode:hover .image i{
+    opacity: 1;
+}
+
+.video-details .episode img {
+    min-width: 300px;
+    min-height: 165px;
 }
