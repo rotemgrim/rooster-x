@@ -1,4 +1,4 @@
-import {app, ipcMain} from "electron";
+import {app, ipcMain, shell} from "electron";
 import AppController from "../controllers/AppController";
 import AppGlobal from "../helpers/AppGlobal";
 import TrayBuilder from "../helpers/TrayBuilder";
@@ -8,8 +8,9 @@ import {rendererLogger} from "../helpers/Logger";
 import ConfigController from "../controllers/ConfigController";
 import ProxyService from "../services/ProxyService";
 import __static from "../../common/static";
-import {getAllMedia} from "../controllers/MediaController";
-import FilesController from "../controllers/FilesController";
+import {MediaRepository} from "../repositories/MediaRepository";
+import {Container} from "typedi";
+// import FilesController from "../controllers/FilesController";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -42,9 +43,11 @@ export default class AppListener {
             ipcMain.on("quit-force", () => AppController.quit(true));
             ipcMain.on("logout-force", () => AppController.logout(true));
 
+            ipcMain.on("open-external", (e, url) => shell.openExternal(url));
+
             promiseIpc.on("get-config", ConfigController.getConfigPromise);
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
-            promiseIpc.on("get-all-media", getAllMedia);
+            promiseIpc.on("get-all-media", () => Container.get(MediaRepository).getAllMedia());
 
             AppListener.isListening = true;
             // CommandListener.init();
@@ -52,6 +55,18 @@ export default class AppListener {
             await AppController.preOpenWindows();
             await AppController.bootstrapApp();
             console.log("app is ready!");
+
+            // const mediaRepo = Container.get(MediaRepository);
+            // const test = await mediaRepo.query(MediaFile);
+            // const test = await getQuery(MediaFile, {
+            //     order: {
+            //         id: "DESC",
+            //     },
+            //     skip: 5,
+            //     take: 10,
+            //     cache: true,
+            // });
+            // console.log(test);
 
             // await FilesController.doFullSweep("u:\\videos");
             // await FilesController.doFullSweep("Z:\\Complete\\Shirley");

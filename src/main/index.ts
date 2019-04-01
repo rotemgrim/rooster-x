@@ -10,6 +10,9 @@ import ConfigController from "./controllers/ConfigController";
 import AppListener from "./listeners/AppListener";
 import MakeSingular from "./helpers/MakeSingleInstance";
 import WindowManager from "./services/WindowManager";
+import DBConnection from "./repositories/DBConnection";
+import {Container} from "typedi";
+import {useContainer} from "typeorm";
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("ignore-certificate-errors");
@@ -17,7 +20,9 @@ app.commandLine.appendSwitch("ignore-certificate-errors");
 
 (async () => {
     try {
+        useContainer(Container);
         await MakeSingular.init();
+        await DBConnection.connect();
         await ConfigController.loadConfig();
         WindowManager.init();
         await AppListener.init();
