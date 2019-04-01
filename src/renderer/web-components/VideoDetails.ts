@@ -63,6 +63,23 @@ export class VideoDetails extends LitElement {
         this.requestUpdate();
     }
 
+    protected firstUpdated(): void {
+        IpcService.dbQuery("Episode", {
+            where: {
+                imdbSeriesId: this.video.imdbid,
+            },
+            order: {
+                season: "ASC",
+                episode: "ASC",
+            },
+            cache: true,
+        }).then(res => {
+            console.log(res);
+            this.video.episodes = res;
+            this.requestUpdate();
+        }).catch(console.log);
+    }
+
     public render() {
         return html`<div class="video-details">
             <div class="close" @click="${this.close}">
@@ -94,12 +111,6 @@ export class VideoDetails extends LitElement {
                 ${this.video.type === "series" && this.video.episodes
                     && this.video.episodes.length > 0 ?
                     html`<div class="episodes">
-                        ${this.video.episodes.map(ep => {
-                            return html`<episode-card .episode=${ep}></episode-card>`;
-                        })}
-                        ${this.video.episodes.map(ep => {
-                            return html`<episode-card .episode=${ep}></episode-card>`;
-                        })}
                         ${this.video.episodes.map(ep => {
                             return html`<episode-card .episode=${ep}></episode-card>`;
                         })}

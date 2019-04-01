@@ -84,4 +84,11 @@ export class IpcService {
             promiseIpc.send("get-all-media").then(resolve).catch(reject);
         });
     }
+
+    public static dbQuery(entity: string, query: any): Promise<any> {
+        const payload = {entity, query};
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("db-query", payload).then(resolve).catch(reject);
+        });
+    }
 }

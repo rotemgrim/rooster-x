@@ -10,7 +10,7 @@ import ProxyService from "../services/ProxyService";
 import __static from "../../common/static";
 import {MediaRepository} from "../repositories/MediaRepository";
 import {Container} from "typedi";
-// import FilesController from "../controllers/FilesController";
+import FilesController from "../controllers/FilesController";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -48,6 +48,7 @@ export default class AppListener {
             promiseIpc.on("get-config", ConfigController.getConfigPromise);
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
             promiseIpc.on("get-all-media", () => Container.get(MediaRepository).getAllMedia());
+            promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
 
             AppListener.isListening = true;
             // CommandListener.init();
@@ -56,17 +57,20 @@ export default class AppListener {
             await AppController.bootstrapApp();
             console.log("app is ready!");
 
-            // const mediaRepo = Container.get(MediaRepository);
-            // const test = await mediaRepo.query(MediaFile);
-            // const test = await getQuery(MediaFile, {
-            //     order: {
-            //         id: "DESC",
+            // const test = await Container.get(MediaRepository).query({
+            //     entity: "Episode",
+            //     query: {
+            //         where: {
+            //             imdbSeriesId: "tt3107288",
+            //         },
+            //         order: {
+            //             season: "ASC",
+            //             episode: "ASC",
+            //         },
             //     },
-            //     skip: 5,
-            //     take: 10,
-            //     cache: true,
             // });
-            // console.log(test);
+            // console.log(test[0].mediaFiles);
+            // console.log(test[0].raw);
 
             // await FilesController.doFullSweep("u:\\videos");
             // await FilesController.doFullSweep("Z:\\Complete\\Shirley");

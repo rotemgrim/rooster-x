@@ -1,5 +1,5 @@
 import {Service} from "typedi";
-import {Connection} from "typeorm";
+import {Connection, ObjectType} from "typeorm";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import {MetaData} from "../../entity/MetaData";
 
@@ -14,8 +14,18 @@ export class MediaRepository {
         return metaRepo.find();
     }
 
-    public query(repository: any, q?: any) {
-        const metaRepo = this.connection.manager.getRepository(repository);
-        return metaRepo.find(q);
+    public query(payload: {entity: string, query: any}): Promise<any> {
+        const repository = payload.entity;
+        const q = payload.query;
+        console.log("query", repository);
+        console.log("query", q);
+        return new Promise((resolve, reject) => {
+            this.connection.manager.getRepository(repository).find(q)
+                .then(resolve)
+                .catch(e => {
+                    console.error("could not perform query", e);
+                    reject();
+                });
+        });
     }
 }
