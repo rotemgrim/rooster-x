@@ -196,3 +196,50 @@ episode-card {
     min-width: 300px;
     min-height: 165px;
 }
+
+media-file-card {
+    width: 100%;
+    display: inline-block;
+}
+
+.media-file {
+    width: 100%;
+    /* height: 3em; */
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    white-space: nowrap;
+    background-color: blueviolet;
+    border-radius: 0.5em;
+    padding: 0.3em;
+    cursor: pointer;
+    color: white;
+    margin-bottom: 1em;
+}
+.media-file i {
+    font-size: 3em;
+}
+.media-file .resolution, .media-file .audio, .media-file .quality{
+    background-color: darkmagenta;
+    font-size: 1.9em;
+    padding: 0 0.5em;
+    border-radius: 1.2em;
+    margin-left: 0.5em;
+    color: white !important;
+}
+.media-file .audio{
+    background-color: darkorange;
+}
+.media-file .quality{
+    background-color: darkred;
+}
+.media-file .raw{
+    margin-left: 1.2em;
+}
+.media-file:hover {
+    background-color: #6bec5d;
+    color: black
+}
+.media-file:hover i {
+    color: black;
+}

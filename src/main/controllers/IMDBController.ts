@@ -17,8 +17,8 @@ export default class IMDBController {
                     if (data.Released !== "N/A") {episode.released = data.Released; }
                     if (data.imdbID !== "N/A") {episode.imdbId = data.imdbID; }
                     if (data.seriesID !== "N/A") {episode.imdbSeriesId = data.seriesID; }
-                    if (data.imdbVotes !== "N/A") {episode.imdbVotes = parseInt(data.imdbVotes, 10); }
-                    if (data.imdbRating !== "N/A") {episode.imdbRating = parseFloat(data.imdbRating); }
+                    if (data.imdbVotes !== "N/A") {episode.votes = parseInt(data.imdbVotes.replace(/,/g, ""), 10); }
+                    if (data.imdbRating !== "N/A") {episode.rating = parseFloat(data.imdbRating); }
                     resolve(episode);
                 }).catch(reject);
         });
@@ -33,7 +33,9 @@ export default class IMDBController {
                     if (data.Genre !== "N/A") {file.metaData.genres = data.Genre; }
                     if (data.Language !== "N/A") {file.metaData.languages = data.Language; }
                     if (data.Country !== "N/A") {file.metaData.country = data.Country; }
-                    if (data.imdbVotes !== "N/A") {file.metaData.votes = data.imdbVotes; }
+                    if (data.imdbVotes !== "N/A") {
+                        file.metaData.votes = parseInt(data.imdbVotes.replace(/,/g, ""), 10);
+                    }
                     if (data.Type !== "N/A") {file.metaData.type = data.Type; }
                     if (data.imdbRating !== "N/A") {file.metaData.rating = parseFloat(data.imdbRating); }
                     if (data.Runtime !== "N/A") {file.metaData.runtime = IMDBController.extractRuntime(data.Runtime); }

@@ -1,7 +1,7 @@
 {
     "compileOnSave": false,
     "compilerOptions": {
-        "target": "es2015",
+        "target": "es2017",
         "moduleResolution": "node",
         "pretty": true,
         "newLine": "LF",

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import {Entity, PrimaryGeneratedColumn, Column, ManyToOne} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn} from "typeorm";
 import {MetaData} from "./MetaData";
 import {Episode} from "./Episode";
 

@@ -20,43 +20,39 @@ export class MetaData {
 
     /** id of the movie on imdb */
     @Column({type: "varchar", length: 40, nullable: true})
-    public imdbid: string;
-
-    /** direct URL to the movie on imdb */
-    @Column({type: "text", nullable: true})
-    public imdburl: string;
+    public imdbid?: string;
 
     /** the genres that this movie belongs to */
     @Column({type: "text", nullable: true})
-    public genres: string;
+    public genres?: string;
 
     /** languages this movie was released in */
     @Column({type: "text", nullable: true})
-    public languages: string;
+    public languages?: string;
 
     /** countries this movie was released in */
     @Column({type: "text", nullable: true})
-    public country: string;
+    public country?: string;
 
     /** votes received on imdb */
-    @Column({type: "text", nullable: true})
-    public votes: string;
+    @Column({type: "int", nullable: true})
+    public votes?: number;
 
     /** whether or not this is a TV series */
     @Column({type: "boolean", nullable: true})
-    public series: boolean;
+    public series?: boolean;
 
     /** the rating as it appears on imdb */
     @Column({type: "float", nullable: true})
-    public rating: number;
+    public rating?: number;
 
     /** the runtime of the movie */
     @Column({type: "int", nullable: true})
-    public runtime: number;
+    public runtime?: number;
 
     /** year the movie was released */
     @Column({type: "int", nullable: true})
-    public year: number;
+    public year?: number;
 
     /** link to the poster for this movie */
     @Column({type: "text", nullable: true})
@@ -89,7 +85,7 @@ export class MetaData {
     @Column({type: "text", nullable: true})
     public trailer?: string;
 
-    @OneToMany(() => MediaFile, mediaFile => mediaFile.metaData)
+    @OneToMany(() => MediaFile, mediaFile => mediaFile.metaData, {eager: true})
     public mediaFiles: MediaFile[];
 
     @OneToMany(() => Episode, episode => episode.metaData)

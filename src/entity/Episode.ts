@@ -31,22 +31,16 @@ export class Episode {
     public runtime?: number;
 
     @Column({type: "varchar", length: 255, nullable: true})
-    public directro?: string;
-
-    @Column({type: "varchar", length: 255, nullable: true})
-    public writer?: string;
-
-    @Column({type: "varchar", length: 255, nullable: true})
     public imdbId?: string;
 
     @Column({type: "varchar", length: 255, nullable: true})
     public imdbSeriesId?: string;
 
     @Column({type: "int", nullable: true})
-    public imdbVotes?: number;
+    public votes?: number;
 
     @Column({type: "float", nullable: true})
-    public imdbRating?: number;
+    public rating?: number;
 
     @OneToMany(() => MediaFile, mediaFile => mediaFile.episode, {eager: true})
     public mediaFiles: MediaFile[];

@@ -4,6 +4,7 @@ import {IpcService} from "../services/ipc.service";
 import {MetaData} from "../../entity/MetaData";
 import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
+import "./MediaFileCard";
 
 @customElement("video-details")
 export class VideoDetails extends LitElement {
@@ -24,7 +25,7 @@ export class VideoDetails extends LitElement {
 
     public static getRuntime(vid: MetaData): string {
         let min = vid.runtime; // in minutes
-        if (min === 0) {
+        if (min === 0 || !min) {
             return "";
         }
 
@@ -64,20 +65,22 @@ export class VideoDetails extends LitElement {
     }
 
     protected firstUpdated(): void {
-        IpcService.dbQuery("Episode", {
-            where: {
-                imdbSeriesId: this.video.imdbid,
-            },
-            order: {
-                season: "ASC",
-                episode: "ASC",
-            },
-            cache: true,
-        }).then(res => {
-            console.log(res);
-            this.video.episodes = res;
-            this.requestUpdate();
-        }).catch(console.log);
+        if (this.video.type === "series") {
+            IpcService.dbQuery("Episode", {
+                where: {
+                    imdbSeriesId: this.video.imdbid,
+                },
+                order: {
+                    season: "ASC",
+                    episode: "ASC",
+                },
+                cache: true,
+            }).then(res => {
+                console.log(res);
+                this.video.episodes = res;
+                this.requestUpdate();
+            }).catch(console.log);
+        }
     }
 
     public render() {
@@ -115,6 +118,15 @@ export class VideoDetails extends LitElement {
                             return html`<episode-card .episode=${ep}></episode-card>`;
                         })}
                     </div>` : ""}
+
+                ${this.video.type === "movie" && this.video.mediaFiles
+                    && this.video.mediaFiles.length > 0 ?
+                    html`<div class="media-files">
+                        ${this.video.mediaFiles.map(mf => {
+                            return html`<media-file-card .mediaFile=${mf}></media-file-card>`;
+                        })}
+                    </div>` : ""}
+
                 <br><br>
                 <p>Actors: <small>${this.video.actors}</small></p>
                 <br><br>
