@@ -1,5 +1,7 @@
 const path = require('path');
 const nodeExternals = require('webpack-node-externals');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 console.log(__dirname);
 let common_config = {
@@ -18,19 +20,35 @@ let common_config = {
                 ]
             },
             {
-                test: /\.(html|css)$/,
+                test: /\.scss$/,
+                use: [
+                    "style-loader", // creates style nodes from JS strings
+                    "css-loader", // translates CSS into CommonJS
+                    "sass-loader" // compiles Sass to CSS, using Node Sass by default
+                ]
+            },
+            {
+                test: /\.(jpe?g|png|gif|svg)$/i,
+                loader: 'url-loader',
+                query: {
+                    // Inline images smaller than 10kb as data URIs
+                    // limit: 10000
+                }
+            },
+            {
+                test: /\.(html)$/i,
                 loader: 'raw-loader',
                 exclude: /\.async\.(html|css)$/
             },
             /* Async loading. */
-            {
-                test: /\.async\.(html|css)$/,
-                loaders: ['file?name=[name].[hash].[ext]', 'extract']
-            }
+            // {
+            //     test: /\.async\.(html|css)$/,
+            //     loaders: ['file?name=[name].[hash].[ext]', 'extract']
+            // }
         ]
     },
     resolve: {
-        extensions: ['.tsx', '.ts', '.js', '.html']
+        extensions: ['.tsx', '.ts', '.js']
     },
 };
 
@@ -43,7 +61,7 @@ module.exports = [
         },
         output: {
             filename: '[name].js',
-            path: path.resolve(__dirname, 'dist/main')
+            path: path.resolve(__dirname, 'build/')
         },
     }),
     Object.assign({}, common_config, {
@@ -53,17 +71,17 @@ module.exports = [
         },
         output: {
             filename: '[name].js',
-            path: path.resolve(__dirname, 'dist/renderer')
+            path: path.resolve(__dirname, 'build/')
         },
+        plugins: [
+            new HtmlWebpackPlugin({
+                template: "./src/renderer/index.html"
+            })
+        ],
+        // plugins: [
+        //     new CopyWebpackPlugin([
+        //         { from: './src/renderer/index.html' },
+        //     ])
+        // ],
     }),
-    Object.assign({}, common_config, {
-        target: 'electron-renderer',
-        entry: {
-            index: './src/renderer/index.html',
-        },
-        output: {
-            filename: '[name].html',
-            path: path.resolve(__dirname, 'dist/renderer')
-        },
-    })
 ];

@@ -25,7 +25,15 @@ export class RoosterX extends LitElement {
     }
 
     public render() {
-        return html`<div class="videos">
+        return html`<div class="top-bar">
+            <div class="logo">
+                <img src="../images/angry-rooster.jpg" alt="">
+            </div>
+        </div>
+        <div class="side-bar">
+            some stuff
+        </div>
+        <div class="videos">
             ${this._media.map(v => html`<video-card .video=${v}></video-card>`)}
         </div>`;
     }

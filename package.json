@@ -1,16 +1,21 @@
 {
   "name": "rooster-x",
   "version": "1.0.0",
-  "main": "dist/main/main.js",
+  "main": "build/main.js",
   "license": "MIT",
   "scripts": {
     "fix": "tslint --fix 'src/**/*.ts'",
     "start": "npm-run-all fix build run-electron",
-    "build": "webpack --config webpack.config.js",
+    "build": "npm-run-all fix run-webpack",
+    "pack": "npm-run-all build builder:pack",
+    "builder:pack": "electron-builder --dir --win",
+    "builder:dist": "electron-builder --win",
+    "run-webpack": "webpack --config webpack.config.js",
     "run-electron": "electron .",
     "rebuild-sqlite": "electron-rebuild -f -w sqlite3",
     "resync-typeorm": "ts-node typeorm schema:sync",
-    "postinstall": "npm-run-all rebuild-sqlite"
+    "install-builder-deps": "electron-builder install-app-deps",
+    "postinstall": "npm-run-all rebuild-sqlite install-builder-deps"
   },
   "dependencies": {
     "@webcomponents/webcomponentsjs": "^2.2.7",
@@ -24,7 +29,6 @@
     "chokidar": "^2.1.5",
     "compare-versions": "^3.4.0",
     "core-js": "^3.0.0",
-    "electron": "4.0.3",
     "electron-debug": "^2.1.0",
     "electron-is": "^3.0.0",
     "electron-json-storage": "^4.1.6",
@@ -66,13 +70,36 @@
     "@types/adm-zip": "^0.4.32",
     "@types/mkdirp": "^0.5.2",
     "@types/node": "^11.12.0",
+    "copy-webpack-plugin": "^5.0.2",
+    "css-loader": "^2.1.1",
+    "electron": "4.0.3",
+    "electron-builder": "^20.39.0",
     "electron-rebuild": "^1.8.4",
+    "file-loader": "^3.0.1",
     "html-loader": "^0.5.5",
+    "html-webpack-plugin": "^3.2.0",
+    "node-sass": "^4.11.0",
     "npm-run-all": "^4.1.5",
     "raw-loader": "^2.0.0",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.1",
     "ts-loader": "^5.3.3",
     "tslint": "^5.14.0",
+    "url-loader": "^1.1.2",
     "webpack-cli": "^3.3.0",
     "webpack-node-externals": "^1.7.2"
+  },
+  "build": {
+    "appId": "rooster-x",
+    "asar": false,
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "package.json"
+    ],
+    "extends": null
   }
 }

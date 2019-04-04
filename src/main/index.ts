@@ -2,8 +2,8 @@
 process.on("uncaughtException", e => console.warn("uncaughtException was fired", e));
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-import "reflect-metadata";
 import "./helpers/Logger";
+import "reflect-metadata";
 import {app} from "electron";
 import {getProxy} from "./helpers/miscFuncs";
 import ConfigController from "./controllers/ConfigController";
