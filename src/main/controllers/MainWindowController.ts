@@ -34,19 +34,20 @@ export default class MainWindowController extends AbstractWindowController {
     protected options: BrowserWindowConstructorOptions = {
         title: "Rooster-X",
         alwaysOnTop: false,
-        frame: true,
-        height: 600,
+        frame: false,
+        height: 800,
         icon: path.join(__static, "assets/images/icons/icon.ico"),
         maximizable: true,
         show: true,
         skipTaskbar: false,
         transparent: false,
-        width: 800,
+        width: 1024,
         minWidth: 800,
         minHeight: 600,
         webPreferences: {
             webSecurity: false,
             nodeIntegration: true,
+            experimentalFeatures: true,
             // preload: Path.join(__static, "preload", "preload.js"),
         },
     };

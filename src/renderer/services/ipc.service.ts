@@ -20,6 +20,14 @@ export class IpcService {
         ipcRenderer.send("hide-me");
     }
 
+    public static fullScreen() {
+        ipcRenderer.send("full-screen");
+    }
+
+    public static quitApp() {
+        ipcRenderer.send("quit-app");
+    }
+
     public static setIcon(status: "idle" | "alert" | "syncing") {
         ipcRenderer.send("set-icon", status);
     }

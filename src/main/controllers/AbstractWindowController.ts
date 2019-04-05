@@ -165,6 +165,16 @@ abstract class AbstractWindowController {
         }
     }
 
+    public fullScreen() {
+        if (this.win) {
+            if (this.win.isFullScreen()) {
+                this.win.setFullScreen(false);
+            } else {
+                this.win.setFullScreen(true);
+            }
+        }
+    }
+
     public setOriginalWindowSize() {
         if (this.win && this.options && this.options.width && this.options.height) {
             this.win.setSize(this.options.width, this.options.height);

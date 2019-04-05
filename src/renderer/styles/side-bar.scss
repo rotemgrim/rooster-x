@@ -1,0 +1,42 @@
+@import "vars";
+@import "animsta";
+
+.side-bar {
+  height: calc(100vh - 64px);
+  width: 320px;
+  background: rgba($blackBackground, 0.9);
+  color: white;
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  @extend .slide-out-left;
+  &.open {@extend .slide-bar-in;}
+
+  ul {
+    padding: 1em;
+    list-style: none;
+    font-size: 3em;
+    font-family: $titleFontFamily;
+    letter-spacing: 0.03em;
+    word-spacing: 0.07em;
+
+    li {
+      padding: 0.5em;
+      background: rgba(65, 65, 65, 0.2);
+      margin-bottom: 0.5em;
+      display: flex;
+      align-items: center;
+      justify-content: start;
+      cursor: pointer;
+
+      i {
+        font-size: unset;
+        margin-right: 0.5em;
+      }
+
+      &:hover {
+        background: rgba(65, 65, 65, 0.5);
+      }
+    }
+  }
+}

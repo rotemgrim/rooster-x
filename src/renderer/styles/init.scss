@@ -1,28 +1,19 @@
+@import "vars";
 
-.top-bar {
-  width: 100%;
-  position: fixed;
-  background: rgba(0, 0, 0, 0.8);
-
-  .logo {
-    width: 64px;
-    height: 64px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background-image: url("../images/angry-rooster.jpg");
-    background-position: center center;
-    background-size: 130px 130px;
-
-    img {
-      width: 130px;
-      height: 130px;
-    }
-  }
+%close-button {
+  cursor: pointer;
+  color: red;
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-weight: 900;
+  font-size: 3em;
+  font-family: $bodyFontFamily;
 }
 
+@import "animated-background";
+@import "top-bar";
+@import "side-bar";
 
 * {
   padding: 0;
@@ -31,12 +22,15 @@
 
 body {
   background-color: #000;
-  font-family: SansSerif;
+  font-family: $bodyFontFamily;
+  font-size: $bodyFontSize;
+  @extend %background-gradient;
 }
 
 .videos {
-  /*display: flex;*/
-  /*align-items: center;*/
+  position: relative;
+  height: calc(100vh - #{$topBarHeight});
+  overflow-x: auto;
 }
 video-card {
   float: left;
@@ -84,7 +78,7 @@ video-details {
 
   color: white;
   letter-spacing: 0.2em;
-  font-family: sans-serif;
+  font-family: $bodyFontFamily;
 
   display: flex;
   align-items: start;
@@ -119,7 +113,7 @@ video-details {
   color: antiquewhite;
 }
 .video-details .poster .imdb {
-  font-family: fantasy;
+  font-family: $titleFontFamily;
   font-size: 5em;
   color: #000;
   background: #f5c518;
@@ -133,7 +127,7 @@ video-details {
 }
 
 .video-details .poster .trailer {
-  font-family: fantasy;
+  font-family: $titleFontFamily;
   font-size: 4em;
   color: #e6e6e6;
   background: #d80a0a;
@@ -155,7 +149,7 @@ video-details {
 
 .video-details h1 {
   font-size: 6em;
-  font-family: fantasy;
+  font-family: $titleFontFamily;
   padding-right: 0.5em;
 }
 .video-details p {
@@ -163,13 +157,7 @@ video-details {
   letter-spacing: 1px;
 }
 .video-details .close {
-  cursor: pointer;
-  color: red;
-  position: absolute;
-  right: 0;
-  top: 0;
-  font-weight: 900;
-  font-size: 3em;
+  @extend %close-button;
 }
 
 .video-details .small-details {

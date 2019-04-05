@@ -96,25 +96,15 @@ export default class AppController {
             setTimeout(() => {
                 console.log("Quitting App -> Bye Bye");
                 // and call quit again
-                AppController.quit(true);
+                AppController.quit();
             }, 200);
         }
     }
 
-    public static quit(force: boolean = false) {
-        if ( !force && AppController.isSyncing) {
-            AppController.confirmMsg({
-                title: `Wait, we are still syncing files to Rooster-X servers.<br/>Are you sure you wanna quit?`,
-
-                // this will shot back as an ipc message
-                onConfirmation: "quit-force",
-                onCancel: "hide-me",
-            });
-        } else {
-            globalShortcut.unregisterAll();
-            app[isQuiting] = true;
-            app.quit();
-        }
+    public static quit() {
+        globalShortcut.unregisterAll();
+        app[isQuiting] = true;
+        app.quit();
     }
 
     private static confirmMsg(confirmObj: IConfirmationMsg) {

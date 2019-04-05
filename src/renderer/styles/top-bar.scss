@@ -1,0 +1,65 @@
+@import "vars";
+@import "animsta";
+
+.top-bar {
+  width: 100%;
+  position: relative;
+  background: $blackBackground;
+  /*box-shadow: 0px 3px 10px #03040bb5;*/
+  height: $topBarHeight;
+  -webkit-app-region: drag;
+  overflow: hidden;
+
+  .logo {
+    -webkit-app-region: no-drag;
+    width: $topBarHeight;
+    height: $topBarHeight;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    background-image: url("../images/angry-rooster.jpg");
+    background-position: center center;
+    background-size: 130px 130px;
+
+    &:hover {
+      @extend .vibrate-1;
+    }
+    img {
+      width: 130px;
+      height: 130px;
+    }
+  }
+
+  .search {
+    -webkit-app-region: no-drag;
+    float:left;
+  }
+  .refresh {
+    -webkit-app-region: no-drag;
+    float:left;
+  }
+  .user {
+    -webkit-app-region: no-drag;
+    float:left;
+  }
+  .close {
+    -webkit-app-region: no-drag;
+    @extend %close-button;
+    width: $topBarHeight;
+    height: $topBarHeight;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 500ms;
+    &:hover {
+      transform: scale(1.5);
+    }
+  }
+  .maximize {
+    @extend .close;
+    right: 1.5em;
+  }
+}

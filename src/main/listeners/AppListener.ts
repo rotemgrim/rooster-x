@@ -32,6 +32,8 @@ export default class AppListener {
 
             // from renderer -> ask to do stuff
             ipcMain.on("hide-me", (event) => WindowManager.hideSender(event));
+            ipcMain.on("full-screen", (event) => WindowManager.fullScreenSender(event));
+            ipcMain.on("quit-app", () => AppController.quit());
             ipcMain.on("maximize-me", (event) => WindowManager.maximizeSender(event));
             ipcMain.on("original-size-me", (event) => WindowManager.originalSizeSender(event));
             ipcMain.on("set-icon", (e, status) => TrayBuilder.setIcon(status));
@@ -40,7 +42,7 @@ export default class AppListener {
             ipcMain.on("open-all-dev-tools", () => WindowManager.openDevTools());
             // ipcMain.on("generate-logs", () => ZipperController.generateLogs());
             // ipcMain.on("clear-cache", () => ZipperController.clearCache());
-            ipcMain.on("quit-force", () => AppController.quit(true));
+            ipcMain.on("quit-force", () => AppController.quit());
             ipcMain.on("logout-force", () => AppController.logout(true));
 
             ipcMain.on("open-external", (e, url) => shell.openExternal(url));

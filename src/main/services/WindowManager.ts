@@ -59,6 +59,14 @@ export default class WindowManager {
         }
     }
 
+    public static fullScreenSender(event) {
+        const win = BrowserWindow.fromWebContents(event.sender);
+        const windowController = WindowManager.getWindowControllerById(win.id);
+        if (windowController) {
+            windowController.fullScreen();
+        }
+    }
+
     public static originalSizeSender(event) {
         const win = BrowserWindow.fromWebContents(event.sender);
         const windowController = WindowManager.getWindowControllerById(win.id);

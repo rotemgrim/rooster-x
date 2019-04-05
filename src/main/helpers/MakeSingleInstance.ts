@@ -18,7 +18,7 @@ export default class MakeSingleInstance {
                         console.info("write openLoginPage command to command file");
                     }
                     AppController.allowQuit = true;
-                    AppController.quit(true);
+                    AppController.quit();
                     resolve();
                 });
             } else {
