@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "fix": "tslint --fix 'src/**/*.ts'",
-    "start": "npm-run-all fix build run-electron",
+    "start": "npm-run-all build run-electron",
     "build": "npm-run-all fix run-webpack",
     "pack": "npm-run-all build builder:pack",
     "builder:pack": "electron-builder --dir --win",
@@ -50,6 +50,7 @@
     "source-map-support": "^0.5.11",
     "sprintf-js": "^1.1.2",
     "sqlite3": "^4.0.6",
+    "string-score": "^1.0.1",
     "tiny-worker": "^2.1.2",
     "tough-cookie": "^3.0.1",
     "typedi": "^0.8.0",

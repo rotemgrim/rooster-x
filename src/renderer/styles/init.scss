@@ -14,6 +14,7 @@
 @import "animated-background";
 @import "top-bar";
 @import "side-bar";
+@import "panel";
 
 * {
   padding: 0;
@@ -31,6 +32,7 @@ body {
   position: relative;
   height: calc(100vh - #{$topBarHeight});
   overflow-x: auto;
+  user-select: none;
 }
 video-card {
   float: left;

@@ -14,6 +14,16 @@ export class MediaRepository {
         return metaRepo.find();
     }
 
+    public getMovies() {
+        const metaRepo = this.connection.manager.getRepository(MetaData);
+        return metaRepo.find({type: "movie"});
+    }
+
+    public getSeries() {
+        const metaRepo = this.connection.manager.getRepository(MetaData);
+        return metaRepo.find({type: "series"});
+    }
+
     public query(payload: {entity: string, query: any}): Promise<any> {
         const repository = payload.entity;
         const q = payload.query;

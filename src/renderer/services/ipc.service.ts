@@ -93,6 +93,18 @@ export class IpcService {
         });
     }
 
+    public static getAllMovies(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-movies").then(resolve).catch(reject);
+        });
+    }
+
+    public static getAllSeries(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-series").then(resolve).catch(reject);
+        });
+    }
+
     public static dbQuery(entity: string, query: any): Promise<any> {
         const payload = {entity, query};
         return new Promise((resolve, reject) => {

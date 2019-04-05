@@ -1,0 +1,14 @@
+
+@import "vars";
+@import "animsta";
+
+.panel {
+  width: calc(100% - #{$sideBarWidth});
+  height: 100vh;
+  background-color: transparent;
+  position: absolute;
+  right: 0;
+  z-index: 1;
+  //box-shadow: inset 0px -42px 42px #000000;
+
+}

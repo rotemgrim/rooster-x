@@ -9,6 +9,15 @@
   height: $topBarHeight;
   -webkit-app-region: drag;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  > div {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+  }
 
   .logo {
     -webkit-app-region: no-drag;
@@ -35,7 +44,31 @@
 
   .search {
     -webkit-app-region: no-drag;
-    float:left;
+    padding-left: 1em;
+
+    input {
+      font-size: 3em;
+      background: transparent;
+      border: none;
+      color: white;
+      padding: 0 0.4em;
+      outline: none;
+      width: 6em;
+
+      &:focus, &:active {
+        border-bottom: 1px solid #cccccccf;
+      }
+    }
+    i {
+      color: white;
+      position: relative;
+      left: -1.7em;
+      cursor: pointer;
+
+      &:hover {
+        color: red;
+      }
+    }
   }
   .refresh {
     -webkit-app-region: no-drag;
@@ -53,9 +86,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 500ms;
+    i {
+      transition: all 500ms;
+    }
     &:hover {
-      transform: scale(1.5);
+      background-color: red;
+      color: black;
+      i {
+        transform: scale(1.5);
+      }
     }
   }
   .maximize {

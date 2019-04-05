@@ -3,8 +3,8 @@
 
 .side-bar {
   height: calc(100vh - 64px);
-  width: 320px;
-  background: rgba($blackBackground, 0.9);
+  width: $sideBarWidth;
+  background: rgba($blackBackground, 0.8);
   color: white;
   position: absolute;
   z-index: 2;

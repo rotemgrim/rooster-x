@@ -50,6 +50,8 @@ export default class AppListener {
             promiseIpc.on("get-config", ConfigController.getConfigPromise);
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
             promiseIpc.on("get-all-media", () => Container.get(MediaRepository).getAllMedia());
+            promiseIpc.on("get-movies", () => Container.get(MediaRepository).getMovies());
+            promiseIpc.on("get-series", () => Container.get(MediaRepository).getSeries());
             promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
 
             AppListener.isListening = true;
