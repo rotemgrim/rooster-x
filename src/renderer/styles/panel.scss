@@ -4,7 +4,7 @@
 
 .panel {
   width: calc(100% - #{$sideBarWidth});
-  height: 100vh;
+  height: calc(100vh - #{$topBarHeight});
   background-color: transparent;
   position: absolute;
   right: 0;

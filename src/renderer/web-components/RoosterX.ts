@@ -88,8 +88,8 @@ export class RoosterX extends LitElement {
             const searchTerm = e.target.value;
             this._filteredMedia = this._filteredMedia.filter((v) => {
                 const s = score(v.title, searchTerm, 0.5);
-                // console.log(v.title + " - " + searchTerm, s);
-                return s > 0.5;
+                console.log(v.title + " - " + searchTerm, s);
+                return s > 0.3;
             });
             this._searchTerm = searchTerm;
         } else {
