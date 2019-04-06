@@ -20,6 +20,7 @@
   }
 
   .logo {
+    user-select: none;
     -webkit-app-region: no-drag;
     width: $topBarHeight;
     height: $topBarHeight;
@@ -60,6 +61,7 @@
       }
     }
     i {
+      user-select: none;
       color: white;
       position: relative;
       left: -1.7em;
@@ -71,14 +73,17 @@
     }
   }
   .refresh {
+    user-select: none;
     -webkit-app-region: no-drag;
     float:left;
   }
   .user {
+    user-select: none;
     -webkit-app-region: no-drag;
     float:left;
   }
   .close {
+    user-select: none;
     -webkit-app-region: no-drag;
     @extend %close-button;
     width: $topBarHeight;

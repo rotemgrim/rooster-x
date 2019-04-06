@@ -4,12 +4,13 @@ import {IpcService} from "../services/ipc.service";
 import "./VideoCard";
 import * as score from "string-score";
 import {MetaData} from "../../entity/MetaData";
+import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
 
     @property() public _media: MetaData[] = [];
-    @property() public _filteredMedia: MetaData[] = [];
+    @property() public _filteredMedia: IMetaDataExtended[] = [];
     @property() public _fullScreen: boolean = false;
     @property() public _sideBar: boolean = false;
     @property() public _searchTerm: string = "";
@@ -88,10 +89,17 @@ export class RoosterX extends LitElement {
             const searchTerm = e.target.value;
             this._filteredMedia = this._filteredMedia.filter((v) => {
                 const s = score(v.title, searchTerm, 0.5);
-                console.log(v.title + " - " + searchTerm, s);
+                // console.log(v.title + " - " + searchTerm, s);
+                v.stringScore = s;
                 return s > 0.3;
             });
             this._searchTerm = searchTerm;
+            this._filteredMedia.sort((a, b) => {
+                if (a && b && b.stringScore && a.stringScore) {
+                    return b.stringScore - a.stringScore;
+                }
+                return 0;
+            });
         } else {
             this._searchTerm = "";
         }

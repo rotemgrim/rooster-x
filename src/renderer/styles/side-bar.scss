@@ -2,6 +2,7 @@
 @import "animsta";
 
 .side-bar {
+  user-select: none;
   height: calc(100vh - 64px);
   width: $sideBarWidth;
   background: rgba($blackBackground, 0.8);
