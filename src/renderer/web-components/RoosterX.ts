@@ -2,6 +2,7 @@
 import {css, LitElement, html, customElement, property} from "lit-element";
 import {IpcService} from "../services/ipc.service";
 import "./VideoCard";
+import "./FiltersPage";
 import * as score from "string-score";
 import {MetaData} from "../../entity/MetaData";
 import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
@@ -14,6 +15,7 @@ export class RoosterX extends LitElement {
     @property() public _fullScreen: boolean = false;
     @property() public _sideBar: boolean = false;
     @property() public _searchTerm: string = "";
+    @property() public _panel: string = "";
 
     public createRenderRoot() {
         return this;
@@ -25,9 +27,13 @@ export class RoosterX extends LitElement {
         IpcService.getAllMedia().then(media => this.media = media);
         this._fullScreen = false;
         this._sideBar = false;
+        this._panel = "";
 
         document.addEventListener("click", <HTMLElement>(e) => {
-            if (e && (!e.target.closest(".side-bar") && !e.target.closest(".top-bar"))) {
+            if (e && !e.target.closest(".side-bar")
+                && !e.target.closest(".top-bar")
+                && !e.target.closest(".page")
+            ) {
                 if (this._sideBar) {
                     this._sideBar = false;
                     this.setFocuseToVideos();
@@ -54,7 +60,9 @@ export class RoosterX extends LitElement {
     }
 
     private toggleSideBar() {
+        this._panel = "";
         this._sideBar = !this._sideBar;
+        this.requestUpdate();
     }
 
     private getAllMedia() {
@@ -77,10 +85,14 @@ export class RoosterX extends LitElement {
 
     private showFilters() {
         // todo: get filter window
+        this._panel = "filters";
+        this.requestUpdate();
     }
 
     private showSettings() {
         // todo: get settings window
+        this._panel = "";
+        this.requestUpdate();
     }
 
     private search(e?: any) {
@@ -155,7 +167,9 @@ export class RoosterX extends LitElement {
                 <li @click="${this.showSettings}"><i class="material-icons">settings</i>Settings</li>
             </ul>
         </div>
-        ${this._sideBar ? html`<div class="panel"></div>` : ""}
+        ${this._sideBar ? html`<div class="panel">
+            ${this._panel === "filters" ? html`<filters-page .rooster="${this}"></filters-page>` : ""}
+        </div>` : ""}
         <div class="videos" tabindex="0">
             ${this._filteredMedia.map(v => html`<video-card .video=${v}></video-card>`)}
         </div>`;

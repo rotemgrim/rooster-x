@@ -28,6 +28,10 @@ body {
   @extend %background-gradient;
 }
 
+.close {
+  @extend %close-button;
+}
+
 .videos {
   position: relative;
   height: calc(100vh - #{$topBarHeight});
@@ -157,9 +161,6 @@ video-details {
 .video-details p {
   font-size: 2em;
   letter-spacing: 1px;
-}
-.video-details .close {
-  @extend %close-button;
 }
 
 .video-details .small-details {

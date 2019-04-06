@@ -11,4 +11,32 @@
   z-index: 1;
   //box-shadow: inset 0px -42px 42px #000000;
 
+  .page {
+    background-color: rgba($blackBackground, 0.9);
+    width: 100%;
+    height: 100%;
+    color: white;
+    padding: 3em;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+
+    @extend .add-blur;
+
+    .page-top {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .close {
+        position: relative;
+      }
+    }
+  }
+
+  .filters-page {
+
+  }
 }

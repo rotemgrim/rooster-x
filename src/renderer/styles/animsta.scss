@@ -22,6 +22,9 @@
 .slide-bar-in {
   animation: slide-bar-in .5s cubic-bezier(.25,.46,.45,.94) both, add-blur 2s cubic-bezier(.39,.575,.565,1.000) both;
 }
+.add-blur {
+  animation: add-blur 2s cubic-bezier(.39,.575,.565,1.000) both;
+}
 @keyframes slide-bar-in{
   0% {
     transform:translateX(-1000px);
