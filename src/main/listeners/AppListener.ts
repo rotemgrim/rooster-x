@@ -11,6 +11,7 @@ import __static from "../../common/static";
 import {MediaRepository} from "../repositories/MediaRepository";
 import {Container} from "typedi";
 import FilesController from "../controllers/FilesController";
+import {UserRepository} from "../repositories/UserRepository";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -49,12 +50,14 @@ export default class AppListener {
 
             promiseIpc.on("get-config", ConfigController.getConfigPromise);
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
+            promiseIpc.on("get-all-users", () => Container.get(UserRepository).getAllUsers());
             promiseIpc.on("get-all-media", () => Container.get(MediaRepository).getAllMedia());
             promiseIpc.on("get-movies", () => Container.get(MediaRepository).getMovies());
             promiseIpc.on("get-series", () => Container.get(MediaRepository).getSeries());
             promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
             promiseIpc.on("scan-dir", (payload) => FilesController.doFullSweep(payload.dir));
             promiseIpc.on("select-directory-dialog", () => FilesController.selectDbPathFolder());
+            promiseIpc.on("create-user", (user) => Container.get(UserRepository).createUser(user));
 
             AppListener.isListening = true;
             await AppController.bootstrapApp();

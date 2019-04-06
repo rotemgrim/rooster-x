@@ -7,4 +7,5 @@ export interface IConfig {
     proxySettings?: IProxySettingsPayload;
     dbPath?: string;
     omdbApiKey?: string;
+    userId?: number;
 }

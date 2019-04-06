@@ -16,10 +16,6 @@ export class RoosterX extends LitElement {
     @property() public _sideBar: boolean = false;
     @property() public _panel: string = "";
 
-    @property() public _hasDbPath: boolean = false;
-    @property() public _isLoggedIn: boolean = true;
-    @property() public _errMsg: string = "";
-
     public createRenderRoot() {
         return this;
     }
@@ -28,21 +24,7 @@ export class RoosterX extends LitElement {
         super();
         this._sideBar = false;
         this._panel = "";
-
-        IpcService.getConfig().then(config => {
-            if (config.dbPath) {
-                this._hasDbPath = true;
-
-                // check if user is logged in
-                // show login page
-
-                // if logged in show all media
-                IpcService.getAllMedia().then(media => this.media = media);
-            } else {
-                this._hasDbPath = false;
-            }
-        });
-
+        IpcService.getAllMedia().then(media => this.media = media);
         document.addEventListener("click", <HTMLElement>(e) => {
             if (e && !e.target.closest(".side-bar")
                 && !e.target.closest(".top-bar")
@@ -98,34 +80,7 @@ export class RoosterX extends LitElement {
         }
     }
 
-    private openSelectFolderDialog() {
-        this._errMsg = "";
-        IpcService.openSelectFolderDialog()
-            .then((dir) => {
-                this._hasDbPath = true;
-            })
-            .catch(e => {
-                this._errMsg = e;
-            });
-    }
-
     public render() {
-        if (!this._hasDbPath) {
-            return html`
-            <top-bar .rooster="${this}"></top-bar>
-            <div class="side-bar open"></div>
-            <div class="panel">
-                <div class="page">
-                    <h1>Select DataBase location</h1>
-                    <p>Please note, if you want an multi computer environment
-                    choose a shared location for the database</p>
-                    <button @click="${this.openSelectFolderDialog}">Select DataBase Location</button>
-                    <p class="errMsg" style="color: red;">${this._errMsg}</p>
-                </div>
-            </div>`;
-        } else if (!this._isLoggedIn) {
-            return html``;
-        }
         return html`
         <top-bar .rooster="${this}"></top-bar>
         <div class="side-bar ${this._sideBar ? "open" : ""}">

@@ -1,5 +1,5 @@
 import {Service} from "typedi";
-import {Connection, ObjectType} from "typeorm";
+import {Connection} from "typeorm";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import {MetaData} from "../../entity/MetaData";
 

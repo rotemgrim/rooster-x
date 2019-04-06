@@ -2,6 +2,7 @@ import {RendererPromiseIpc} from "../../common/lib/ipcPromise/RendererPromiseIpc
 import {ipcRenderer} from "electron";
 import {IConfig} from "../../common/models/IConfig";
 import {URL} from "url";
+import {User} from "../../entity/User";
 
 const promiseIpc = new RendererPromiseIpc({ maxTimeoutMs: 120000 });
 
@@ -87,6 +88,18 @@ export class IpcService {
         });
     }
 
+    public static getAllUsers(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-all-users").then(resolve).catch(reject);
+        });
+    }
+
+    public static getUser(id: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-user", id).then(resolve).catch(reject);
+        });
+    }
+
     public static getAllMedia(): Promise<any> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("get-all-media").then(resolve).catch(reject);
@@ -121,6 +134,12 @@ export class IpcService {
     public static openSelectFolderDialog() {
         return new Promise((resolve, reject) => {
             promiseIpc.send("select-directory-dialog").then(resolve).catch(reject);
+        });
+    }
+
+    public static createUser(payload: User): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("create-user", payload).then(resolve).catch(reject);
         });
     }
 }

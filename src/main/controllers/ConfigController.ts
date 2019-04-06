@@ -27,7 +27,7 @@ export default class ConfigController {
     }
 
     public static updateConfigAndRestart(config: IConfig): Promise<any> {
-        MixPanelService.track("Save Settings", "Settings Window");
+        // MixPanelService.track("Save Settings", "Settings Window");
         return ConfigController.updateConfig(config);
         // ConfigController.updateConfig(config)
         //     .then(() => {
@@ -97,6 +97,7 @@ export default class ConfigController {
                     keepWindowsAlive: tmpData.keepWindowsAlive !== undefined ? tmpData.keepWindowsAlive : true,
                     dbPath: tmpData.dbPath !== undefined ? tmpData.dbPath : "",
                     omdbApiKey: tmpData.omdbApiKey !== undefined ? tmpData.omdbApiKey : "",
+                    userId: tmpData.userId !== undefined ? tmpData.userId : 0,
                 };
                 if (tmpData.proxySettings !== undefined) {
                     res.proxySettings = tmpData.proxySettings;
@@ -113,6 +114,7 @@ export default class ConfigController {
                 keepWindowsAlive: true,
                 dbPath: "",
                 omdbApiKey: "",
+                userId: 0,
             };
             return ConfigController.saveConfigToFile(config);
         }

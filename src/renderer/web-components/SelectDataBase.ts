@@ -30,7 +30,7 @@ export class SelectDataBase extends LitElement {
 
     public render() {
         return html`
-        <top-bar .rooster="${this}"></top-bar>
+        <top-bar></top-bar>
         <div class="side-bar open"></div>
         <div class="panel">
             <div class="page">
