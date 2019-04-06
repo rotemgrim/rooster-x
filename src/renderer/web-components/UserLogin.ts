@@ -42,6 +42,8 @@ export class UserLogin extends LitElement {
         }
         for (const u of this._users) {
             if (u && user && u.id === user.id) {
+                this.wrapper.user = u;
+                this.wrapper.isLoggedIn = true;
                 return true;
             }
         }
@@ -52,11 +54,8 @@ export class UserLogin extends LitElement {
         const config = this.wrapper.config;
         config.userId = user.id;
         IpcService.saveConfig(config)
-            .then(() => {
-                if (this.checkLoggedIn(user)) {
-                    this.wrapper.isLoggedIn = true;
-                }
-            }).catch(console.log);
+            .then(() => this.checkLoggedIn(user))
+            .catch(console.log);
     }
 
     public createAdmin() {

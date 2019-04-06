@@ -4,6 +4,7 @@ import "./RoosterX";
 import "./SelectDataBase";
 import "./UserLogin";
 import {IConfig} from "../../common/models/IConfig";
+import {User} from "../../entity/User";
 
 @customElement("rooster-x-wrapper")
 export class RoosterXWrapper extends LitElement {
@@ -11,6 +12,7 @@ export class RoosterXWrapper extends LitElement {
     @property() public hasDbPath: boolean = false;
     @property() public isLoggedIn: boolean = false;
     @property() public config: IConfig;
+    @property() public user: User;
 
     public createRenderRoot() {
         return this;
@@ -27,9 +29,18 @@ export class RoosterXWrapper extends LitElement {
                 if (config.userId) {
                     IpcService.getUser(config.userId)
                         .then(user => {
-                            console.log(user);
+                            if (user) {
+                                console.log("user", user);
+                                this.user = user;
+                                this.isLoggedIn = true;
+                            } else {
+                                this.isLoggedIn = false;
+                            }
                         })
-                        .catch(console.log);
+                        .catch(e => {
+                            console.log(e);
+                            this.isLoggedIn = false;
+                        });
                 } else {
                     this.isLoggedIn = false;
                 }
@@ -45,6 +56,6 @@ export class RoosterXWrapper extends LitElement {
         } else if (!this.isLoggedIn) {
             return html`<user-login .wrapper=${this}></user-login>`;
         }
-        return html`<rooster-x></rooster-x>`;
+        return html`<rooster-x .user=${this.user}></rooster-x>`;
     }
 }

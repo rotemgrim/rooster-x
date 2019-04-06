@@ -14,6 +14,12 @@ export class UserRepository {
         return userRepo.find();
     }
 
+    public getUser(id) {
+        console.log("find user by id", id);
+        const userRepo = this.connection.manager.getRepository(User);
+        return userRepo.findOne(id);
+    }
+
     public createUser(payload: User) {
         console.log(payload);
         const userRepo = this.connection.manager.getRepository(User);

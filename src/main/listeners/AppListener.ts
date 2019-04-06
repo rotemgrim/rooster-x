@@ -58,6 +58,7 @@ export default class AppListener {
             promiseIpc.on("scan-dir", (payload) => FilesController.doFullSweep(payload.dir));
             promiseIpc.on("select-directory-dialog", () => FilesController.selectDbPathFolder());
             promiseIpc.on("create-user", (user) => Container.get(UserRepository).createUser(user));
+            promiseIpc.on("get-user", (id) => Container.get(UserRepository).getUser(id));
 
             AppListener.isListening = true;
             await AppController.bootstrapApp();
