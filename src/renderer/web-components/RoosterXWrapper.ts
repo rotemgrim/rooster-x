@@ -56,6 +56,6 @@ export class RoosterXWrapper extends LitElement {
         } else if (!this.isLoggedIn) {
             return html`<user-login .wrapper=${this}></user-login>`;
         }
-        return html`<rooster-x .user=${this.user}></rooster-x>`;
+        return html`<rooster-x .user=${this.user} .config=${this.config} .wrapper=${this}></rooster-x>`;
     }
 }

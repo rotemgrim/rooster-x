@@ -10,6 +10,7 @@ export class TopBar extends LitElement {
     @property() public rooster: RoosterX;
     @property() public _fullScreen: boolean = false;
     @property() public _searchTerm: string = "";
+    @property() public showProfileMenu: boolean = false;
 
     public createRenderRoot() {
         return this;
@@ -68,6 +69,16 @@ export class TopBar extends LitElement {
         IpcService.quitApp();
     }
 
+    private logout() {
+        this.rooster.config.userId = 0;
+        IpcService.saveConfig(this.rooster.config)
+            .then(() => {
+                delete this.rooster.user;
+                this.rooster.wrapper.isLoggedIn = false;
+            })
+            .catch(console.log);
+    }
+
     public render() {
         return html`
         <div class="top-bar">
@@ -80,7 +91,15 @@ export class TopBar extends LitElement {
                 <div class="refresh"></div>
             </div>
             <div>
-                <div class="user"></div>
+                ${this.rooster && this.rooster.user ?
+                    html`<div class="user" @click=${() => this.showProfileMenu = !this.showProfileMenu}>
+                        ${this.rooster.user.firstName}
+                        <i class="material-icons">account_circle</i>
+                        ${this.showProfileMenu ?
+                            html`<ul>
+                                <li @click="${this.logout}">Logout</li>
+                            </ul>` : ""}
+                    </div>` : ""}
                 <div class="maximize" @click=${this.toggleFullScreen}>
                     <i class="material-icons">${this._fullScreen ? "fullscreen_exit" : "fullscreen"}</i>
                 </div>
