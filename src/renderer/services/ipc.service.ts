@@ -117,4 +117,10 @@ export class IpcService {
             promiseIpc.send("scan-dir", payload).then(resolve).catch(reject);
         });
     }
+
+    public static openSelectFolderDialog() {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("select-directory-dialog").then(resolve).catch(reject);
+        });
+    }
 }

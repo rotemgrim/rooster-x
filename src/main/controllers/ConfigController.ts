@@ -95,6 +95,7 @@ export default class ConfigController {
                 const res: IConfig = {
                     serverUrl: new URL(tmpData.serverUrl),
                     keepWindowsAlive: tmpData.keepWindowsAlive !== undefined ? tmpData.keepWindowsAlive : true,
+                    dbPath: tmpData.dbPath !== undefined ? tmpData.dbPath : "",
                     omdbApiKey: tmpData.omdbApiKey !== undefined ? tmpData.omdbApiKey : "",
                 };
                 if (tmpData.proxySettings !== undefined) {
@@ -110,6 +111,7 @@ export default class ConfigController {
             const config: IConfig = {
                 serverUrl: new URL("http://127.0.0.1"),
                 keepWindowsAlive: true,
+                dbPath: "",
                 omdbApiKey: "",
             };
             return ConfigController.saveConfigToFile(config);

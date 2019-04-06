@@ -2,6 +2,7 @@ import {app, globalShortcut} from "electron";
 import WindowManager from "../services/WindowManager";
 import {IConfirmationMsg} from "../../common/models/IConfirmationMsg";
 import AppGlobal from "../helpers/AppGlobal";
+import DBConnection from "../repositories/DBConnection";
 
 export default class AppController {
 
@@ -30,9 +31,16 @@ export default class AppController {
         });
     }
 
-    public static bootstrapApp() {
+    public static async bootstrapApp() {
         // AppController.loginWindow = WindowManager.getLoginWindow();
         // return AppController.login();
+        return new Promise(async (resolve) => {
+            const config = AppGlobal.getConfig();
+            if (config.dbPath) {
+                await DBConnection.connect();
+            }
+            resolve();
+        });
     }
 
     public static login(): Promise<any> {

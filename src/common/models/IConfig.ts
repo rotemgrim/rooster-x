@@ -5,5 +5,6 @@ export interface IConfig {
     serverUrl: URL;
     keepWindowsAlive?: boolean;
     proxySettings?: IProxySettingsPayload;
+    dbPath?: string;
     omdbApiKey?: string;
 }

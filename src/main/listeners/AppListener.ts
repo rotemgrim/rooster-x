@@ -54,12 +54,13 @@ export default class AppListener {
             promiseIpc.on("get-series", () => Container.get(MediaRepository).getSeries());
             promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
             promiseIpc.on("scan-dir", (payload) => FilesController.doFullSweep(payload.dir));
+            promiseIpc.on("select-directory-dialog", () => FilesController.selectDbPathFolder());
 
             AppListener.isListening = true;
+            await AppController.bootstrapApp();
             // CommandListener.init();
             // TrayBuilder.init();
             await AppController.preOpenWindows();
-            await AppController.bootstrapApp();
             console.log("app is ready!");
 
             // const test = await Container.get(MediaRepository).query({

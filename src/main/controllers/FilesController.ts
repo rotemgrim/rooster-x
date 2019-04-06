@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import {dialog} from "electron";
 import * as readdirp from "readdirp";
 import * as ptn from "../../common/lib/parse-torrent-name";
 import {IEntry} from "../../common/models/IEntry";
@@ -13,8 +14,33 @@ import {MetaData} from "../../entity/MetaData";
 import {Episode} from "../../entity/Episode";
 import IMDBController from "./IMDBController";
 import IMDBService from "../services/IMDBService";
+import ConfigController from "./ConfigController";
+import AppGlobal from "../helpers/AppGlobal";
+import AppController from "./AppController";
 
 export default class FilesController {
+
+    public static selectDbPathFolder(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            dialog.showOpenDialog({
+                properties: ["openDirectory"],
+            }, (dirs) => {
+                if (dirs) {
+                    const config = AppGlobal.getConfig();
+                    config.dbPath = dirs[0];
+                    ConfigController.updateConfig(config)
+                        .then(() => AppController.bootstrapApp())
+                        .then(() => resolve(dirs[0]))
+                        .catch(e => {
+                            console.error("could not save new config", e);
+                            reject("could not save new config");
+                        });
+                } else {
+                    reject("must select a folder");
+                }
+            });
+        });
+    }
 
     public static doFullSweep(directory: string): Promise<any> {
         return new Promise(async (resolve, reject) => {

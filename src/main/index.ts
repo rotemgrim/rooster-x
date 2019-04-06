@@ -22,7 +22,6 @@ app.commandLine.appendSwitch("ignore-certificate-errors");
     try {
         useContainer(Container);
         await MakeSingular.init();
-        await DBConnection.connect();
         await ConfigController.loadConfig();
         WindowManager.init();
         await AppListener.init();
