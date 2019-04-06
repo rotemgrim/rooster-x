@@ -1,7 +1,7 @@
 
 import NAME from "../common/common";
 import "@webcomponents/webcomponentsjs/webcomponents-loader.js";
-import "./web-components/RoosterX";
+import "./web-components/RoosterXWrapper";
 import "./styles/init.scss";
 // import "./index.html";
 
