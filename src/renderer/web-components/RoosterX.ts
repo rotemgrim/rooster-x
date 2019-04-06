@@ -3,6 +3,7 @@ import {css, LitElement, html, customElement, property} from "lit-element";
 import {IpcService} from "../services/ipc.service";
 import "./VideoCard";
 import "./FiltersPage";
+import "./SettingsPage";
 import * as score from "string-score";
 import {MetaData} from "../../entity/MetaData";
 import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
@@ -84,14 +85,12 @@ export class RoosterX extends LitElement {
     }
 
     private showFilters() {
-        // todo: get filter window
         this._panel = "filters";
         this.requestUpdate();
     }
 
     private showSettings() {
-        // todo: get settings window
-        this._panel = "";
+        this._panel = "settings";
         this.requestUpdate();
     }
 
@@ -169,6 +168,7 @@ export class RoosterX extends LitElement {
         </div>
         ${this._sideBar ? html`<div class="panel">
             ${this._panel === "filters" ? html`<filters-page .rooster="${this}"></filters-page>` : ""}
+            ${this._panel === "settings" ? html`<settings-page .rooster="${this}"></settings-page>` : ""}
         </div>` : ""}
         <div class="videos" tabindex="0">
             ${this._filteredMedia.map(v => html`<video-card .video=${v}></video-card>`)}

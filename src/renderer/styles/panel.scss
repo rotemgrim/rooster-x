@@ -12,6 +12,7 @@
   //box-shadow: inset 0px -42px 42px #000000;
 
   .page {
+    user-select: none;
     background-color: rgba($blackBackground, 0.9);
     width: 100%;
     height: 100%;
@@ -23,6 +24,10 @@
     align-items: start;
 
     @extend .add-blur;
+
+    h1 {
+      font-size: 3em;
+    }
 
     .page-top {
       width: 100%;

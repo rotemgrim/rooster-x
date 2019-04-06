@@ -22,11 +22,26 @@ export class FiltersPage extends LitElement {
     public render() {
         return html`<div class="page filters-page">
             <div class="page-top">
-                <h2>Choose Filters & Sorting</h2>
+                <h1>Choose Filters & Sorting</h1>
                 <div class="close" @click=${this.close}>X</div>
             </div>
             <div class="page-body">
-                some options
+                <div class="filters">
+                    <h2>Filters</h2>
+                    <ul>
+                        <li>Show ONLY unwatched?</li>
+                        <li>Show hint on poster for watched Media?</li>
+                    </ul>
+                </div>
+                <div class="sorting">
+                    <h2>Sorting</h2>
+                    <ul>
+                        <li>Order by Downloaded date & time</li>
+                        <li>Order by IMDB Score</li>
+                        <li>Order by IMDB Votes</li>
+                        <li>Order by IMDB Votes</li>
+                    </ul>
+                </div>
             </div>
         </div>`;
     }

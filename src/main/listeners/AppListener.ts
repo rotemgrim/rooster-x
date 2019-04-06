@@ -53,6 +53,7 @@ export default class AppListener {
             promiseIpc.on("get-movies", () => Container.get(MediaRepository).getMovies());
             promiseIpc.on("get-series", () => Container.get(MediaRepository).getSeries());
             promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
+            promiseIpc.on("scan-dir", (payload) => FilesController.doFullSweep(payload.dir));
 
             AppListener.isListening = true;
             // CommandListener.init();

@@ -111,4 +111,10 @@ export class IpcService {
             promiseIpc.send("db-query", payload).then(resolve).catch(reject);
         });
     }
+
+    public static scanDir(payload: {dir: string}): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("scan-dir", payload).then(resolve).catch(reject);
+        });
+    }
 }
