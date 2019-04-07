@@ -20,6 +20,10 @@ export class RoosterXWrapper extends LitElement {
 
     constructor() {
         super();
+        this.checkStatus();
+    }
+
+    public checkStatus() {
         IpcService.getConfig().then(config => {
             this.config = config;
             if (config.dbPath) {
@@ -33,6 +37,7 @@ export class RoosterXWrapper extends LitElement {
                                 console.log("user", user);
                                 this.user = user;
                                 this.isLoggedIn = true;
+                                this.requestUpdate();
                             } else {
                                 this.isLoggedIn = false;
                             }

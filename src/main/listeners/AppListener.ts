@@ -55,7 +55,7 @@ export default class AppListener {
             promiseIpc.on("get-movies", () => Container.get(MediaRepository).getMovies());
             promiseIpc.on("get-series", () => Container.get(MediaRepository).getSeries());
             promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
-            promiseIpc.on("scan-dir", (payload) => FilesController.doFullSweep(payload.dir));
+            promiseIpc.on("scan-dir", (payload) => Container.get(FilesController).doFullSweep(payload.dir));
             promiseIpc.on("select-directory-dialog", () => FilesController.selectDbPathFolder());
             promiseIpc.on("create-user", (user) => Container.get(UserRepository).createUser(user));
             promiseIpc.on("get-user", (id) => Container.get(UserRepository).getUser(id));

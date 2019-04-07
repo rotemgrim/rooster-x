@@ -4,7 +4,7 @@ import * as readdirp from "readdirp";
 import * as ptn from "../../common/lib/parse-torrent-name";
 import {IEntry} from "../../common/models/IEntry";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
-import {createConnection} from "typeorm";
+import {Connection} from "typeorm";
 import {User} from "../../entity/User";
 import {IFSEntry} from "../../common/models/IFSEntry";
 import {getFileMd5} from "../helpers/Utils";
@@ -17,8 +17,15 @@ import IMDBService from "../services/IMDBService";
 import ConfigController from "./ConfigController";
 import AppGlobal from "../helpers/AppGlobal";
 import AppController from "./AppController";
+import {Service} from "typedi";
+import {MediaRepository} from "../repositories/MediaRepository";
+import {InjectConnection} from "typeorm-typedi-extensions";
 
+@Service()
 export default class FilesController {
+
+    @InjectConnection("reading")
+    private connection: Connection;
 
     public static selectDbPathFolder(): Promise<any> {
         return new Promise((resolve, reject) => {
@@ -29,7 +36,10 @@ export default class FilesController {
                     const config = AppGlobal.getConfig();
                     config.dbPath = dirs[0];
                     ConfigController.updateConfig(config)
-                        .then(() => AppController.bootstrapApp())
+                        .then(() => {
+                            AppGlobal.setConfig(config);
+                            AppController.bootstrapApp();
+                        })
                         .then(() => resolve(dirs[0]))
                         .catch(e => {
                             console.error("could not save new config", e);
@@ -42,93 +52,95 @@ export default class FilesController {
         });
     }
 
-    public static doFullSweep(directory: string): Promise<any> {
+    public doFullSweep(directory: string): Promise<any> {
         return new Promise(async (resolve, reject) => {
             const entries = await FilesController.getAllVideos(directory);
             console.log(entries.length);
-            createConnection({
-                type: "sqlite",
-                database: "database.sqlite",
-                entities: [
-                    User,
-                    MediaFile,
-                    MetaData,
-                    Episode,
-                ],
-                synchronize: true,
-            }).then(async connection => {
-                console.info("db connection made");
-                const mediaFiles: MediaFile[] = [];
-                const filesRepo = connection.getRepository(MediaFile);
-                const metaDataRepo = connection.getRepository(MetaData);
-                const episodeRepo = connection.getRepository(Episode);
-                const seriesArr: MetaData[] = await metaDataRepo.find({type: "series"});
-                const moviesArr: MetaData[] = await metaDataRepo.find({type: "movie"});
-                const episodesArr: Episode[] = await episodeRepo.find();
-                const allFiles = await filesRepo.createQueryBuilder()
-                    .select(["MediaFile.id", "MediaFile.hash", "MediaFile.path"])
-                    .getMany();
-                const allPaths = {};
-                for (const f of allFiles) {
-                    allPaths[f.path] = {id: f.id, hash: f.hash};
+            // createConnection({
+            //     type: "sqlite",
+            //     database: "database.sqlite",
+            //     entities: [
+            //         User,
+            //         MediaFile,
+            //         MetaData,
+            //         Episode,
+            //     ],
+            //     synchronize: true,
+            // }).then(async connection => {
+
+            console.info("db connection made");
+            const mediaFiles: MediaFile[] = [];
+            const filesRepo = this.connection.getRepository(MediaFile);
+            const metaDataRepo = this.connection.getRepository(MetaData);
+            const episodeRepo = this.connection.getRepository(Episode);
+            const seriesArr: MetaData[] = await metaDataRepo.find({type: "series"});
+            const moviesArr: MetaData[] = await metaDataRepo.find({type: "movie"});
+            const episodesArr: Episode[] = await episodeRepo.find();
+            const allFiles = await filesRepo.createQueryBuilder()
+                .select(["MediaFile.id", "MediaFile.hash", "MediaFile.path"])
+                .getMany();
+            const allPaths = {};
+            for (const f of allFiles) {
+                allPaths[f.path] = {id: f.id, hash: f.hash};
+            }
+            for (const e of entries) {
+                if (allPaths[e.sEntry.fullPath]) {
+                    delete allPaths[e.sEntry.fullPath];
+                    continue;
                 }
-                for (const e of entries) {
-                    if (allPaths[e.sEntry.fullPath]) {
-                        delete allPaths[e.sEntry.fullPath];
-                        continue;
-                    }
-                    const file = new MediaFile();
-                    file.hash = e.sEntry.hash || "";
-                    file.path = e.sEntry.fullPath;
-                    file.raw = e.sEntry.name;
-                    file.year = e.mEntry.year;
-                    file.resolution = e.mEntry.resolution || "";
-                    file.quality = e.mEntry.quality || "";
-                    file.codec = e.mEntry.codec || "";
-                    file.audio = e.mEntry.audio || "";
-                    file.group = e.mEntry.group || "";
-                    file.region = e.mEntry.region || "";
-                    file.language = e.mEntry.language || "";
-                    file.extended = e.mEntry.extended || false;
-                    file.hardcoded = e.mEntry.hardcoded || false;
-                    file.proper = e.mEntry.proper || false;
-                    file.repack = e.mEntry.repack || false;
-                    file.wideScreen = e.mEntry.widescreen || false;
+                const file = new MediaFile();
+                file.hash = e.sEntry.hash || "";
+                file.path = e.sEntry.fullPath;
+                file.raw = e.sEntry.name;
+                file.year = e.mEntry.year;
+                file.resolution = e.mEntry.resolution || "";
+                file.quality = e.mEntry.quality || "";
+                file.codec = e.mEntry.codec || "";
+                file.audio = e.mEntry.audio || "";
+                file.group = e.mEntry.group || "";
+                file.region = e.mEntry.region || "";
+                file.language = e.mEntry.language || "";
+                file.extended = e.mEntry.extended || false;
+                file.hardcoded = e.mEntry.hardcoded || false;
+                file.proper = e.mEntry.proper || false;
+                file.repack = e.mEntry.repack || false;
+                file.wideScreen = e.mEntry.widescreen || false;
+                file.downloadedAt = e.sEntry.stat.birthtime;
 
-                    if (e.mEntry.episode || e.mEntry.season) {
-                        file.metaData = this.getMetaData(seriesArr, e, "series");
-                        file.episode = await this.getEpisode(file.metaData, episodesArr, e);
-                    } else {
-                        file.metaData = this.getMetaData(moviesArr, e, "movie");
-                    }
-
-                    delete allPaths[file.path];
-
-                    await IMDBController.getMetaDataFromInternetByMediaFile(file)
-                        .then(async (res) => {
-                            mediaFiles.push(res);
-                            res.metaData.status = "omdb";
-                            await connection.manager.save(res);
-                            console.log(mediaFiles.length);
-                        }).catch(async () => {
-                            mediaFiles.push(file);
-                            file.metaData.status = "failed";
-                            await connection.manager.save(file);
-                            console.log(mediaFiles.length);
-                        });
+                if (e.mEntry.episode || e.mEntry.season) {
+                    file.metaData = FilesController.getMetaData(seriesArr, e, "series");
+                    file.episode = await FilesController.getEpisode(file.metaData, episodesArr, e);
+                } else {
+                    file.metaData = FilesController.getMetaData(moviesArr, e, "movie");
                 }
-                // await connection.manager.save(mediaFiles);
 
-                const idsToDelete: any[] = [];
-                for (const i in allPaths) {
-                    if (allPaths.hasOwnProperty(i)) {
-                        idsToDelete.push(allPaths[i].id);
-                    }
+                delete allPaths[file.path];
+
+                await IMDBController.getMetaDataFromInternetByMediaFile(file)
+                    .then(async (res) => {
+                        mediaFiles.push(res);
+                        res.metaData.status = "omdb";
+                        await this.connection.manager.save(res);
+                        console.log(mediaFiles.length);
+                    }).catch(async () => {
+                        mediaFiles.push(file);
+                        file.metaData.status = "failed";
+                        await this.connection.manager.save(file);
+                        console.log(mediaFiles.length);
+                    });
+            }
+            // await connection.manager.save(mediaFiles);
+
+            const idsToDelete: any[] = [];
+            for (const i in allPaths) {
+                if (allPaths.hasOwnProperty(i)) {
+                    idsToDelete.push(allPaths[i].id);
                 }
-                await filesRepo.createQueryBuilder()
-                    .delete().where("id IN (:...ids)", {ids: idsToDelete})
-                    .execute();
-            }).catch(console.error);
+            }
+            await filesRepo.createQueryBuilder()
+                .delete().where("id IN (:...ids)", {ids: idsToDelete})
+                .execute();
+            // }).catch(console.error);
         });
     }
 

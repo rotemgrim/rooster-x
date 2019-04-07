@@ -29,7 +29,7 @@ export default class IMDBController {
             IMDBController.getMetaDataFromInternet(file.metaData.title, file.year)
                 .then((data) => {
                     if (data.Title !== "N/A") {file.metaData.name = data.Title; }
-                    if (data.imdbID !== "N/A") {file.metaData.imdbid = data.imdbID; }
+                    if (data.imdbID !== "N/A") {file.metaData.imdbId = data.imdbID; }
                     if (data.Genre !== "N/A") {file.metaData.genres = data.Genre; }
                     if (data.Language !== "N/A") {file.metaData.languages = data.Language; }
                     if (data.Country !== "N/A") {file.metaData.country = data.Country; }

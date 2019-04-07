@@ -1,19 +1,11 @@
 import "reflect-metadata";
-import {Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne} from "typeorm";
+import {Entity, Column, OneToMany, ManyToOne} from "typeorm";
 import {MediaFile} from "./MediaFile";
 import {MetaData} from "./MetaData";
+import {AbsMetaData} from "./AbsMetaData";
 
 @Entity("Episode")
-export class Episode {
-
-    @PrimaryGeneratedColumn()
-    public id: number;
-
-    @Column({type: "varchar", length: 255, nullable: true})
-    public title?: string;
-
-    @Column({type: "text", nullable: true})
-    public plot?: string;
+export class Episode extends AbsMetaData {
 
     @Column({type: "int", nullable: true})
     public season?: number;
@@ -21,26 +13,8 @@ export class Episode {
     @Column({type: "int"})
     public episode: number;
 
-    @Column({type: "text", nullable: true})
-    public poster: string;
-
-    @Column({type: "varchar", length: 255, nullable: true})
-    public released?: string;
-
-    @Column({type: "int", nullable: true})
-    public runtime?: number;
-
-    @Column({type: "varchar", length: 255, nullable: true})
-    public imdbId?: string;
-
     @Column({type: "varchar", length: 255, nullable: true})
     public imdbSeriesId?: string;
-
-    @Column({type: "int", nullable: true})
-    public votes?: number;
-
-    @Column({type: "float", nullable: true})
-    public rating?: number;
 
     @OneToMany(() => MediaFile, mediaFile => mediaFile.episode, {eager: true})
     public mediaFiles: MediaFile[];
