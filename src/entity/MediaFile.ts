@@ -65,4 +65,7 @@ export class MediaFile {
 
     // container?: string;
     // website?: string;
+
+    @Column({type: "datetime"})
+    public downloadedAt: Date;
 }

@@ -22,6 +22,7 @@ export class UserLogin extends LitElement {
 
     set users(users: User[] | null) {
         this._users = users;
+        this.requestUpdate();
     }
 
     constructor() {

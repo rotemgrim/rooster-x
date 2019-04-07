@@ -68,7 +68,7 @@ export class VideoDetails extends LitElement {
         if (this.video.type === "series") {
             IpcService.dbQuery("Episode", {
                 where: {
-                    imdbSeriesId: this.video.imdbid,
+                    imdbSeriesId: this.video.imdbId,
                 },
                 order: {
                     season: "ASC",

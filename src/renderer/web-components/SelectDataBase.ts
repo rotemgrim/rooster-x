@@ -21,7 +21,11 @@ export class SelectDataBase extends LitElement {
         this._errMsg = "";
         IpcService.openSelectFolderDialog()
             .then((dir) => {
-                this.wrapper.hasDbPath = true;
+                // this.wrapper.hasDbPath = true;
+                // todo: fix this abomination!!!
+                setTimeout(() => {
+                    this.wrapper.checkStatus();
+                }, 1000);
             })
             .catch(e => {
                 this._errMsg = e;
