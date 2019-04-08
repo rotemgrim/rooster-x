@@ -8,7 +8,6 @@
   /*box-shadow: 0px 3px 10px #03040bb5;*/
   height: $topBarHeight;
   -webkit-app-region: drag;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -17,6 +16,9 @@
     display: flex;
     align-items: center;
     justify-content: start;
+  }
+  > div:first-child {
+    overflow: hidden;
   }
 
   .logo {
@@ -68,7 +70,7 @@
       cursor: pointer;
 
       &:hover {
-        color: red;
+        color: $accentColor;
       }
     }
   }
@@ -80,7 +82,41 @@
   .user {
     user-select: none;
     -webkit-app-region: no-drag;
-    float:left;
+    float: left;
+    color: white;
+    position: relative;
+    font-size: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    right: $topBarHeight * 2;
+    height: $topBarHeight;
+    box-sizing: border-box;
+    width: 100%;
+    z-index: 2;
+    i {
+      font-size: 1.3em;
+      margin-right: 20px;
+      margin-left: 20px;
+    }
+    ul {
+      list-style: none;
+      position: absolute;
+      top: 64px;
+      left: 0;
+      background: black;
+      border-top: 1px solid red;
+      width: 100px;
+      box-sizing: content-box;
+      @extend .fade-in;
+
+      li {
+        padding: 0.5em;
+        &:hover {
+          background-color: $accentColor;
+        }
+      }
+    }
   }
   .close {
     user-select: none;
@@ -91,11 +127,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    right: 0;
     i {
       transition: all 500ms;
     }
     &:hover {
-      background-color: red;
+      background-color: $accentColor;
       color: black;
       i {
         transform: scale(1.5);
@@ -104,6 +141,6 @@
   }
   .maximize {
     @extend .close;
-    right: 1.5em;
+    right: $topBarHeight;
   }
 }

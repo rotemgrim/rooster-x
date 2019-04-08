@@ -8,15 +8,19 @@ import "./SettingsPage";
 import {MetaData} from "../../entity/MetaData";
 import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 import {User} from "../../entity/User";
+import {IConfig} from "../../common/models/IConfig";
+import {RoosterXWrapper} from "./RoosterXWrapper";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
 
-    @property() public user: User;
     @property() public _media: MetaData[] = [];
     @property() public _filteredMedia: IMetaDataExtended[] = [];
     @property() public _sideBar: boolean = false;
     @property() public _panel: string = "";
+    @property() public user: User;
+    @property() public config: IConfig;
+    @property() public wrapper: RoosterXWrapper;
 
     public createRenderRoot() {
         return this;
