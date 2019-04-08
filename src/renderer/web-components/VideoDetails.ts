@@ -1,15 +1,16 @@
 
-import {css, LitElement, html, customElement, property} from "lit-element";
+import {LitElement, html, customElement, property} from "lit-element";
 import {IpcService} from "../services/ipc.service";
 import {MetaData} from "../../entity/MetaData";
 import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
+import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 
 @customElement("video-details")
 export class VideoDetails extends LitElement {
 
-    @property() public video: MetaData;
+    @property() public video: IMetaDataExtended;
     @property() public card: VideoCard;
 
     public createRenderRoot() {
@@ -83,6 +84,10 @@ export class VideoDetails extends LitElement {
         }
     }
 
+    private setWatched() {
+        IpcService.setWatched({type: "MetaData", entityId: this.video.id});
+    }
+
     public render() {
         return html`<div class="video-details">
             <div class="close" @click="${this.close}">
@@ -99,9 +104,10 @@ export class VideoDetails extends LitElement {
                 </div>
                 <div class="imdb">IMDb</div>
                 <div class="trailer">Trailer</div>
+                <div class="trailer" @click=${this.setWatched}>Watched</div>
             </div>
             <div class="main-details">
-                <h1>${this.video.name}</h1>
+                <h1>${this.video.name} <small>${this.video.isWatched ? "watched" : ""}</small></h1>
                 <p>${this.video.plot}</p>
                 <div class="small-details">
                     <br><br>

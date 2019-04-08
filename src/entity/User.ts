@@ -1,4 +1,5 @@
-import {Entity, PrimaryGeneratedColumn, Column} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, OneToMany} from "typeorm";
+import {UserMetaData} from "./UserMetaData";
 
 @Entity()
 export class User {
@@ -17,5 +18,8 @@ export class User {
 
     @Column({type: "boolean"})
     public isAdmin: boolean;
+
+    @OneToMany(() => UserMetaData, x => x.user)
+    public metaDatas: UserMetaData[];
 
 }

@@ -5,6 +5,7 @@ import {MetaData} from "../../entity/MetaData";
 import {Episode} from "../../entity/Episode";
 import AppGlobal from "../helpers/AppGlobal";
 import * as path from "path";
+import {UserMetaData} from "../../entity/UserMetaData";
 
 export default class DBConnection {
 
@@ -21,6 +22,7 @@ export default class DBConnection {
                         MediaFile,
                         MetaData,
                         Episode,
+                        UserMetaData,
                     ],
                     synchronize: true,
                 }).then(() => {

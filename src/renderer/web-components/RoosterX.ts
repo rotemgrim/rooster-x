@@ -1,5 +1,5 @@
 
-import {css, LitElement, html, customElement, property} from "lit-element";
+import {LitElement, html, customElement, property} from "lit-element";
 import {IpcService} from "../services/ipc.service";
 import "./TopBar";
 import "./VideoCard";
@@ -7,10 +7,12 @@ import "./FiltersPage";
 import "./SettingsPage";
 import {MetaData} from "../../entity/MetaData";
 import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
+import {User} from "../../entity/User";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
 
+    @property() public user: User;
     @property() public _media: MetaData[] = [];
     @property() public _filteredMedia: IMetaDataExtended[] = [];
     @property() public _sideBar: boolean = false;
@@ -39,9 +41,16 @@ export class RoosterX extends LitElement {
     }
 
     set media(data) {
+        console.log(data);
         this._media = data;
         this._filteredMedia = [...data];
-        console.log(data);
+        for (const me of this._filteredMedia) {
+            if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
+                me.isWatched = true;
+            }
+        }
+        // console.log(data);
+        console.log(this._filteredMedia);
         this.requestUpdate();
     }
 

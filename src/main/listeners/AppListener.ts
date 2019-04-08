@@ -59,6 +59,7 @@ export default class AppListener {
             promiseIpc.on("select-directory-dialog", () => FilesController.selectDbPathFolder());
             promiseIpc.on("create-user", (user) => Container.get(UserRepository).createUser(user));
             promiseIpc.on("get-user", (id) => Container.get(UserRepository).getUser(id));
+            promiseIpc.on("set-watched", (payload) => Container.get(MediaRepository).setWatched(payload));
 
             AppListener.isListening = true;
             await AppController.bootstrapApp();

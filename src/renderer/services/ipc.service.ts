@@ -3,6 +3,8 @@ import {ipcRenderer} from "electron";
 import {IConfig} from "../../common/models/IConfig";
 import {URL} from "url";
 import {User} from "../../entity/User";
+import {MetaData} from "../../entity/MetaData";
+import {Episode} from "../../entity/Episode";
 
 const promiseIpc = new RendererPromiseIpc({ maxTimeoutMs: 120000 });
 
@@ -140,6 +142,12 @@ export class IpcService {
     public static createUser(payload: User): Promise<any> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("create-user", payload).then(resolve).catch(reject);
+        });
+    }
+
+    public static setWatched(payload: {type: string, entityId: number}): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("set-watched", payload).then(resolve).catch(reject);
         });
     }
 }

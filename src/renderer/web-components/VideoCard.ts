@@ -3,11 +3,12 @@ import {css, LitElement, html, customElement, property} from "lit-element";
 import {IpcService} from "../services/ipc.service";
 import {MetaData} from "../../entity/MetaData";
 import "./VideoDetails";
+import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 
 @customElement("video-card")
 export class VideoCard extends LitElement {
 
-    @property() public video: MetaData;
+    @property() public video: IMetaDataExtended;
     @property() public isShowDetails: boolean;
 
     public createRenderRoot() {
@@ -26,7 +27,7 @@ export class VideoCard extends LitElement {
     }
 
     public render() {
-        return html`<div class="video" @click="${this.showDetails}">
+        return html`<div class="video" @click="${this.showDetails}" >
             ${this.video.poster ?
                 html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
                 html`<img src="" alt="${this.video.poster}"/>`}
