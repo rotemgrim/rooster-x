@@ -43,6 +43,10 @@ export class SettingsPage extends LitElement {
                     <h2>Rescan Policy</h2>
                     <p>Some configuration for every time to scan?</p>
                 </div>
+                ${this.rooster.user.isAdmin ?
+                    html`<div class="section">
+                    <h2>Add User</h2>
+                </div>` : ""}
             </div>
         </div>`;
     }

@@ -38,7 +38,7 @@ export class RoosterX extends LitElement {
             ) {
                 if (this._sideBar) {
                     this._sideBar = false;
-                    this.setFocuseToVideos();
+                    RoosterX.setFocusToVideos();
                 }
             }
         });
@@ -61,19 +61,19 @@ export class RoosterX extends LitElement {
     private getAllMedia() {
         this._sideBar = false;
         IpcService.getAllMedia().then(media => this.media = media);
-        this.setFocuseToVideos();
+        RoosterX.setFocusToVideos();
     }
 
     private getMovies() {
         this._sideBar = false;
         IpcService.getAllMovies().then(media => this.media = media);
-        this.setFocuseToVideos();
+        RoosterX.setFocusToVideos();
     }
 
     private getSeries() {
         this._sideBar = false;
         IpcService.getAllSeries().then(media => this.media = media);
-        this.setFocuseToVideos();
+        RoosterX.setFocusToVideos();
     }
 
     private showFilters() {
@@ -86,7 +86,7 @@ export class RoosterX extends LitElement {
         this.requestUpdate();
     }
 
-    public setFocuseToVideos() {
+    public static setFocusToVideos() {
         const videos = document.querySelector(".videos") as HTMLElement;
         if (videos) {
             videos.focus();

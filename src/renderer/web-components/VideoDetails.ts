@@ -6,6 +6,7 @@ import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
 import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
+import {RoosterX} from "./RoosterX";
 
 @customElement("video-details")
 export class VideoDetails extends LitElement {
@@ -62,6 +63,7 @@ export class VideoDetails extends LitElement {
     public close() {
         this.card.isShowDetails = false;
         document.body.style.overflow = "auto";
+        RoosterX.setFocusToVideos();
         this.requestUpdate();
     }
 
@@ -93,11 +95,13 @@ export class VideoDetails extends LitElement {
             <div class="close" @click="${this.close}">
                 X
             </div>
-            <div class="poster">
-                ${this.video.poster ?
+            <div class="aside">
+                <div class="poster ${this.video.isWatched ? "watched" : ""}">
+                <div class="filter"></div>
+                    ${this.video.poster ?
                 html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
                 html`<img src="" alt="${this.video.poster}"/>`}
-
+                </div>
                 <div class="score">
                     <span class="rating">${this.video.rating}</span>
                     <span class="votes">${this.video.votes} <small>/ votes</small></span>
@@ -107,7 +111,7 @@ export class VideoDetails extends LitElement {
                 <div class="trailer" @click=${this.setWatched}>Watched</div>
             </div>
             <div class="main-details">
-                <h1>${this.video.name} <small>${this.video.isWatched ? "watched" : ""}</small></h1>
+                <h1>${this.video.name}</h1>
                 <p>${this.video.plot}</p>
                 <div class="small-details">
                     <br><br>

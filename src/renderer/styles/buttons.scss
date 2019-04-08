@@ -1,0 +1,68 @@
+
+@import "vars";
+
+%close-button {
+  cursor: pointer;
+  color: $accentColor;
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-weight: 900;
+  font-size: 3em;
+  font-family: $bodyFontFamily;
+}
+
+
+.watched {
+  color: white;
+  .filter {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    // backdrop-filter: sepia(1);
+  }
+  img {
+    filter: sepia(100%);
+    transition: all 1s;
+  }
+  &:hover {
+    .filter {
+      // backdrop-filter: sepia(0);
+    }
+    img {
+      filter: sepia(0);
+    }
+  }
+  &:before {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    content: "";
+    width: 0;
+    height: 0;
+    border-bottom: ($posterWidth / 3) solid #8b7638;
+    border-left: ($posterWidth / 3) solid transparent;
+    z-index: 1;
+  }
+  &:after {
+    content: "visibility";
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 3em;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    position: absolute;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    right: 10px;
+    bottom: 10px;
+    /* transform: rotate(-45deg); */
+    z-index: 1;
+  }
+}

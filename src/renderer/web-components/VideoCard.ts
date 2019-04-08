@@ -28,9 +28,12 @@ export class VideoCard extends LitElement {
 
     public render() {
         return html`<div class="video" @click="${this.showDetails}" >
-            ${this.video.poster ?
-                html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
-                html`<img src="" alt="${this.video.poster}"/>`}
+            <div class="poster ${this.video.isWatched ? "watched" : ""}">
+                <div class="filter"></div>
+                ${this.video.poster ?
+                    html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
+                    html`<img src="" alt="${this.video.poster}"/>`}
+            </div>
         </div>
         ${this.isShowDetails ?
             html`<video-details tabindex="${this.video.id}"

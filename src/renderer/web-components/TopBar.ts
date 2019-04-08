@@ -23,7 +23,7 @@ export class TopBar extends LitElement {
     private toggleFullScreen() {
         IpcService.fullScreen();
         this._fullScreen = !this._fullScreen;
-        this.rooster.setFocuseToVideos();
+        RoosterX.setFocusToVideos();
     }
 
     private toggleSideBar() {
@@ -60,7 +60,7 @@ export class TopBar extends LitElement {
         if (input) {
             input.value = "";
             this.search();
-            this.rooster.setFocuseToVideos();
+            RoosterX.setFocusToVideos();
             this.requestUpdate();
         }
     }

@@ -1,0 +1,211 @@
+@import "vars";
+
+//@extend-elements
+//original selectors
+//.media-file .resolution, .media-file .audio, .media-file .quality
+%extend_1 {
+  background-color: darkmagenta;
+  font-size: 1.9em;
+  padding: 0 0.5em;
+  //Instead of the line below you could use @include border-radius($radius, $vertical-radius)
+  border-radius: 1.2em;
+  margin-left: 0.5em;
+  color: white !important;
+}
+
+video-details {
+  display: block;
+  position: fixed;
+  width: 100%;
+  left: 0;
+  top: 0;
+  background: rgba(0, 0, 0, 0.85);
+  height: 100%;
+  //Instead of the line below you could use @include box-sizing($bs)
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 5em;
+  outline: none;
+}
+
+.video-details {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: white;
+  letter-spacing: 0.2em;
+  font-family: $bodyFontFamily;
+  display: flex;
+  align-items: start;
+
+  .aside {
+    float: left;
+    margin-right: 5em;
+    height: 100%;
+    max-width: $posterWidth;
+    position: fixed;
+    width: $posterWidth;
+
+    .poster {
+      width: $posterWidth;
+      max-width: $posterWidth;
+      position: relative;
+    }
+    .rating {
+      font-size: 10em;
+      clear: both;
+      width: 100%;
+      display: block;
+      text-align: center;
+      letter-spacing: 0.05em;
+      color: #f5c518;
+    }
+    .votes {
+      font-size: 2em;
+      text-align: center;
+      width: 100%;
+      display: block;
+      margin-top: -0.5em;
+      color: #e8b708;
+      small {
+        color: antiquewhite;
+      }
+    }
+    .imdb {
+      font-family: $titleFontFamily;
+      font-size: 5em;
+      color: #000;
+      background: #f5c518;
+      //Instead of the line below you could use @include border-radius($radius, $vertical-radius)
+      border-radius: 10px;
+      text-align: center;
+      margin: 0.2em 0.4em 0.4em 0.4em;
+      cursor: pointer;
+      &:hover {
+        background: #e8b708;
+      }
+    }
+    .trailer {
+      font-family: $titleFontFamily;
+      font-size: 4em;
+      color: #e6e6e6;
+      background: #d80a0a;
+      //Instead of the line below you could use @include border-radius($radius, $vertical-radius)
+      border-radius: 10px;
+      text-align: center;
+      width: 236px;
+      margin: auto;
+      cursor: pointer;
+      &:hover {
+        color: #ffffff;
+      }
+    }
+  }
+  .main-details {
+    float: left;
+    padding-left: calc(300px + 5em);
+    padding-bottom: 15em;
+  }
+  h1 {
+    font-size: 6em;
+    font-family: $titleFontFamily;
+    padding-right: 0.5em;
+  }
+  p {
+    font-size: 2em;
+    letter-spacing: 1px;
+  }
+  .small-details {
+    margin-bottom: 4em;
+    color: #6bec5d;
+    font-weight: 900;
+    font-size: 0.8em;
+  }
+  .episodes {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .episode {
+    width: $posterWidth;
+    .title {
+      display: inline-block;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      width: calc(100% - 1em);
+      overflow: hidden;
+      text-align: left;
+    }
+    .image {
+      height: 165px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      i {
+        position: absolute;
+        font-size: 7em;
+        opacity: 0.5;
+      }
+    }
+    img {
+      min-width: $posterWidth;
+      min-height: 165px;
+    }
+    &:hover .image i {
+      opacity: 1;
+    }
+  }
+}
+
+episode-card {
+  margin-bottom: 1.7em;
+}
+
+media-file-card {
+  width: 100%;
+  display: inline-block;
+}
+
+.media-file {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  white-space: nowrap;
+  background-color: blueviolet;
+  //Instead of the line below you could use @include border-radius($radius, $vertical-radius)
+  border-radius: 0.5em;
+  padding: 0.3em;
+  cursor: pointer;
+  color: white;
+  margin-bottom: 1em;
+  i {
+    font-size: 3em;
+  }
+  .resolution {
+    @extend %extend_1;
+  }
+  .audio {
+    @extend %extend_1;
+    background-color: darkorange;
+  }
+  .quality {
+    @extend %extend_1;
+    background-color: darkred;
+  }
+  .raw {
+    margin-left: 1.2em;
+  }
+  &:hover {
+    background-color: #6bec5d;
+    color: black;
+    i {
+      color: black;
+    }
+  }
+}
+
+.test {
+  color: rebeccapurple;
+}
