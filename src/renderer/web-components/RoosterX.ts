@@ -10,6 +10,9 @@ import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 import {User} from "../../entity/User";
 import {IConfig} from "../../common/models/IConfig";
 import {RoosterXWrapper} from "./RoosterXWrapper";
+import {List} from "linqts";
+import * as _ from "lodash";
+import {MediaFile} from "../../entity/MediaFile";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
@@ -47,15 +50,43 @@ export class RoosterX extends LitElement {
     set media(data) {
         console.log(data);
         this._media = data;
-        this._filteredMedia = [...data];
-        for (const me of this._filteredMedia) {
+        this._filteredMedia = this.prepareMedia(data);
+        this._filteredMedia = this.filterMedia(this._filteredMedia);
+        this._filteredMedia = this.sortMedia(this._filteredMedia);
+        console.log(this._filteredMedia);
+        this.requestUpdate();
+    }
+
+    private prepareMedia(metaDataList: MetaData[]): IMetaDataExtended[] {
+        const newList: IMetaDataExtended[] = [...metaDataList];
+        for (const me of newList) {
+
+            // check if media is watched
             if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
                 me.isWatched = true;
             }
+
+            // get latest max date downloaded / changed
+            const latestMediaFile: MediaFile | undefined = _.maxBy(me.mediaFiles, (o) => {
+                return new Date(o.downloadedAt).getTime();
+            });
+            if (latestMediaFile) {
+                me.latestChange = new Date(latestMediaFile.downloadedAt).getTime();
+            }
+
         }
-        // console.log(data);
-        console.log(this._filteredMedia);
-        this.requestUpdate();
+        return newList;
+    }
+
+    private filterMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
+        return list;
+    }
+
+    private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
+        list = new List<IMetaDataExtended>([...list])
+            .OrderByDescending((x: IMetaDataExtended): any => x.latestChange)
+            .ToArray();
+        return list;
     }
 
     private getAllMedia() {
