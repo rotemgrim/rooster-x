@@ -1,0 +1,22 @@
+
+
+.filters-page {
+  ul {
+    li {
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      height: 3em;
+      // justify-content: space-between;
+      color: #f0f0f0;
+
+      label {
+        margin-left: 1em;
+      }
+
+      &:hover {
+        color: white;
+      }
+    }
+  }
+}

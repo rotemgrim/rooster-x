@@ -19,6 +19,12 @@ export class FiltersPage extends LitElement {
         this.rooster._panel = "";
     }
 
+    private filterChange(e) {
+        const addToFilterConfig = {};
+        addToFilterConfig[e.target.id] = e.target.checked;
+        this.rooster.filterConfig = Object.assign(this.rooster._filterConfig, addToFilterConfig);
+    }
+
     public render() {
         return html`<div class="page filters-page">
             <div class="page-top">
@@ -27,13 +33,24 @@ export class FiltersPage extends LitElement {
             </div>
             <div class="page-body">
                 <div class="filters">
+                    <br><br><br><br>
                     <h2>Filters</h2>
                     <ul>
-                        <li>Show ONLY unwatched?</li>
-                        <li>Show hint on poster for watched Media?</li>
+                        <li>
+                            <h3>Show ONLY unwatched media</h3>
+                            <input @change=${this.filterChange} id="unwatchedMedia"
+                                class="tgl tgl-light" type="checkbox"/>
+                            <label class="tgl-btn" for="unwatchedMedia"></label>
+                        </li>
+                        <!--<li>-->
+                            <!--<h3>Show watched hint on poster for watched Media</h3>-->
+                            <!--<input class="tgl tgl-light" id="cb2" type="checkbox"/>-->
+                            <!--<label class="tgl-btn" for="cb2"></label>-->
+                        <!--</li>-->
                     </ul>
                 </div>
                 <div class="sorting">
+                    <br><br><br><br>
                     <h2>Sorting</h2>
                     <ul>
                         <li>Order by Downloaded date & time</li>

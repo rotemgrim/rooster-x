@@ -1,0 +1,100 @@
+@import "vars";
+
+%close-button {
+  cursor: pointer;
+  color: $accentColor;
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-weight: 900;
+  font-size: 3em;
+  font-family: $bodyFontFamily;
+}
+
+.tgl {
+  display: none;
+
+  // add default box-sizing for this scope
+  &,
+  &:after,
+  &:before,
+  & *,
+  & *:after,
+  & *:before,
+  & + .tgl-btn {
+    box-sizing: border-box;
+    &::selection {
+      background: none;
+    }
+  }
+
+  + .tgl-btn {
+    outline: 0;
+    display: block;
+    width: 4em;
+    height: 2em;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    &:after,
+    &:before {
+      position: relative;
+      display: block;
+      content: "";
+      width: 50%;
+      height: 100%;
+    }
+
+    &:after {
+      left: 0;
+    }
+
+    &:before {
+      display: none;
+    }
+  }
+
+  &:checked + .tgl-btn:after {
+    left: 50%;
+  }
+}
+
+// themes
+.tgl-light {
+  + .tgl-btn {
+    background: #777777;
+    border-radius: 2em;
+    padding: 2px;
+    transition: all .4s ease;
+    &:after {
+      border-radius: 50%;
+      background: #fff;
+      transition: all .2s ease;
+    }
+    &:before {
+      display: table-cell;
+      vertical-align: middle;
+      content: "No";
+      color: #d0d0d0;
+      position: absolute;
+      right: -2.5em;
+      line-height: 1.9em;
+      text-align: center;
+    }
+  }
+
+  &:checked + .tgl-btn {
+    background: $accentColor;
+
+    &:before {
+      display: table-cell;
+      vertical-align: middle;
+      content: "Yes";
+      color: white;
+      position: absolute;
+      right: -2.5em;
+      line-height: 1.9em;
+      text-align: center;
+    }
+  }
+}

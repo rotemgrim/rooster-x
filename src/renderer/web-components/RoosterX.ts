@@ -24,6 +24,9 @@ export class RoosterX extends LitElement {
     @property() public user: User;
     @property() public config: IConfig;
     @property() public wrapper: RoosterXWrapper;
+    @property() public _filterConfig: any = {
+        unwatchedMedia: false,
+    };
 
     public createRenderRoot() {
         return this;
@@ -57,6 +60,11 @@ export class RoosterX extends LitElement {
         this.requestUpdate();
     }
 
+    set filterConfig(data) {
+        this._filterConfig = data;
+        this.media = this._media;
+    }
+
     private prepareMedia(metaDataList: MetaData[]): IMetaDataExtended[] {
         const newList: IMetaDataExtended[] = [...metaDataList];
         for (const me of newList) {
@@ -79,6 +87,9 @@ export class RoosterX extends LitElement {
     }
 
     private filterMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
+        if (this._filterConfig.unwatchedMedia) {
+            list = list.filter((m) => !m.isWatched);
+        }
         return list;
     }
 

@@ -1,20 +1,10 @@
 @import "vars";
-
-%close-button {
-  cursor: pointer;
-  color: $accentColor;
-  position: absolute;
-  right: 0;
-  top: 0;
-  font-weight: 900;
-  font-size: 3em;
-  font-family: $bodyFontFamily;
-}
-
+@import "buttons";
 @import "animated-background";
 @import "top-bar";
 @import "side-bar";
 @import "panel";
+@import "filter-page";
 
 * {
   padding: 0;
