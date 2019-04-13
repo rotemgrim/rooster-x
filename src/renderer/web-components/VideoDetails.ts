@@ -70,6 +70,10 @@ export class VideoDetails extends LitElement {
     }
 
     protected firstUpdated(): void {
+        this.reloadVideo();
+    }
+
+    public reloadVideo() {
         if (this.video.type === "series") {
             IpcService.dbQuery("Episode", {
                 where: {
@@ -164,7 +168,7 @@ export class VideoDetails extends LitElement {
                     && this._episodes.length > 0 ?
                     html`<div class="episodes">
                         ${this._episodes.map(ep => {
-                            return html`<episode-card .episode=${ep}></episode-card>`;
+                            return html`<episode-card .episode=${ep} .videoDetails=${this}></episode-card>`;
                         })}
                     </div>` : ""}
 

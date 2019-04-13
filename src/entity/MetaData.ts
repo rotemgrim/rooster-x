@@ -17,7 +17,7 @@ export class MetaData extends AbsMetaData {
     @OneToMany(() => MediaFile, mediaFile => mediaFile.metaData, {eager: true})
     public mediaFiles: MediaFile[];
 
-    @OneToMany(() => Episode, episode => episode.metaData)
+    @OneToMany(() => Episode, episode => episode.metaData, {lazy: true})
     public episodes: Episode[];
 
     @Column({type: "varchar", length: 10, default: "not-scanned"})

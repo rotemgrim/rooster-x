@@ -11,7 +11,7 @@
     "builder:pack": "electron-builder --dir --win",
     "builder:dist": "electron-builder --win",
     "run-webpack": "webpack --config webpack.config.js",
-    "run-electron": "electron .",
+    "run-electron": "electron --inspect=5858 --remote-debugging-port=9222 .",
     "rebuild-sqlite": "electron-rebuild -f -w sqlite3",
     "resync-typeorm": "ts-node typeorm schema:sync",
     "install-builder-deps": "electron-builder install-app-deps",

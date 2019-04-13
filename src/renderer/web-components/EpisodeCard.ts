@@ -1,16 +1,15 @@
 
 import {LitElement, html, customElement, property} from "lit-element";
-import {MetaData} from "../../entity/MetaData";
 import {IpcService} from "../services/ipc.service";
 import {MediaFile} from "../../entity/MediaFile";
-import "./VideoDetails";
+import {VideoDetails} from "./VideoDetails";
 import "./MediaFileCard";
 import {IEpisodeExtended} from "../../common/models/IMetaDataExtended";
 
 @customElement("episode-card")
 export class EpisodeCard extends LitElement {
 
-    @property() public video: MetaData;
+    @property() public videoDetails: VideoDetails;
     @property() public episode: IEpisodeExtended;
     @property() public isShowPlayOptions: boolean;
 
@@ -46,8 +45,11 @@ export class EpisodeCard extends LitElement {
             isWatched = true;
         }
         IpcService.setWatched({type: "Episode", entityId: this.episode.id, isWatched})
-            .then(() => {
+            .then((payload: {isSeriesWatched: boolean}) => {
+                console.log("got payload", payload);
                 this.episode.isWatched = isWatched;
+                this.videoDetails.video.isWatched = payload.isSeriesWatched;
+                this.videoDetails.requestUpdate();
                 this.requestUpdate();
             })
             .catch(console.log);

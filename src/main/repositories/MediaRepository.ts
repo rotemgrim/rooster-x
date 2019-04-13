@@ -1,5 +1,5 @@
 import {Service} from "typedi";
-import {Connection} from "typeorm";
+import {Connection, In} from "typeorm";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import {MetaData} from "../../entity/MetaData";
 import {Episode} from "../../entity/Episode";
@@ -55,36 +55,81 @@ export class MediaRepository {
             const metaRepo = this.connection.manager.getRepository(payload.type);
             const userRepo = this.connection.manager.getRepository(User);
             const user = await userRepo.findOne(AppGlobal.getConfig().userId);
-            const metaData = await metaRepo.findOne(payload.entityId) as AbsMetaData;
+            const metaData: any = await metaRepo.findOne(payload.entityId);
 
             if (user && metaData) {
-
                 if (payload.type === "MetaData") {
-                    const userMetaDataRepo = this.connection.manager.getRepository("UserMetaData");
-                    let umd: any = await userMetaDataRepo.findOne({userId: user.id, metaDataId: metaData.id});
-                    if (!umd) {
-                        umd = new UserMetaData();
-                        umd.user = user;
-                        umd.metaData = metaData;
-                    }
-                    umd.isWatched = payload.isWatched;
-                    userMetaDataRepo.save(umd).then(resolve).catch(reject);
-
+                    this.setMetaDataWatched(metaData, user, payload.isWatched).then(resolve).catch(reject);
                 } else if (payload.type === "Episode") {
-                    const userMetaDataRepo = this.connection.manager.getRepository("UserEpisode");
-                    let umd: any = await userMetaDataRepo.findOne({userId: user.id, episodeId: metaData.id});
-                    if (!umd) {
-                        umd = new UserEpisode();
-                        umd.user = user;
-                        umd.episode = metaData;
-                    }
-                    umd.isWatched = payload.isWatched;
-                    userMetaDataRepo.save(umd).then(resolve).catch(reject);
-
+                    this.setEpisodeWatched(metaData, user, payload.isWatched).then(resolve).catch(reject);
                 }
             } else {
                 reject();
             }
+        });
+    }
+
+    private setMetaDataWatched(metaData: MetaData, user: User, isWatched: boolean) {
+        return new Promise(async (resolve, reject) => {
+            const userMetaDataRepo = this.connection.manager.getRepository("UserMetaData");
+            let umd: any = await userMetaDataRepo.findOne({userId: user.id, metaDataId: metaData.id});
+            if (!umd) {
+                umd = new UserMetaData();
+                umd.user = user;
+                umd.metaData = metaData;
+            } else if (umd.isWatched === isWatched) {
+                resolve(isWatched);
+            } else {
+                umd.isWatched = isWatched;
+                userMetaDataRepo.save(umd).then(() => resolve(isWatched)).catch(reject);
+            }
+        });
+    }
+
+    private setEpisodeWatched(episode: Episode, user: User, isWatched: boolean) {
+        return new Promise(async (resolve, reject) => {
+
+            // set the episode with watched
+            const userMetaDataRepo = this.connection.manager.getRepository("UserEpisode");
+            let umd: any = await userMetaDataRepo.findOne({userId: user.id, episodeId: episode.id});
+            if (!umd) {
+                umd = new UserEpisode();
+                umd.user = user;
+                umd.episode = episode;
+            } else if (umd.isWatched === isWatched) {
+                resolve();
+                return;
+            }
+
+            umd.isWatched = isWatched;
+            const tmpSeries = await episode.metaData;
+            userMetaDataRepo.save(umd)
+                .then(() => this.checkIfSeriesIsWatchedForUser(tmpSeries.id, user.id))
+                .then(isSeriesWatched => this.setMetaDataWatched(tmpSeries, user, isSeriesWatched))
+                .then(isSeriesWatched => resolve({isSeriesWatched}))
+                .catch(reject);
+        });
+    }
+
+    public checkIfSeriesIsWatchedForUser(seriesId: number, userId: number): Promise<boolean> {
+        return new Promise(async resolve => {
+            const metaRepo = this.connection.manager.getRepository(MetaData);
+            const series = await metaRepo.findOne(seriesId) as MetaData;
+            const episodes = await series.episodes;
+            const episodesIds = episodes.map(e => e.id);
+
+            const userEpisodeRepo = this.connection.manager.getRepository(UserEpisode);
+            const userEpisodes = await userEpisodeRepo.find({where: {episodeId: In(episodesIds), userId}});
+
+            // check if all episodes in series are watched
+            for (const e of episodes) {
+                const ue = userEpisodes.filter(o => o.episodeId === e.id && o.isWatched);
+                if (ue.length === 0) {
+                    resolve(false);
+                    return;
+                }
+            }
+            resolve(true);
         });
     }
 
