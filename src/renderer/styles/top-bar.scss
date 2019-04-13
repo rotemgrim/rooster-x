@@ -74,6 +74,18 @@
       }
     }
   }
+  .filter {
+    user-select: none;
+    -webkit-app-region: no-drag;
+    margin-left: 2em;
+
+    i {
+      font-size: 3em;
+    }
+    &:hover i {
+      color: $accentColor;
+    }
+  }
   .refresh {
     user-select: none;
     -webkit-app-region: no-drag;

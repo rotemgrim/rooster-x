@@ -16,13 +16,25 @@ export class FiltersPage extends LitElement {
     }
 
     private close() {
-        this.rooster._panel = "";
+        this.rooster.closeSideBar();
     }
 
     private filterChange(e) {
         const addToFilterConfig = {};
         addToFilterConfig[e.target.id] = e.target.checked;
         this.rooster.filterConfig = Object.assign(this.rooster._filterConfig, addToFilterConfig);
+    }
+
+    private orderDirectrionChange(e) {
+        const addToOrderConfig = {};
+        addToOrderConfig[e.target.id] = e.target.checked;
+        this.rooster.orderConfig = Object.assign(this.rooster._orderConfig, addToOrderConfig);
+    }
+
+    private orderByChange(e) {
+        const addToOrderConfig = {};
+        addToOrderConfig[e.target.id] = e.target.value;
+        this.rooster.orderConfig = Object.assign(this.rooster._orderConfig, addToOrderConfig);
     }
 
     public render() {
@@ -39,6 +51,7 @@ export class FiltersPage extends LitElement {
                         <li>
                             <h3>Show ONLY unwatched media</h3>
                             <input @change=${this.filterChange} id="unwatchedMedia"
+                                ?checked="${this.rooster._filterConfig.unwatchedMedia}"
                                 class="tgl tgl-light" type="checkbox"/>
                             <label class="tgl-btn" for="unwatchedMedia"></label>
                         </li>
@@ -53,10 +66,32 @@ export class FiltersPage extends LitElement {
                     <br><br><br><br>
                     <h2>Sorting</h2>
                     <ul>
-                        <li>Order by Downloaded date & time</li>
-                        <li>Order by IMDB Score</li>
-                        <li>Order by IMDB Votes</li>
-                        <li>Order by IMDB Votes</li>
+                        <li>
+                            <h3>Order by</h3>
+                            <select @change=${this.orderByChange} id="orderBy">
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "latestChange"}
+                                    value="latestChange">Download Date</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "rating"}
+                                    value="rating">IMDB Score</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "votes"}
+                                    value="votes">IMDB Votes</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "year"}
+                                    value="year">Year</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "released"}
+                                    value="released">Release Date</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "runtime"}
+                                    value="runtime">Runtime</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "status"}
+                                    value="status">Status</option>
+                            </select>
+                        </li>
+                        <li>
+                            <h3>Order direction descending</h3>
+                            <input @change=${this.orderDirectrionChange} id="directionDescending"
+                                ?checked="${this.rooster._orderConfig.directionDescending}"
+                                class="tgl tgl-light" type="checkbox"/>
+                            <label class="tgl-btn" for="directionDescending"></label>
+                        </li>
                     </ul>
                 </div>
             </div>

@@ -90,6 +90,9 @@ export class VideoDetails extends LitElement {
         IpcService.setWatched({type: "MetaData", entityId: this.video.id});
     }
 
+    private formatNumber(num) {
+        return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+    }
     public render() {
         return html`<div class="video-details">
             <div class="close" @click="${this.close}">
@@ -104,7 +107,7 @@ export class VideoDetails extends LitElement {
                 </div>
                 <div class="score">
                     <span class="rating">${this.video.rating}</span>
-                    <span class="votes">${this.video.votes} <small>/ votes</small></span>
+                    <span class="votes">${this.formatNumber(this.video.votes)} <small>/ votes</small></span>
                 </div>
                 <div class="imdb">IMDb</div>
                 <div class="trailer">Trailer</div>

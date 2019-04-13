@@ -27,6 +27,10 @@ export class RoosterX extends LitElement {
     @property() public _filterConfig: any = {
         unwatchedMedia: false,
     };
+    @property() public _orderConfig: any = {
+        directionDescending: true,
+        orderBy: "latestChange",
+    };
 
     public createRenderRoot() {
         return this;
@@ -65,6 +69,11 @@ export class RoosterX extends LitElement {
         this.media = this._media;
     }
 
+    set orderConfig(data) {
+        this._orderConfig = data;
+        this.media = this._media;
+    }
+
     private prepareMedia(metaDataList: MetaData[]): IMetaDataExtended[] {
         const newList: IMetaDataExtended[] = [...metaDataList];
         for (const me of newList) {
@@ -94,44 +103,66 @@ export class RoosterX extends LitElement {
     }
 
     private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
-        list = new List<IMetaDataExtended>([...list])
-            .OrderByDescending((x: IMetaDataExtended): any => x.latestChange)
-            .ToArray();
-        return list;
+        const linqList = new List<IMetaDataExtended>([...list]);
+        console.log("orderBy", this._orderConfig);
+        if (this._orderConfig.directionDescending) {
+            linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+        } else {
+            linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+        }
+        return linqList.ToArray();
     }
 
     private getAllMedia() {
-        this._sideBar = false;
         IpcService.getAllMedia().then(media => this.media = media);
         RoosterX.setFocusToVideos();
+        this.closeSideBar();
     }
 
     private getMovies() {
-        this._sideBar = false;
         IpcService.getAllMovies().then(media => this.media = media);
         RoosterX.setFocusToVideos();
+        this.closeSideBar();
     }
 
     private getSeries() {
-        this._sideBar = false;
         IpcService.getAllSeries().then(media => this.media = media);
         RoosterX.setFocusToVideos();
+        this.closeSideBar();
     }
 
-    private showFilters() {
-        this._panel = "filters";
-        this.requestUpdate();
+    public showFilters() {
+        this.openSideBar("filters");
     }
 
     private showSettings() {
-        this._panel = "settings";
-        this.requestUpdate();
+        this.openSideBar("settings");
     }
 
     public static setFocusToVideos() {
         const videos = document.querySelector(".videos") as HTMLElement;
         if (videos) {
             videos.focus();
+        }
+    }
+
+    public openSideBar(panel: string = "") {
+        this._panel = panel;
+        this._sideBar = true;
+        this.requestUpdate();
+    }
+
+    public closeSideBar() {
+        this._panel = "";
+        this._sideBar = false;
+        this.requestUpdate();
+    }
+
+    public toggleSideBar(panel: string = "") {
+        if (this._sideBar) {
+            this.closeSideBar();
+        } else {
+            this.openSideBar(panel);
         }
     }
 

@@ -26,10 +26,12 @@ export class TopBar extends LitElement {
         RoosterX.setFocusToVideos();
     }
 
+    private showFilters() {
+        this.rooster.openSideBar("filters");
+    }
+
     private toggleSideBar() {
-        this.rooster._panel = "";
-        this.rooster._sideBar = !this.rooster._sideBar;
-        this.requestUpdate();
+        this.rooster.toggleSideBar();
     }
 
     private search(e?: any) {
@@ -84,6 +86,9 @@ export class TopBar extends LitElement {
         <div class="top-bar">
             <div>
                 <div class="logo" @click="${this.toggleSideBar}"></div>
+                <div class="filter" @click="${this.showFilters}" style="display: block; color: white;">
+                    <i class="material-icons">filter_list</i>
+                </div>
                 <div class="search">
                     <input type="text" placeholder="Search..." @input="${this.search}">
                     ${this._searchTerm ? html`<i class="material-icons" @click=${this.clearSearch}>backspace</i>` : ""}

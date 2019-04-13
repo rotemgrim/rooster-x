@@ -18,7 +18,7 @@ export class SettingsPage extends LitElement {
     }
 
     private close() {
-        this.rooster._panel = "";
+        this.rooster.closeSideBar();
     }
 
     private scanNow() {
