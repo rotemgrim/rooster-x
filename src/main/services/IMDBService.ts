@@ -14,6 +14,7 @@ export default class IMDBService {
     }
 
     public static get(opt: IGetOptions): Promise<IOmdbEntity> {
+        console.log("get query", opt);
         let url = `http://www.omdbapi.com/?apikey=${IMDBService.apiKey}`;
         if (opt.title) {url += `&t=${opt.title}`; }
         if (opt.year) {url += `&year=${opt.year}`; }

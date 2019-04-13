@@ -6,8 +6,7 @@ import IMDBService, {IOmdbEntity} from "../services/IMDBService";
 export default class IMDBController {
 
     public static getEpisodeMetaDataFromInternetByEpisode(episode: Episode): Promise<Episode> {
-        return new Promise((resolve, reject) => {
-
+        return new Promise(async (resolve, reject) => {
             IMDBController.getEpisodeMetaDataFromInternet(episode)
                 .then((data) => {
                     episode.title = data.Title;
@@ -75,12 +74,13 @@ export default class IMDBController {
     }
 
     public static getEpisodeMetaDataFromInternet(episode: Episode): Promise<IOmdbEntity> {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             if (!episode || !episode.season || !episode.episode) {
                 reject();
             }
+            const metaData = await episode.metaData;
             IMDBService.setApiKey(AppGlobal.getConfig().omdbApiKey);
-            IMDBService.get({title: episode.metaData.title, season: episode.season, episode: episode.episode})
+            IMDBService.get({title: metaData.title, season: episode.season, episode: episode.episode})
                 .then(resolve).catch(reject);
         });
     }

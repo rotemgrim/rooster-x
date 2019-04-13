@@ -20,6 +20,7 @@ import AppController from "./AppController";
 import {Service} from "typedi";
 import {MediaRepository} from "../repositories/MediaRepository";
 import {InjectConnection} from "typeorm-typedi-extensions";
+import {UserMetaData} from "../../entity/UserMetaData";
 
 @Service()
 export default class FilesController {
@@ -88,7 +89,7 @@ export default class FilesController {
                     delete allPaths[e.sEntry.fullPath];
                     continue;
                 }
-                const file = new MediaFile();
+                let file = new MediaFile();
                 file.hash = e.sEntry.hash || "";
                 file.path = e.sEntry.fullPath;
                 file.raw = e.sEntry.name;
@@ -109,25 +110,29 @@ export default class FilesController {
 
                 if (e.mEntry.episode || e.mEntry.season) {
                     file.metaData = FilesController.getMetaData(seriesArr, e, "series");
-                    file.episode = await FilesController.getEpisode(file.metaData, episodesArr, e);
+                    file.episode = await this.getEpisode(file.metaData, episodesArr, e);
                 } else {
                     file.metaData = FilesController.getMetaData(moviesArr, e, "movie");
                 }
 
                 delete allPaths[file.path];
+                if (file.metaData.status === "not-scanned") {
+                    await IMDBController.getMetaDataFromInternetByMediaFile(file)
+                        .then(async (res) => {
+                            file = res;
+                            file.metaData.status = "omdb";
+                        }).catch(async () => {
+                            file.metaData.status = "failed";
+                        });
+                }
 
-                await IMDBController.getMetaDataFromInternetByMediaFile(file)
-                    .then(async (res) => {
-                        mediaFiles.push(res);
-                        res.metaData.status = "omdb";
-                        await this.connection.manager.save(res);
-                        console.log(mediaFiles.length);
-                    }).catch(async () => {
-                        mediaFiles.push(file);
-                        file.metaData.status = "failed";
-                        await this.connection.manager.save(file);
-                        console.log(mediaFiles.length);
-                    });
+                // todo: figure out why we need to empty this before saving
+                if (file.metaData.userMetaData) {
+                    delete file.metaData.userMetaData;
+                }
+                await this.connection.manager.save(file);
+                mediaFiles.push(file);
+                console.log(mediaFiles.length);
             }
             // await connection.manager.save(mediaFiles);
 
@@ -212,8 +217,8 @@ export default class FilesController {
         }
     }
 
-    public static getEpisode(metaData: MetaData, episodesArr: Episode[], e: IEntry): Promise<Episode> {
-        return new Promise((resolve) => {
+    public getEpisode(metaData: MetaData, episodesArr: Episode[], e: IEntry): Promise<Episode> {
+        return new Promise(async (resolve) => {
             const tmpArr = episodesArr.filter((s) => {
                 return s.metaData && s.metaData.title === e.mEntry.title
                     && s.season === e.mEntry.season
@@ -227,6 +232,17 @@ export default class FilesController {
                 tmpEpisode.episode = e.mEntry.episode || 0;
                 tmpEpisode.season = e.mEntry.season;
                 tmpEpisode.metaData = metaData;
+
+                // check if series is watched
+                const userMetaDataRepo = this.connection.manager.getRepository(UserMetaData);
+                const userMetaData = await userMetaDataRepo.find({where: {metaDataId: metaData.id}});
+                for (const umd of userMetaData) {
+                    if (umd.isWatched === true) {
+                        umd.isWatched = false;
+                        await userMetaDataRepo.save(umd).catch(console.error);
+                    }
+                }
+
                 IMDBController.getEpisodeMetaDataFromInternetByEpisode(tmpEpisode)
                     .then(ep => {
                         episodesArr.push(ep);
