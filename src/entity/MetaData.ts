@@ -21,7 +21,7 @@ export class MetaData extends AbsMetaData {
     public episodes: Episode[];
 
     @Column({type: "varchar", length: 10, default: "not-scanned"})
-    public status: "not-scanned" | "failed" | "omdb" | "full";
+    public status: "not-scanned" | "failed" | "omdb" | "full" | "skiped-scan";
 
     @OneToMany(() => UserMetaData, x => x.metaData, {eager: true})
     public userMetaData: UserMetaData[];

@@ -3,6 +3,7 @@ import {Entity, Column, OneToMany, ManyToOne} from "typeorm";
 import {MediaFile} from "./MediaFile";
 import {MetaData} from "./MetaData";
 import {AbsMetaData} from "./AbsMetaData";
+import {UserEpisode} from "./UserEpisode";
 
 @Entity("Episode")
 export class Episode extends AbsMetaData {
@@ -21,6 +22,9 @@ export class Episode extends AbsMetaData {
 
     @ManyToOne(() => MetaData, metaData => metaData.episodes, {cascade: true})
     public metaData: MetaData;
+
+    @OneToMany(() => UserEpisode, x => x.episode, {eager: true})
+    public userEpisode: UserEpisode[];
 
     // Title : "Pilot"
     // Year : "2014"

@@ -30,9 +30,10 @@ export class VideoCard extends LitElement {
         return html`<div class="video" @click="${this.showDetails}" >
             <div class="poster ${this.video.isWatched ? "watched" : ""}">
                 <div class="filter"></div>
+                <div class="watch-btn" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
                 ${this.video.poster ?
                     html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
-                    html`<img src="" alt="${this.video.poster}"/>`}
+                    html`<div class="img-missing"><span>${this.video.title}</span></div>`}
             </div>
         </div>
         ${this.isShowDetails ?

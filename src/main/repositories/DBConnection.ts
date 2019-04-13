@@ -6,6 +6,7 @@ import {Episode} from "../../entity/Episode";
 import AppGlobal from "../helpers/AppGlobal";
 import * as path from "path";
 import {UserMetaData} from "../../entity/UserMetaData";
+import {UserEpisode} from "../../entity/UserEpisode";
 
 export default class DBConnection {
 
@@ -23,6 +24,7 @@ export default class DBConnection {
                         MetaData,
                         Episode,
                         UserMetaData,
+                        UserEpisode,
                     ],
                     synchronize: true,
                 }).then(() => {

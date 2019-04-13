@@ -45,6 +45,8 @@ video-card {
   box-shadow: inset 0 0 40px #000;
 
   .poster {
+    width: 100%;
+    height: 100%;
     position: relative;
     z-index: -1;
 

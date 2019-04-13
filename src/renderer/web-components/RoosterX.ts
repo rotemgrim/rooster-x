@@ -26,6 +26,8 @@ export class RoosterX extends LitElement {
     @property() public wrapper: RoosterXWrapper;
     @property() public _filterConfig: any = {
         unwatchedMedia: false,
+        noMediaWithoutFiles: true,
+        noMediaWithoutMetaData: true,
     };
     @property() public _orderConfig: any = {
         directionDescending: true,
@@ -98,6 +100,12 @@ export class RoosterX extends LitElement {
     private filterMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
         if (this._filterConfig.unwatchedMedia) {
             list = list.filter((m) => !m.isWatched);
+        }
+        if (this._filterConfig.noMediaWithoutFiles) {
+            list = list.filter((m) => m.mediaFiles.length > 0);
+        }
+        if (this._filterConfig.noMediaWithoutMetaData) {
+            list = list.filter((m) => m.status !== "failed");
         }
         return list;
     }

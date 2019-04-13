@@ -44,24 +44,6 @@ export class FiltersPage extends LitElement {
                 <div class="close" @click=${this.close}>X</div>
             </div>
             <div class="page-body">
-                <div class="filters">
-                    <br><br><br><br>
-                    <h2>Filters</h2>
-                    <ul>
-                        <li>
-                            <h3>Show ONLY unwatched media</h3>
-                            <input @change=${this.filterChange} id="unwatchedMedia"
-                                ?checked="${this.rooster._filterConfig.unwatchedMedia}"
-                                class="tgl tgl-light" type="checkbox"/>
-                            <label class="tgl-btn" for="unwatchedMedia"></label>
-                        </li>
-                        <!--<li>-->
-                            <!--<h3>Show watched hint on poster for watched Media</h3>-->
-                            <!--<input class="tgl tgl-light" id="cb2" type="checkbox"/>-->
-                            <!--<label class="tgl-btn" for="cb2"></label>-->
-                        <!--</li>-->
-                    </ul>
-                </div>
                 <div class="sorting">
                     <br><br><br><br>
                     <h2>Sorting</h2>
@@ -91,6 +73,33 @@ export class FiltersPage extends LitElement {
                                 ?checked="${this.rooster._orderConfig.directionDescending}"
                                 class="tgl tgl-light" type="checkbox"/>
                             <label class="tgl-btn" for="directionDescending"></label>
+                        </li>
+                    </ul>
+                </div>
+                <div class="filters">
+                    <br><br><br><br>
+                    <h2>Filters</h2>
+                    <ul>
+                        <li>
+                            <h3>Show ONLY unwatched media</h3>
+                            <input @change=${this.filterChange} id="unwatchedMedia"
+                                ?checked="${this.rooster._filterConfig.unwatchedMedia}"
+                                class="tgl tgl-light" type="checkbox"/>
+                            <label class="tgl-btn" for="unwatchedMedia"></label>
+                        </li>
+                        <li>
+                            <h3>Do not show media without files</h3>
+                            <input @change=${this.filterChange} id="noMediaWithoutFiles"
+                                ?checked="${this.rooster._filterConfig.noMediaWithoutFiles}"
+                                class="tgl tgl-light" type="checkbox"/>
+                            <label class="tgl-btn" for="noMediaWithoutFiles"></label>
+                        </li>
+                        <li>
+                            <h3>Do not show media without full description</h3>
+                            <input @change=${this.filterChange} id="noMediaWithoutMetaData"
+                                ?checked="${this.rooster._filterConfig.noMediaWithoutMetaData}"
+                                class="tgl tgl-light" type="checkbox"/>
+                            <label class="tgl-btn" for="noMediaWithoutMetaData"></label>
                         </li>
                     </ul>
                 </div>

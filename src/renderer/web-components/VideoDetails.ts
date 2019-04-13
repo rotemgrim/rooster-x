@@ -91,19 +91,31 @@ export class VideoDetails extends LitElement {
     }
 
     private formatNumber(num) {
-        return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+        if (num && typeof num === "number") {
+            return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+        } else {
+            return "N/A";
+        }
     }
+
+    private setWatch(e) {
+        console.log(e);
+    }
+
     public render() {
         return html`<div class="video-details">
             <div class="close" @click="${this.close}">
                 X
             </div>
             <div class="aside">
-                <div class="poster ${this.video.isWatched ? "watched" : ""}">
-                <div class="filter"></div>
+                <div class="poster ${this.video.isWatched ? "watched" : ""}"
+                    @click=${this.setWatch}>
+                    <div class="filter"></div>
+                    <div class="watch-btn" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
                     ${this.video.poster ?
-                html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
-                html`<img src="" alt="${this.video.poster}"/>`}
+                        html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
+                        html`<div class="img-missing"><span>${this.video.title}</span></div>`}
+
                 </div>
                 <div class="score">
                     <span class="rating">${this.video.rating}</span>
