@@ -5,14 +5,16 @@ import {MetaData} from "../../entity/MetaData";
 import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
-import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
+import {IEpisodeExtended, IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
+import {Episode} from "../../entity/Episode";
 
 @customElement("video-details")
 export class VideoDetails extends LitElement {
 
     @property() public video: IMetaDataExtended;
     @property() public card: VideoCard;
+    @property() public _episodes: IEpisodeExtended[];
 
     public createRenderRoot() {
         return this;
@@ -79,15 +81,24 @@ export class VideoDetails extends LitElement {
                 },
                 cache: true,
             }).then(res => {
-                console.log(res);
                 this.video.episodes = res;
-                this.requestUpdate();
+                this.episodes = res;
             }).catch(console.log);
         }
     }
 
-    private setWatched() {
-        IpcService.setWatched({type: "MetaData", entityId: this.video.id});
+    set episodes(episodes: Episode[]) {
+        const userId = 1;
+        const newList: IEpisodeExtended[] = [...episodes];
+        for (const e of newList) {
+            // check if episode is watched
+            if (e.userEpisode.filter(x => x.isWatched && x.userId === userId).length > 0) {
+                e.isWatched = true;
+            }
+        }
+        this._episodes = newList;
+        console.log("episodes", this._episodes);
+        this.requestUpdate();
     }
 
     private formatNumber(num) {
@@ -99,7 +110,20 @@ export class VideoDetails extends LitElement {
     }
 
     private setWatch(e) {
-        console.log(e);
+        let isWatched;
+        if (e.target.hasAttribute("checked")) {
+            console.log("set unwatched");
+            isWatched = false;
+        } else {
+            console.log("set watched");
+            isWatched = true;
+        }
+        IpcService.setWatched({type: "MetaData", entityId: this.video.id, isWatched})
+            .then(() => {
+                this.video.isWatched = isWatched;
+                this.requestUpdate();
+            })
+            .catch(console.log);
     }
 
     public render() {
@@ -108,10 +132,11 @@ export class VideoDetails extends LitElement {
                 X
             </div>
             <div class="aside">
-                <div class="poster ${this.video.isWatched ? "watched" : ""}"
-                    @click=${this.setWatch}>
+                <div class="poster ${this.video.isWatched ? "watched" : ""}">
                     <div class="filter"></div>
-                    <div class="watch-btn" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
+                    <div class="watch-btn" @click=${this.setWatch}
+                        ?checked=${this.video.isWatched}
+                        title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
                     ${this.video.poster ?
                         html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
                         html`<div class="img-missing"><span>${this.video.title}</span></div>`}
@@ -123,7 +148,6 @@ export class VideoDetails extends LitElement {
                 </div>
                 <div class="imdb">IMDb</div>
                 <div class="trailer">Trailer</div>
-                <div class="trailer" @click=${this.setWatched}>Watched</div>
             </div>
             <div class="main-details">
                 <h1>${this.video.name}</h1>
@@ -136,10 +160,10 @@ export class VideoDetails extends LitElement {
                      ${this.video.languages}</p>
                 </div>
 
-                ${this.video.type === "series" && this.video.episodes
-                    && this.video.episodes.length > 0 ?
+                ${this.video.type === "series" && this._episodes
+                    && this._episodes.length > 0 ?
                     html`<div class="episodes">
-                        ${this.video.episodes.map(ep => {
+                        ${this._episodes.map(ep => {
                             return html`<episode-card .episode=${ep}></episode-card>`;
                         })}
                     </div>` : ""}

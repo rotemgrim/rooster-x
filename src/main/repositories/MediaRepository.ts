@@ -6,6 +6,8 @@ import {Episode} from "../../entity/Episode";
 import {UserMetaData} from "../../entity/UserMetaData";
 import {User} from "../../entity/User";
 import AppGlobal from "../helpers/AppGlobal";
+import {AbsMetaData} from "../../entity/AbsMetaData";
+import {UserEpisode} from "../../entity/UserEpisode";
 
 @Service()
 export class MediaRepository {
@@ -47,22 +49,39 @@ export class MediaRepository {
         return metaRepo.find({type: "series"});
     }
 
-    public setWatched(payload: {type: string, entityId: number}) {
+    public setWatched(payload: {type: string, entityId: number, isWatched: boolean}) {
         return new Promise(async (resolve, reject) => {
             console.log(payload);
             const metaRepo = this.connection.manager.getRepository(payload.type);
-            const metaData = await metaRepo.findOne(payload.entityId) as MetaData;
-
             const userRepo = this.connection.manager.getRepository(User);
             const user = await userRepo.findOne(AppGlobal.getConfig().userId);
+            const metaData = await metaRepo.findOne(payload.entityId) as AbsMetaData;
 
             if (user && metaData) {
-                const userMetaDataRepo = this.connection.manager.getRepository(UserMetaData);
-                const umd = new UserMetaData();
-                umd.user = user;
-                umd.metaData = metaData;
-                umd.isWatched = true;
-                userMetaDataRepo.save(umd).then(resolve).catch(reject);
+
+                if (payload.type === "MetaData") {
+                    const userMetaDataRepo = this.connection.manager.getRepository("UserMetaData");
+                    let umd: any = await userMetaDataRepo.findOne({userId: user.id, metaDataId: metaData.id});
+                    if (!umd) {
+                        umd = new UserMetaData();
+                        umd.user = user;
+                        umd.metaData = metaData;
+                    }
+                    umd.isWatched = payload.isWatched;
+                    userMetaDataRepo.save(umd).then(resolve).catch(reject);
+
+                } else if (payload.type === "Episode") {
+                    const userMetaDataRepo = this.connection.manager.getRepository("UserEpisode");
+                    let umd: any = await userMetaDataRepo.findOne({userId: user.id, episodeId: metaData.id});
+                    if (!umd) {
+                        umd = new UserEpisode();
+                        umd.user = user;
+                        umd.episode = metaData;
+                    }
+                    umd.isWatched = payload.isWatched;
+                    userMetaDataRepo.save(umd).then(resolve).catch(reject);
+
+                }
             } else {
                 reject();
             }

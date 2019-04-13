@@ -128,6 +128,7 @@ video-details {
   }
   .episode {
     width: $posterWidth;
+    position: relative;
     .title {
       display: inline-block;
       white-space: nowrap;
@@ -142,18 +143,20 @@ video-details {
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      cursor: pointer;
       i {
         position: absolute;
         font-size: 7em;
         opacity: 0.5;
+        z-index: 1;
+      }
+      &:hover i {
+        opacity: 1;
       }
     }
     img {
       min-width: $posterWidth;
       min-height: 165px;
-    }
-    &:hover .image i {
-      opacity: 1;
     }
   }
 }

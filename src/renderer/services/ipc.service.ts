@@ -145,7 +145,7 @@ export class IpcService {
         });
     }
 
-    public static setWatched(payload: {type: string, entityId: number}): Promise<any> {
+    public static setWatched(payload: {type: string, entityId: number, isWatched: boolean}): Promise<any> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("set-watched", payload).then(resolve).catch(reject);
         });

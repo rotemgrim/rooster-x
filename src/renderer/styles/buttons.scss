@@ -55,6 +55,14 @@
   }
 }
 
+.poster {
+  &:hover .watch-btn {
+    border-bottom: ($posterWidth / 3) solid #8b7638;
+    &:after {
+      opacity: 1;
+    }
+  }
+}
 .watched {
   color: white;
   .filter {
