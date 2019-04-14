@@ -4,7 +4,7 @@ import * as readdirp from "readdirp";
 import * as ptn from "../../common/lib/parse-torrent-name";
 import {IEntry} from "../../common/models/IEntry";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
-import {Connection} from "typeorm";
+import {Connection, In, Not} from "typeorm";
 import {User} from "../../entity/User";
 import {IFSEntry} from "../../common/models/IFSEntry";
 import {getFileMd5} from "../helpers/Utils";
@@ -21,6 +21,8 @@ import {Service} from "typedi";
 import {MediaRepository} from "../repositories/MediaRepository";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import {UserMetaData} from "../../entity/UserMetaData";
+import {Genre} from "../../entity/Genre";
+import * as _ from "lodash";
 
 @Service()
 export default class FilesController {
@@ -57,19 +59,7 @@ export default class FilesController {
         return new Promise(async (resolve, reject) => {
             const entries = await FilesController.getAllVideos(directory);
             console.log(entries.length);
-            // createConnection({
-            //     type: "sqlite",
-            //     database: "database.sqlite",
-            //     entities: [
-            //         User,
-            //         MediaFile,
-            //         MetaData,
-            //         Episode,
-            //     ],
-            //     synchronize: true,
-            // }).then(async connection => {
 
-            console.info("db connection made");
             const mediaFiles: MediaFile[] = [];
             const filesRepo = this.connection.getRepository(MediaFile);
             const metaDataRepo = this.connection.getRepository(MetaData);
@@ -81,6 +71,7 @@ export default class FilesController {
                 .select(["MediaFile.id", "MediaFile.hash", "MediaFile.path"])
                 .getMany();
             const allPaths = {};
+            let allGenres: string[] = [];
             for (const f of allFiles) {
                 allPaths[f.path] = {id: f.id, hash: f.hash};
             }
@@ -126,6 +117,12 @@ export default class FilesController {
                         });
                 }
 
+                // first save genres
+                if (file.metaData.genres) {
+                    const genres = file.metaData.genres.split(", ") as string[];
+                    allGenres = allGenres.concat(genres);
+                }
+
                 // todo: figure out why we need to empty this before saving
                 if (file.metaData.userMetaData) {
                     delete file.metaData.userMetaData;
@@ -135,6 +132,20 @@ export default class FilesController {
                 console.log(mediaFiles.length);
             }
             // await connection.manager.save(mediaFiles);
+            const genres = _.uniq(allGenres);
+            const existingGenres = await this.connection.getRepository(Genre)
+                .find({where: {type: Not(In(genres))}});
+
+            console.log("existing Geners", existingGenres);
+            // _.exclude
+            // const excludedGenres = genres.filter(g => existingGenres.g)
+            const rows = genres.map(g => new Genre(g));
+
+            try {
+                await this.connection.manager.save(rows);
+            } catch (e) {
+                console.warn("cant save genre", e);
+            }
 
             const idsToDelete: any[] = [];
             for (const i in allPaths) {

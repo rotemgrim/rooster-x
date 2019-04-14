@@ -65,7 +65,7 @@ export default class AppListener {
             await AppController.bootstrapApp();
             // CommandListener.init();
             // TrayBuilder.init();
-            await AppController.preOpenWindows();
+            // await AppController.preOpenWindows();
             console.log("app is ready!");
 
             // const test = await Container.get(MediaRepository).query({
@@ -83,7 +83,8 @@ export default class AppListener {
             // console.log(test[0].mediaFiles);
             // console.log(test[0].raw);
 
-            // await FilesController.doFullSweep("u:\\videos");
+            const fc = Container.get(FilesController);
+            await fc.doFullSweep("u:\\videos");
             // await FilesController.doFullSweep("Z:\\Complete\\Shirley");
 
             // const meta = await IMDBController.getMetaDataFromInternet("Aquaman", 2018);
