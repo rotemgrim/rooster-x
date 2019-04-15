@@ -92,3 +92,15 @@ export function getFileMd5(filePath: string): Promise<string|Error> {
         });
     });
 }
+
+export function isStringContains(str, items) {
+    if (str) {
+        str = str.toLowerCase();
+        for (const item of items) {
+            if (str.includes(item)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}

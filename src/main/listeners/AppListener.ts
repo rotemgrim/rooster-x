@@ -12,6 +12,7 @@ import {MediaRepository} from "../repositories/MediaRepository";
 import {Container} from "typedi";
 import FilesController from "../controllers/FilesController";
 import {UserRepository} from "../repositories/UserRepository";
+import {GenreRepository} from "../repositories/GenreRepository";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -52,6 +53,7 @@ export default class AppListener {
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
             promiseIpc.on("get-all-users", () => Container.get(UserRepository).getAllUsers());
             promiseIpc.on("get-all-media", () => Container.get(MediaRepository).getAllMedia());
+            promiseIpc.on("get-all-genres", () => Container.get(GenreRepository).getAllGenres());
             promiseIpc.on("get-movies", () => Container.get(MediaRepository).getMovies());
             promiseIpc.on("get-series", () => Container.get(MediaRepository).getSeries());
             promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
@@ -65,7 +67,7 @@ export default class AppListener {
             await AppController.bootstrapApp();
             // CommandListener.init();
             // TrayBuilder.init();
-            // await AppController.preOpenWindows();
+            await AppController.preOpenWindows();
             console.log("app is ready!");
 
             // const test = await Container.get(MediaRepository).query({
@@ -83,8 +85,8 @@ export default class AppListener {
             // console.log(test[0].mediaFiles);
             // console.log(test[0].raw);
 
-            const fc = Container.get(FilesController);
-            await fc.doFullSweep("u:\\videos");
+            // const fc = Container.get(FilesController);
+            // await fc.doFullSweep("u:\\videos");
             // await FilesController.doFullSweep("Z:\\Complete\\Shirley");
 
             // const meta = await IMDBController.getMetaDataFromInternet("Aquaman", 2018);

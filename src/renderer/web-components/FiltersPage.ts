@@ -1,18 +1,28 @@
 
 import {css, LitElement, html, customElement, property} from "lit-element";
 import {RoosterX} from "./RoosterX";
+import "./multiselect.html";
+import {IpcService} from "../services/ipc.service";
+import {Genre} from "../../entity/Genre";
 
 @customElement("filters-page")
 export class FiltersPage extends LitElement {
 
     @property() public rooster: RoosterX;
+    @property() public _genres: Genre[] = [];
 
     public createRenderRoot() {
         return this;
     }
 
+    set genres(data) {
+        this._genres = data;
+        this.requestUpdate();
+    }
+
     constructor() {
         super();
+        IpcService.getAllGenres().then(genres => this.genres = genres);
     }
 
     private close() {
@@ -22,6 +32,25 @@ export class FiltersPage extends LitElement {
     private filterChange(e) {
         const addToFilterConfig = {};
         addToFilterConfig[e.target.id] = e.target.checked;
+        this.rooster.filterConfig = Object.assign(this.rooster._filterConfig, addToFilterConfig);
+    }
+
+    private filterGenreChange(e) {
+        const addToFilterConfig = {};
+        console.log(e);
+        console.log(e.target.options);
+        let selectedArr: string[] = [];
+        for (const o of e.target.options) {
+            if (o.selected && o.value && o.value === "All") {
+                selectedArr = [];
+                break;
+            }
+            if (o.selected && o.value) {
+                selectedArr.push(o.value.toLowerCase());
+            }
+        }
+        console.log("selectedArr", selectedArr);
+        addToFilterConfig[e.target.id] = selectedArr;
         this.rooster.filterConfig = Object.assign(this.rooster._filterConfig, addToFilterConfig);
     }
 
@@ -80,6 +109,25 @@ export class FiltersPage extends LitElement {
                     <br><br><br><br>
                     <h2>Filters</h2>
                     <ul>
+                        <li>
+                            <h3>Filter by genre</h3>
+                            <select id="noMediaWithoutGenres" multiple @change=${this.filterGenreChange}>
+                                <option value="All"
+                                    ?selected=${this.rooster._filterConfig.noMediaWithoutGenres.includes("All")}>
+                                    All</option>
+                                ${this._genres.map(g =>
+                                    html`<option value="${g.type}"
+                                        ?selected=${this.rooster._filterConfig.noMediaWithoutGenres
+                                            .includes(g.type.toLowerCase())}>
+                                        ${g.type}</option>`)}
+                            </select>
+                            <!--<x-multiselect placeholder="Select Value">-->
+                                <!--<li value="1" selected>Item 1</li>-->
+                                <!--<li value="2">Item 2</li>-->
+                                <!--<li value="3" selected>Item 3</li>-->
+                                <!--<li value="4">Item 4</li>-->
+                            <!--</x-multiselect>-->
+                        </li>
                         <li>
                             <h3>Show ONLY unwatched media</h3>
                             <input @change=${this.filterChange} id="unwatchedMedia"

@@ -13,6 +13,7 @@ import {RoosterXWrapper} from "./RoosterXWrapper";
 import {List} from "linqts";
 import * as _ from "lodash";
 import {MediaFile} from "../../entity/MediaFile";
+import {isStringContains} from "../../main/helpers/Utils";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
@@ -28,6 +29,7 @@ export class RoosterX extends LitElement {
         unwatchedMedia: false,
         noMediaWithoutFiles: true,
         noMediaWithoutMetaData: true,
+        noMediaWithoutGenres: [],
     };
     @property() public _orderConfig: any = {
         directionDescending: true,
@@ -98,14 +100,25 @@ export class RoosterX extends LitElement {
     }
 
     private filterMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
+        // filter watched
         if (this._filterConfig.unwatchedMedia) {
             list = list.filter((m) => !m.isWatched);
         }
+
+        // filter media entries that dont have any files
         if (this._filterConfig.noMediaWithoutFiles) {
             list = list.filter((m) => m.mediaFiles.length > 0);
         }
+
+        // filter media entries that font have meta data from imdb
         if (this._filterConfig.noMediaWithoutMetaData) {
             list = list.filter((m) => m.status !== "failed");
+        }
+
+        // filter media by genres
+        console.log("noMediaWithoutGenres", this._filterConfig.noMediaWithoutGenres);
+        if (this._filterConfig.noMediaWithoutGenres.length > 0) {
+            list = list.filter((m) => isStringContains(m.genres, this._filterConfig.noMediaWithoutGenres));
         }
         return list;
     }
