@@ -131,20 +131,20 @@ export default class FilesController {
                 mediaFiles.push(file);
                 console.log(mediaFiles.length);
             }
-            // await connection.manager.save(mediaFiles);
-            const genres = _.uniq(allGenres);
-            const existingGenres = await this.connection.getRepository(Genre)
-                .find({where: {type: Not(In(genres))}});
-
-            console.log("existing Geners", existingGenres);
-            // _.exclude
-            // const excludedGenres = genres.filter(g => existingGenres.g)
-            const rows = genres.map(g => new Genre(g));
 
             try {
+                const genres2 = _.uniq(allGenres);
+                const DbExistingGenres = await this.connection.getRepository(Genre)
+                    .find({where: {type: Not(In(genres2))}});
+                const existingGenres = DbExistingGenres.map(o => o.type);
+                // console.log("genres from files", genres2);
+                // console.log("existing Genres", existingGenres);
+                const newGenres = _.difference(genres2, existingGenres);
+                console.log("new Genres", newGenres);
+                const rows = newGenres.map(g => new Genre(g));
                 await this.connection.manager.save(rows);
             } catch (e) {
-                console.warn("cant save genre", e);
+                console.warn("cant save genres", e);
             }
 
             const idsToDelete: any[] = [];
