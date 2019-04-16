@@ -25,4 +25,9 @@ export class MetaData extends AbsMetaData {
 
     @OneToMany(() => UserMetaData, x => x.metaData, {cascade: true, eager: true})
     public userMetaData: UserMetaData[];
+
+    public constructor() {
+        super();
+        this.status = "not-scanned";
+    }
 }

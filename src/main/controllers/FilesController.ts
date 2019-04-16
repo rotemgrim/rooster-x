@@ -17,12 +17,13 @@ import IMDBService from "../services/IMDBService";
 import ConfigController from "./ConfigController";
 import AppGlobal from "../helpers/AppGlobal";
 import AppController from "./AppController";
-import {Service} from "typedi";
+import {Container, Service} from "typedi";
 import {MediaRepository} from "../repositories/MediaRepository";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import {UserMetaData} from "../../entity/UserMetaData";
 import {Genre} from "../../entity/Genre";
 import * as _ from "lodash";
+import MediaController from "./MediaController";
 
 @Service()
 export default class FilesController {
@@ -107,6 +108,7 @@ export default class FilesController {
                 }
 
                 delete allPaths[file.path];
+                console.log("file.metaData.status", file.metaData.status);
                 if (file.metaData.status === "not-scanned") {
                     await IMDBController.getMetaDataFromInternetByMediaFile(file)
                         .then(async (res) => {
@@ -132,20 +134,9 @@ export default class FilesController {
                 console.log(mediaFiles.length);
             }
 
-            try {
-                const genres2 = _.uniq(allGenres);
-                const DbExistingGenres = await this.connection.getRepository(Genre)
-                    .find({where: {type: Not(In(genres2))}});
-                const existingGenres = DbExistingGenres.map(o => o.type);
-                // console.log("genres from files", genres2);
-                // console.log("existing Genres", existingGenres);
-                const newGenres = _.difference(genres2, existingGenres);
-                console.log("new Genres", newGenres);
-                const rows = newGenres.map(g => new Genre(g));
-                await this.connection.manager.save(rows);
-            } catch (e) {
-                console.warn("cant save genres", e);
-            }
+            await Container.get(MediaController).addGenres(allGenres)
+                .then(console.info)
+                .catch(console.error);
 
             const idsToDelete: any[] = [];
             for (const i in allPaths) {
