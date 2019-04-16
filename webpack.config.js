@@ -1,6 +1,5 @@
 const path = require('path');
 const nodeExternals = require('webpack-node-externals');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 console.log(__dirname);
@@ -15,8 +14,7 @@ let common_config = {
                 test: /\.tsx?$/,
                 use: ['ts-loader'],
                 exclude: [
-                    /node_modules/,
-                    // path.resolve(__dirname, "src/ui")
+                    /node_modules/
                 ]
             },
             {
@@ -59,14 +57,15 @@ module.exports = [
         entry: {
             main: './src/main/index.ts',
         },
+        devtool: "eval-source-map",
         output: {
             filename: '[name].js',
             path: path.resolve(__dirname, 'build/'),
-            devtoolModuleFilenameTemplate: '[absolute-resource-path]'
-        },
+        }
     }),
     Object.assign({}, common_config, {
         target: 'electron-renderer',
+        devtool: "eval-source-map",
         entry: {
             renderer: './src/renderer/index.ts',
         },
@@ -78,11 +77,6 @@ module.exports = [
             new HtmlWebpackPlugin({
                 template: "./src/renderer/index.html"
             })
-        ],
-        // plugins: [
-        //     new CopyWebpackPlugin([
-        //         { from: './src/renderer/index.html' },
-        //     ])
-        // ],
+        ]
     }),
 ];
