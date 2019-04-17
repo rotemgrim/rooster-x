@@ -79,10 +79,10 @@ export class MediaRepository {
                 umd.metaData = metaData;
             } else if (umd.isWatched === isWatched) {
                 resolve(isWatched);
-            } else {
-                umd.isWatched = isWatched;
-                userMetaDataRepo.save(umd).then(() => resolve(isWatched)).catch(reject);
+                return;
             }
+            umd.isWatched = isWatched;
+            userMetaDataRepo.save(umd).then(() => resolve(isWatched)).catch(reject);
         });
     }
 
