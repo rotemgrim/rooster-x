@@ -18,6 +18,8 @@ import {isStringContains} from "../../main/helpers/Utils";
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
 
+    public static playTimer: any;
+
     @property() public _media: MetaData[] = [];
     @property() public _filteredMedia: IMetaDataExtended[] = [];
     @property() public _sideBar: boolean = false;
@@ -133,10 +135,12 @@ export class RoosterX extends LitElement {
             linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
         }
 
+        let mediaArray = linqList.ToArray();
         if (this._orderConfig.showUnwatchedFirst) {
-            linqList.OrderBy((x: IMetaDataExtended): any => x.isWatched);
+            mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
         }
-        return linqList.ToArray();
+
+        return mediaArray;
     }
 
     private getAllMedia() {
@@ -190,6 +194,14 @@ export class RoosterX extends LitElement {
         } else {
             this.openSideBar(panel);
         }
+    }
+
+    public static playMediaFile(mediaFile: MediaFile) {
+        IpcService.openExternal(mediaFile.path);
+        clearTimeout(RoosterX.playTimer);
+        RoosterX.playTimer = setTimeout(() => {
+            console.log("did you watched? " + mediaFile.raw);
+        }, 5000);
     }
 
     public render() {
