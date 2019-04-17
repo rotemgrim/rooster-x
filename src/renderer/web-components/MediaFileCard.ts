@@ -1,8 +1,7 @@
 
-import {css, LitElement, html, customElement, property} from "lit-element";
-import {MetaData} from "../../entity/MetaData";
+import {LitElement, html, customElement, property} from "lit-element";
 import {MediaFile} from "../../entity/MediaFile";
-import {IpcService} from "../services/ipc.service";
+import {RoosterX} from "./RoosterX";
 
 @customElement("media-file-card")
 export class EpisodeCard extends LitElement {
@@ -18,7 +17,7 @@ export class EpisodeCard extends LitElement {
     }
 
     public playFile() {
-        IpcService.openExternal(this.mediaFile.path);
+        RoosterX.playMediaFile(this.mediaFile);
     }
 
     public static fileOptions(file: MediaFile) {

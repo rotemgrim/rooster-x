@@ -27,6 +27,7 @@ export class RoosterX extends LitElement {
     @property() public user: User;
     @property() public config: IConfig;
     @property() public wrapper: RoosterXWrapper;
+    @property() public didYouWatched: null | MetaData = null;
     @property() public _filterConfig: any = {
         unwatchedMedia: false,
         noMediaWithoutFiles: true,
@@ -200,13 +201,15 @@ export class RoosterX extends LitElement {
         IpcService.openExternal(mediaFile.path);
         clearTimeout(RoosterX.playTimer);
         RoosterX.playTimer = setTimeout(() => {
-            console.log("did you watched? " + mediaFile.raw);
+            console.log("did you watched? " + mediaFile.raw, mediaFile);
+            this.didYouWatched = null;
         }, 5000);
     }
 
     public render() {
         return html`
         <top-bar .rooster="${this}"></top-bar>
+        ${this.didYouWatched ? html`<div class="did-you-watched"></div>` : ``}
         <div class="side-bar ${this._sideBar ? "open" : ""}">
             <ul>
                 <li @click="${this.getAllMedia}"><i class="material-icons">video_library</i>All Media</li>

@@ -5,6 +5,7 @@ import {MediaFile} from "../../entity/MediaFile";
 import {VideoDetails} from "./VideoDetails";
 import "./MediaFileCard";
 import {IEpisodeExtended} from "../../common/models/IMetaDataExtended";
+import {RoosterX} from "./RoosterX";
 
 @customElement("episode-card")
 export class EpisodeCard extends LitElement {
@@ -27,7 +28,7 @@ export class EpisodeCard extends LitElement {
             // show options for select
             this.isShowPlayOptions = !this.isShowPlayOptions;
         } else {
-            IpcService.openExternal(this.episode.mediaFiles[0].path);
+            RoosterX.playMediaFile(this.episode.mediaFiles[0]);
         }
     }
 
