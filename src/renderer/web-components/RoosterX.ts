@@ -34,6 +34,7 @@ export class RoosterX extends LitElement {
     @property() public _orderConfig: any = {
         directionDescending: true,
         orderBy: "latestChange",
+        showUnwatchedFirst: false,
     };
 
     public createRenderRoot() {
@@ -130,6 +131,10 @@ export class RoosterX extends LitElement {
             linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
         } else {
             linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+        }
+
+        if (this._orderConfig.showUnwatchedFirst) {
+            linqList.OrderBy((x: IMetaDataExtended): any => x.isWatched);
         }
         return linqList.ToArray();
     }

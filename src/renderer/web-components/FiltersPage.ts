@@ -103,6 +103,13 @@ export class FiltersPage extends LitElement {
                                 class="tgl tgl-light" type="checkbox"/>
                             <label class="tgl-btn" for="directionDescending"></label>
                         </li>
+                        <li>
+                            <h3>Show unwatched first</h3>
+                            <input @change=${this.orderDirectrionChange} id="showUnwatchedFirst"
+                                ?checked="${this.rooster._orderConfig.showUnwatchedFirst}"
+                                class="tgl tgl-light" type="checkbox"/>
+                            <label class="tgl-btn" for="showUnwatchedFirst"></label>
+                        </li>
                     </ul>
                 </div>
                 <div class="filters">
