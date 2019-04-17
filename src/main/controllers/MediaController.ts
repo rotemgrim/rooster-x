@@ -14,16 +14,21 @@ export default class MediaController {
         return new Promise(async (resolve, reject) => {
             try {
                 const suspectGenres = _.uniq(genres);
-                const DbExistingGenres = await this.connection.getRepository(Genre)
-                    .find({where: {type: Not(In(suspectGenres))}});
+                const DbExistingGenres = await this.connection.getRepository(Genre).find();
+                    // .find({where: {type: Not(In(suspectGenres))}});
                 const existingGenres = DbExistingGenres.map(o => o.type);
                 // console.log("genres from files", suspectGenres);
                 // console.log("existing Genres", existingGenres);
                 const newGenres = _.difference(suspectGenres, existingGenres);
                 // console.log("new Genres", newGenres);
                 const rows = newGenres.map(g => new Genre(g));
-                await this.connection.manager.save(rows);
-                resolve({"new genres added": newGenres});
+                if (rows && rows.length > 0) {
+                    await this.connection.manager.save(rows);
+                    console.info("new genres added", newGenres);
+                    resolve();
+                } else {
+                    resolve();
+                }
             } catch (e) {
                 console.error("could not add new genres", e);
                 reject(e);

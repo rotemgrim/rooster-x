@@ -13,6 +13,7 @@ import {Container} from "typedi";
 import FilesController from "../controllers/FilesController";
 import {UserRepository} from "../repositories/UserRepository";
 import {GenreRepository} from "../repositories/GenreRepository";
+import FilesListener from "./FilesListener";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -68,6 +69,7 @@ export default class AppListener {
             // CommandListener.init();
             // TrayBuilder.init();
             await AppController.preOpenWindows();
+            FilesListener.init();
             console.log("app is ready!");
 
             // const test = await Container.get(MediaRepository).query({

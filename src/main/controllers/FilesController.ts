@@ -2,10 +2,11 @@ import "reflect-metadata";
 import {dialog} from "electron";
 import * as readdirp from "readdirp";
 import * as ptn from "../../common/lib/parse-torrent-name";
+import * as fs from "fs";
+import * as path from "path";
 import {IEntry} from "../../common/models/IEntry";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
-import {Connection, In, Not} from "typeorm";
-import {User} from "../../entity/User";
+import {Connection, In, Not, Repository} from "typeorm";
 import {IFSEntry} from "../../common/models/IFSEntry";
 import {getFileMd5} from "../helpers/Utils";
 import {to} from "../../common/commonUtils";
@@ -13,23 +14,25 @@ import {MediaFile} from "../../entity/MediaFile";
 import {MetaData} from "../../entity/MetaData";
 import {Episode} from "../../entity/Episode";
 import IMDBController from "./IMDBController";
-import IMDBService from "../services/IMDBService";
 import ConfigController from "./ConfigController";
 import AppGlobal from "../helpers/AppGlobal";
 import AppController from "./AppController";
 import {Container, Service} from "typedi";
-import {MediaRepository} from "../repositories/MediaRepository";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import {UserMetaData} from "../../entity/UserMetaData";
-import {Genre} from "../../entity/Genre";
-import * as _ from "lodash";
 import MediaController from "./MediaController";
 
 @Service()
 export default class FilesController {
 
-    @InjectConnection("reading")
-    private connection: Connection;
+    public static includedExtensions = ["*.mkv", "*.avi", "3g2", "*.3gp", "*.aaf", "*.asf", "*.avchd", "*.drc", "*.flv",
+        "*.m2v", "*.m4p", "*.m4v", "*.mng", "*.mov", "*.mp2", "*.mp4", "*.mpe", "*.mpeg", "*.mpg",
+        "*.mpv", "*.mxf", "*.nsv", "*.ogg", "*.ogv", "*.qt", "*.rm", "*.rmvb", "*.roq", "*.svi",
+        "*.vob", "*.webm", "*.wmv"];
+
+    private filesRepo: Repository<MediaFile>;
+    private metaDataRepo: Repository<MetaData>;
+    private episodeRepo: Repository<Episode>;
 
     public static selectDbPathFolder(): Promise<any> {
         return new Promise((resolve, reject) => {
@@ -56,19 +59,24 @@ export default class FilesController {
         });
     }
 
+    constructor(
+        @InjectConnection("reading") private connection: Connection,
+    ) {
+        this.filesRepo = this.connection.getRepository(MediaFile);
+        this.metaDataRepo = this.connection.getRepository(MetaData);
+        this.episodeRepo = this.connection.getRepository(Episode);
+    }
+
     public doFullSweep(directory: string): Promise<any> {
         return new Promise(async (resolve, reject) => {
             const entries = await FilesController.getAllVideos(directory);
             console.log(entries.length);
 
             const mediaFiles: MediaFile[] = [];
-            const filesRepo = this.connection.getRepository(MediaFile);
-            const metaDataRepo = this.connection.getRepository(MetaData);
-            const episodeRepo = this.connection.getRepository(Episode);
-            const seriesArr: MetaData[] = await metaDataRepo.find({type: "series"});
-            const moviesArr: MetaData[] = await metaDataRepo.find({type: "movie"});
-            const episodesArr: Episode[] = await episodeRepo.find();
-            const allFiles = await filesRepo.createQueryBuilder()
+            const seriesArr: MetaData[] = await this.metaDataRepo.find({type: "series"});
+            const moviesArr: MetaData[] = await this.metaDataRepo.find({type: "movie"});
+            const episodesArr: Episode[] = await this.episodeRepo.find();
+            const allFiles = await this.filesRepo.createQueryBuilder()
                 .select(["MediaFile.id", "MediaFile.hash", "MediaFile.path"])
                 .getMany();
             const allPaths = {};
@@ -81,43 +89,10 @@ export default class FilesController {
                     delete allPaths[e.sEntry.fullPath];
                     continue;
                 }
-                let file = new MediaFile();
-                file.hash = e.sEntry.hash || "";
-                file.path = e.sEntry.fullPath;
-                file.raw = e.sEntry.name;
-                file.year = e.mEntry.year;
-                file.resolution = e.mEntry.resolution || "";
-                file.quality = e.mEntry.quality || "";
-                file.codec = e.mEntry.codec || "";
-                file.audio = e.mEntry.audio || "";
-                file.group = e.mEntry.group || "";
-                file.region = e.mEntry.region || "";
-                file.language = e.mEntry.language || "";
-                file.extended = e.mEntry.extended || false;
-                file.hardcoded = e.mEntry.hardcoded || false;
-                file.proper = e.mEntry.proper || false;
-                file.repack = e.mEntry.repack || false;
-                file.wideScreen = e.mEntry.widescreen || false;
-                file.downloadedAt = e.sEntry.stat.birthtime;
 
-                if (e.mEntry.episode || e.mEntry.season) {
-                    file.metaData = FilesController.getMetaData(seriesArr, e, "series");
-                    file.episode = await this.getEpisode(file.metaData, episodesArr, e);
-                } else {
-                    file.metaData = FilesController.getMetaData(moviesArr, e, "movie");
-                }
+                const file = await this.getFileAndMetaFromEntry(e, moviesArr, seriesArr, episodesArr);
 
                 delete allPaths[file.path];
-                console.log("file.metaData.status", file.metaData.status);
-                if (file.metaData.status === "not-scanned") {
-                    await IMDBController.getMetaDataFromInternetByMediaFile(file)
-                        .then(async (res) => {
-                            file = res;
-                            file.metaData.status = "omdb";
-                        }).catch(async () => {
-                            file.metaData.status = "failed";
-                        });
-                }
 
                 // first save genres
                 if (file.metaData.genres) {
@@ -135,7 +110,6 @@ export default class FilesController {
             }
 
             await Container.get(MediaController).addGenres(allGenres)
-                .then(console.info)
                 .catch(console.error);
 
             const idsToDelete: any[] = [];
@@ -144,10 +118,100 @@ export default class FilesController {
                     idsToDelete.push(allPaths[i].id);
                 }
             }
-            await filesRepo.createQueryBuilder()
+            await this.filesRepo.createQueryBuilder()
                 .delete().where("id IN (:...ids)", {ids: idsToDelete})
                 .execute();
-            // }).catch(console.error);
+        });
+    }
+
+    public sweepFile(filePath: string) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const sEntry = await this.getSEntry(filePath);
+                const mEntry: IMediaEntry = ptn(sEntry.name);
+                if (Object.keys(mEntry).length >= 4) {
+                    console.log(mEntry);
+                    let seriesArr: MetaData[] = [];
+                    let moviesArr: MetaData[] = [];
+                    let episodesArr: Episode[] = [];
+                    if (mEntry.season && mEntry.episode) {
+                        seriesArr = await this.metaDataRepo.find({type: "series"});
+                        episodesArr = await this.episodeRepo.find();
+                    } else {
+                        moviesArr = await this.metaDataRepo.find({type: "movie"});
+                    }
+                    const file = await this.getFileAndMetaFromEntry({mEntry, sEntry},
+                        moviesArr, seriesArr, episodesArr);
+
+                    // save genres
+                    if (file.metaData.genres) {
+                        const genres = file.metaData.genres.split(", ") as string[];
+                        await Container.get(MediaController).addGenres(genres)
+                            .catch(console.error);
+                    }
+
+                    delete file.metaData.userMetaData;
+                    await this.connection.manager.save(file);
+
+                    resolve();
+                } else {
+                    console.info("no media entry was found in " + sEntry.name);
+                    reject();
+                }
+            } catch (e) {
+                console.error("could not sweep file " + filePath, e);
+                reject();
+            }
+        });
+    }
+
+    public async getFileAndMetaFromEntry(
+        e: IEntry,
+        moviesArr: MetaData[],
+        seriesArr: MetaData[],
+        episodesArr: Episode[],
+    ): Promise<MediaFile> {
+        return new Promise(async (resolve) => {
+            let file = new MediaFile();
+            file.hash = e.sEntry.hash || "";
+            file.path = e.sEntry.fullPath;
+            file.raw = e.sEntry.name;
+            file.year = e.mEntry.year;
+            file.resolution = e.mEntry.resolution || "";
+            file.quality = e.mEntry.quality || "";
+            file.codec = e.mEntry.codec || "";
+            file.audio = e.mEntry.audio || "";
+            file.group = e.mEntry.group || "";
+            file.region = e.mEntry.region || "";
+            file.language = e.mEntry.language || "";
+            file.extended = e.mEntry.extended || false;
+            file.hardcoded = e.mEntry.hardcoded || false;
+            file.proper = e.mEntry.proper || false;
+            file.repack = e.mEntry.repack || false;
+            file.wideScreen = e.mEntry.widescreen || false;
+            file.downloadedAt = e.sEntry.stat.birthtime;
+
+            if (e.mEntry.episode || e.mEntry.season) {
+                file.metaData = FilesController.getMetaData(seriesArr, e, "series");
+                file.episode = await this.getEpisode(file.metaData, episodesArr, e);
+            } else {
+                file.metaData = FilesController.getMetaData(moviesArr, e, "movie");
+            }
+
+            console.log("file.metaData.status", file.metaData.status);
+            if (file.metaData.status === "not-scanned") {
+                await IMDBController.getMetaDataFromInternetByMediaFile(file)
+                    .then(async (res) => {
+                        file = res;
+                        file.metaData.status = "omdb";
+                        resolve(file);
+                    }).catch(async () => {
+                        file.metaData.status = "failed";
+                        resolve(file);
+                    });
+            } else {
+                resolve(file);
+            }
         });
     }
 
@@ -157,10 +221,7 @@ export default class FilesController {
                 const entries: IEntry[] = [];
                 const stream = readdirp({
                     root: directory,
-                    fileFilter: ["*.mkv", "*.avi", "3g2", "*.3gp", "*.aaf", "*.asf", "*.avchd", "*.drc", "*.flv",
-                        "*.m2v", "*.m4p", "*.m4v", "*.mng", "*.mov", "*.mp2", "*.mp4", "*.mpe", "*.mpeg", "*.mpg",
-                        "*.mpv", "*.mxf", "*.nsv", "*.ogg", "*.ogv", "*.qt", "*.rm", "*.rmvb", "*.roq", "*.svi",
-                        "*.vob", "*.webm", "*.wmv"],
+                    fileFilter: FilesController.includedExtensions,
                     directoryFilter: ["!.git", "!*samples", "!*modules", "!.*", "!subs"],
                 });
 
@@ -252,6 +313,28 @@ export default class FilesController {
                     })
                     .catch(() => resolve(tmpEpisode));
             }
+        });
+    }
+
+    private getSEntry(fileFullPath: string): Promise<IFSEntry> {
+        return new Promise((resolve, reject) => {
+            fs.lstat(fileFullPath, (err, stat) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    const relPath = path.relative(fileFullPath, __dirname);
+                    const relDir = path.dirname(relPath);
+                    const realCurrentDir = path.dirname(fileFullPath);
+                    resolve({
+                        name:  path.basename(fileFullPath),
+                        path:  relPath,   // relative to root
+                        fullPath:  fileFullPath,
+                        parentDir:  relDir,    // relative to root
+                        fullParentDir:  realCurrentDir,
+                        stat,
+                    });
+                }
+            });
         });
     }
 }
