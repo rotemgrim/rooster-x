@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import {Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index} from "typeorm";
 import {MetaData} from "./MetaData";
 import {Episode} from "./Episode";
 
@@ -12,7 +12,8 @@ export class MediaFile {
     @Column("text")
     public raw: string;
 
-    @Column("text")
+    @Index({unique: true})
+    @Column({type: "text", collation: "NOCASE"})
     public path: string;
 
     @Column({type: "varchar", length: 40})

@@ -202,7 +202,7 @@ export class RoosterX extends LitElement {
         clearTimeout(RoosterX.playTimer);
         RoosterX.playTimer = setTimeout(() => {
             console.log("did you watched? " + mediaFile.raw, mediaFile);
-            this.didYouWatched = null;
+            // this.didYouWatched = null;
         }, 5000);
     }
 

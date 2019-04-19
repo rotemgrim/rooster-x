@@ -69,7 +69,7 @@ export default class AppListener {
             // CommandListener.init();
             // TrayBuilder.init();
             await AppController.preOpenWindows();
-            FilesListener.init();
+            // FilesListener.init();
             console.log("app is ready!");
 
             // const test = await Container.get(MediaRepository).query({

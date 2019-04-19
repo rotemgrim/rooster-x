@@ -7,7 +7,7 @@ export abstract class AbsMetaData {
     @PrimaryGeneratedColumn()
     public id: number;
 
-    @Column({type: "varchar", length: 255})
+    @Column({type: "varchar", length: 255, collation: "NOCASE"})
     public title: string;
 
     /** id of the movie on imdb */

@@ -174,7 +174,7 @@ export default class FilesController {
         return new Promise(async (resolve) => {
             let file = new MediaFile();
             file.hash = e.sEntry.hash || "";
-            file.path = e.sEntry.fullPath;
+            file.path = e.sEntry.fullPath.toLowerCase();
             file.raw = e.sEntry.name;
             file.year = e.mEntry.year;
             file.resolution = e.mEntry.resolution || "";
@@ -199,7 +199,7 @@ export default class FilesController {
             }
 
             console.log("file.metaData.status", file.metaData.status);
-            if (file.metaData.status === "not-scanned") {
+            if (file && file.metaData && file.metaData.status === "not-scanned") {
                 await IMDBController.getMetaDataFromInternetByMediaFile(file)
                     .then(async (res) => {
                         file = res;
@@ -229,8 +229,9 @@ export default class FilesController {
                     .on("data", (sEntry: IFSEntry) => {
                         const mEntry: IMediaEntry = ptn(sEntry.name);
                         if (Object.keys(mEntry).length >= 4) {
-                            console.log(mEntry);
+                            // console.log(mEntry);
                             entries.push({mEntry, sEntry});
+                            console.log(entries.length);
                         }
                     })
                     .on("end", () => {

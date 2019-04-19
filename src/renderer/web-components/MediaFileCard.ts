@@ -25,7 +25,7 @@ export class EpisodeCard extends LitElement {
     }
 
     public render() {
-        return html`<div @click=${this.playFile} class="media-file" title="${this.mediaFile.raw}">
+        return html`<div @click=${this.playFile} class="media-file" title="${this.mediaFile.path}">
             <i class="material-icons">play_circle_outline</i>
             ${this.mediaFile.resolution ? html`<div class="resolution">${this.mediaFile.resolution}</div>` : ""}
             ${this.mediaFile.audio ? html`<div class="audio">${this.mediaFile.audio}</div>` : ""}
