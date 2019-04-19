@@ -8,6 +8,7 @@ import {User} from "../../entity/User";
 import AppGlobal from "../helpers/AppGlobal";
 import {AbsMetaData} from "../../entity/AbsMetaData";
 import {UserEpisode} from "../../entity/UserEpisode";
+import {MediaFile} from "../../entity/MediaFile";
 
 @Service()
 export class MediaRepository {
@@ -47,6 +48,39 @@ export class MediaRepository {
     public getSeries() {
         const metaRepo = this.connection.manager.getRepository(MetaData);
         return metaRepo.find({type: "series"});
+    }
+
+    public getMetaData(payload: {id: number}) {
+        const metaRepo = this.connection.manager.getRepository(MetaData);
+        return metaRepo.findOne(payload.id);
+    }
+
+    public getMetaDataByFileId(payload: {id: number}): Promise<MetaData|Episode> {
+        return new Promise(async (resolve, reject) => {
+            const fileRepo = this.connection.manager.getRepository(MediaFile);
+            const mediaFile = await fileRepo.createQueryBuilder()
+                .select(["mediaFile.metaDataId", "mediaFile.episodeId"])
+                .where("mediaFile.id = :id", {id: payload.id})
+                .getRawOne();
+            console.log(mediaFile);
+
+            let metaData: any;
+            if (mediaFile && mediaFile.episodeId) {
+                metaData = await this.connection.manager.getRepository(Episode).findOne(mediaFile.episodeId);
+                metaData.metaData = await metaData.metaData;
+            } else if (mediaFile && mediaFile.metaDataId) {
+                metaData = await this.connection.manager.getRepository(MetaData).findOne(mediaFile.metaDataId);
+            } else {
+                reject();
+                return;
+            }
+
+            if (metaData) {
+                resolve(metaData);
+            } else {
+                reject();
+            }
+        });
     }
 
     public setWatched(payload: {type: string, entityId: number, isWatched: boolean}) {

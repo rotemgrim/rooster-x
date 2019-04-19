@@ -57,6 +57,9 @@ export default class AppListener {
             promiseIpc.on("get-all-genres", () => Container.get(GenreRepository).getAllGenres());
             promiseIpc.on("get-movies", () => Container.get(MediaRepository).getMovies());
             promiseIpc.on("get-series", () => Container.get(MediaRepository).getSeries());
+            promiseIpc.on("get-meta-data", (payload) => Container.get(MediaRepository).getMetaData(payload));
+            promiseIpc.on("get-meta-data-by-file-id", (payload) =>
+                Container.get(MediaRepository).getMetaDataByFileId(payload));
             promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
             promiseIpc.on("scan-dir", (payload) => Container.get(FilesController).doFullSweep(payload.dir));
             promiseIpc.on("select-directory-dialog", () => FilesController.selectDbPathFolder());

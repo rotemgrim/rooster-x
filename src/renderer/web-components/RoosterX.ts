@@ -18,8 +18,6 @@ import {isStringContains} from "../../main/helpers/Utils";
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
 
-    public static playTimer: any;
-
     @property() public _media: MetaData[] = [];
     @property() public _filteredMedia: IMetaDataExtended[] = [];
     @property() public _sideBar: boolean = false;
@@ -27,7 +25,6 @@ export class RoosterX extends LitElement {
     @property() public user: User;
     @property() public config: IConfig;
     @property() public wrapper: RoosterXWrapper;
-    @property() public didYouWatched: null | MetaData = null;
     @property() public _filterConfig: any = {
         unwatchedMedia: false,
         noMediaWithoutFiles: true,
@@ -197,36 +194,26 @@ export class RoosterX extends LitElement {
         }
     }
 
-    public static playMediaFile(mediaFile: MediaFile) {
-        IpcService.openExternal(mediaFile.path);
-        clearTimeout(RoosterX.playTimer);
-        RoosterX.playTimer = setTimeout(() => {
-            console.log("did you watched? " + mediaFile.raw, mediaFile);
-            // this.didYouWatched = null;
-        }, 5000);
-    }
-
     public render() {
         return html`
-        <top-bar .rooster="${this}"></top-bar>
-        ${this.didYouWatched ? html`<div class="did-you-watched"></div>` : ``}
+        <top-bar .rooster=${this}></top-bar>
         <div class="side-bar ${this._sideBar ? "open" : ""}">
             <ul>
-                <li @click="${this.getAllMedia}"><i class="material-icons">video_library</i>All Media</li>
-                <li @click="${this.getMovies}"><i class="material-icons">movie</i>Movies</li>
-                <li @click="${this.getSeries}"><i class="material-icons">live_tv</i>Series</li>
-                <li @click="${this.showFilters}"><i class="material-icons">filter_list</i>Filter</li>
+                <li @click=${this.getAllMedia}><i class="material-icons">video_library</i>All Media</li>
+                <li @click=${this.getMovies}><i class="material-icons">movie</i>Movies</li>
+                <li @click=${this.getSeries}><i class="material-icons">live_tv</i>Series</li>
+                <li @click=${this.showFilters}><i class="material-icons">filter_list</i>Filter</li>
             </ul>
             <ul>
-                <li @click="${this.showSettings}"><i class="material-icons">settings</i>Settings</li>
+                <li @click=${this.showSettings}><i class="material-icons">settings</i>Settings</li>
             </ul>
         </div>
         ${this._sideBar ? html`<div class="panel">
-            ${this._panel === "filters" ? html`<filters-page .rooster="${this}"></filters-page>` : ""}
-            ${this._panel === "settings" ? html`<settings-page .rooster="${this}"></settings-page>` : ""}
+            ${this._panel === "filters" ? html`<filters-page .rooster=${this}></filters-page>` : ""}
+            ${this._panel === "settings" ? html`<settings-page .rooster=${this}></settings-page>` : ""}
         </div>` : ""}
         <div class="videos" tabindex="0">
-            ${this._filteredMedia.map(v => html`<video-card .video=${v}></video-card>`)}
+            ${this._filteredMedia.map(v => html`<video-card .video=${v} .rooster=${this}></video-card>`)}
         </div>`;
     }
 }

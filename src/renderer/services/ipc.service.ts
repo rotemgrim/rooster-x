@@ -126,6 +126,25 @@ export class IpcService {
         });
     }
 
+    public static getMetaDataById(payload: {id: number}): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-meta-data", payload).then(resolve).catch(reject);
+        });
+    }
+
+    public static getMetaDataByFileId(payload: {id: number}): Promise<MetaData|Episode> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-meta-data-by-file-id", payload).then((data) => {
+                if (data && data.imdbSeriesId) {
+                    if (!data.metaData) {
+                        data.metaData = data.__metaData__;
+                    }
+                }
+                resolve(data);
+            }).catch(reject);
+        });
+    }
+
     public static dbQuery(entity: string, query: any): Promise<any> {
         const payload = {entity, query};
         return new Promise((resolve, reject) => {

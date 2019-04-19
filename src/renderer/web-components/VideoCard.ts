@@ -4,10 +4,12 @@ import {IpcService} from "../services/ipc.service";
 import {MetaData} from "../../entity/MetaData";
 import "./VideoDetails";
 import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
+import {RoosterX} from "./RoosterX";
 
 @customElement("video-card")
 export class VideoCard extends LitElement {
 
+    @property() public rooster: RoosterX;
     @property() public video: IMetaDataExtended;
     @property() public isShowDetails: boolean;
 
@@ -38,7 +40,8 @@ export class VideoCard extends LitElement {
         </div>
         ${this.isShowDetails ?
             html`<video-details tabindex="${this.video.id}"
-                    .card="${this}"
+                    .rooster=${this.rooster}
+                    .card=${this}
                     .video=${this.video}>
                 </video-details>` : ""}`;
     }

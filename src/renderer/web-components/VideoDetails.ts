@@ -5,16 +5,22 @@ import {MetaData} from "../../entity/MetaData";
 import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
+import "./DidWatched";
 import {IEpisodeExtended, IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
 import {Episode} from "../../entity/Episode";
+import {MediaFile} from "../../entity/MediaFile";
 
 @customElement("video-details")
 export class VideoDetails extends LitElement {
 
+    @property() public rooster: RoosterX;
     @property() public video: IMetaDataExtended;
     @property() public card: VideoCard;
     @property() public _episodes: IEpisodeExtended[];
+
+    public playTimer: any;
+    @property() public didYouWatched: null | MetaData | Episode = null;
 
     public createRenderRoot() {
         return this;
@@ -63,6 +69,8 @@ export class VideoDetails extends LitElement {
     }
 
     public close() {
+        clearTimeout(this.playTimer);
+        this.playTimer = null;
         this.card.isShowDetails = false;
         document.body.style.overflow = "auto";
         RoosterX.setFocusToVideos();
@@ -130,8 +138,30 @@ export class VideoDetails extends LitElement {
             .catch(console.log);
     }
 
+    public playMedia(e: CustomEvent) {
+        if (e && e.detail) {
+            const mediaFile: MediaFile = e.detail;
+            IpcService.openExternal(mediaFile.path);
+            clearTimeout(this.playTimer);
+            this.playTimer = setTimeout(() => {
+                console.log("did you watched? " + mediaFile.raw, mediaFile);
+                // this.didYouWatched = null;
+                IpcService.getMetaDataByFileId({id: mediaFile.id})
+                    .then((metaData: MetaData|Episode) => {
+                        if (metaData) {
+                            console.log("metaData", metaData);
+                            this.didYouWatched = metaData;
+                            this.requestUpdate();
+                        }
+                    }).catch(console.log);
+            }, 300000); // this is 5 min
+        }
+    }
+
     public render() {
-        return html`<div class="video-details">
+        return html`<did-watched .rooster=${this.rooster} .videoDetails=${this}
+                .didYouWatched=${this.didYouWatched}></did-watched>
+        <div class="video-details">
             <div class="close" @click="${this.close}">
                 X
             </div>
@@ -168,7 +198,11 @@ export class VideoDetails extends LitElement {
                     && this._episodes.length > 0 ?
                     html`<div class="episodes">
                         ${this._episodes.map(ep => {
-                            return html`<episode-card .episode=${ep} .videoDetails=${this}></episode-card>`;
+                            return html`<episode-card
+                                @playMedia=${this.playMedia}
+                                .episode=${ep}
+                                .videoDetails=${this}>
+                            </episode-card>`;
                         })}
                     </div>` : ""}
 
@@ -176,7 +210,10 @@ export class VideoDetails extends LitElement {
                     && this.video.mediaFiles.length > 0 ?
                     html`<div class="media-files">
                         ${this.video.mediaFiles.map(mf => {
-                            return html`<media-file-card .mediaFile=${mf}></media-file-card>`;
+                            return html`<media-file-card
+                                @playMedia=${this.playMedia}
+                                .mediaFile=${mf}>
+                            </media-file-card>`;
                         })}
                     </div>` : ""}
 

@@ -28,7 +28,7 @@ export class EpisodeCard extends LitElement {
             // show options for select
             this.isShowPlayOptions = !this.isShowPlayOptions;
         } else {
-            RoosterX.playMediaFile(this.episode.mediaFiles[0]);
+            this.dispatchEvent(new CustomEvent("playMedia", {detail: this.episode.mediaFiles[0]}));
         }
     }
 

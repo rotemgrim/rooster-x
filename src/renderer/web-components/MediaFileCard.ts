@@ -17,7 +17,7 @@ export class EpisodeCard extends LitElement {
     }
 
     public playFile() {
-        RoosterX.playMediaFile(this.mediaFile);
+        this.dispatchEvent(new CustomEvent("playMedia", {detail: this.mediaFile}));
     }
 
     public static fileOptions(file: MediaFile) {
