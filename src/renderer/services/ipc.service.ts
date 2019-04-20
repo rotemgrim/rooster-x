@@ -132,6 +132,12 @@ export class IpcService {
         });
     }
 
+    public static getEpisodes(payload: {metaDataId: number}): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-episodes", payload).then(resolve).catch(reject);
+        });
+    }
+
     public static getMetaDataByFileId(payload: {id: number}): Promise<MetaData|Episode> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("get-meta-data-by-file-id", payload).then((data) => {
@@ -173,6 +179,12 @@ export class IpcService {
     public static setWatched(payload: {type: string, entityId: number, isWatched: boolean}): Promise<any> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("set-watched", payload).then(resolve).catch(reject);
+        });
+    }
+
+    public static reprocessGenres(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("reprocess-genres").then(resolve).catch(reject);
         });
     }
 }

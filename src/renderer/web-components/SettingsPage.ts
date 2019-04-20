@@ -15,6 +15,7 @@ export class SettingsPage extends LitElement {
 
     constructor() {
         super();
+        this.scanDir = "Z:\\Complete\\Fay\\";
     }
 
     private close() {
@@ -27,6 +28,13 @@ export class SettingsPage extends LitElement {
             .catch(console.log);
     }
 
+    private reprocessGenres() {
+        IpcService.reprocessGenres()
+            .then(() => {
+                this.rooster.getAllMedia();
+            }).catch(console.log);
+    }
+
     public render() {
         return html`<div class="page filters-page">
             <div class="page-top">
@@ -36,7 +44,8 @@ export class SettingsPage extends LitElement {
             <div class="page-body">
                 <div class="section">
                     <h2>Scan Directories under</h2>
-                    <input type="text" @input=${(e) => this.scanDir = e.target.value}>
+                    <input type="text" @input=${(e) => this.scanDir = e.target.value}
+                        value="">
                     <button @click=${this.scanNow}>Scan Now!</button>
                 </div>
                 <div class="section">
@@ -47,6 +56,7 @@ export class SettingsPage extends LitElement {
                     html`<div class="section">
                     <h2>Add User</h2>
                 </div>` : ""}
+                <button @click=${this.reprocessGenres}>Reprocess all Genres</button>
             </div>
         </div>`;
     }

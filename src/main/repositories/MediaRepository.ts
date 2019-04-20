@@ -50,6 +50,17 @@ export class MediaRepository {
         return metaRepo.find({type: "series"});
     }
 
+    public getEpisodes(payload: {metaDataId: number}) {
+        return new Promise(async (resolve) => {
+            const metaRepo = this.connection.manager.getRepository(MetaData);
+            const metaData = await metaRepo.findOne(payload.metaDataId);
+
+            const episodeRepo = this.connection.manager.getRepository(Episode);
+            const episodes = await episodeRepo.find({where: {metaData}});
+            resolve(episodes);
+        });
+    }
+
     public getMetaData(payload: {id: number}) {
         const metaRepo = this.connection.manager.getRepository(MetaData);
         return metaRepo.findOne(payload.id);

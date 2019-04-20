@@ -19,10 +19,10 @@ export class MediaFile {
     @Column({type: "varchar", length: 40})
     public hash: string;
 
-    @ManyToOne(() => MetaData, metaData => metaData.mediaFiles, {cascade: true, lazy: true})
+    @ManyToOne(() => MetaData, metaData => metaData.mediaFiles, {cascade: true})
     public metaData: MetaData;
 
-    @ManyToOne(() => Episode, episode => episode.mediaFiles, {cascade: true, lazy: true})
+    @ManyToOne(() => Episode, episode => episode.mediaFiles, {cascade: true})
     public episode: Episode;
 
     @Column({type: "int", nullable: true})

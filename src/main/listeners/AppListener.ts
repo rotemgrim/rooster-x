@@ -57,6 +57,7 @@ export default class AppListener {
             promiseIpc.on("get-all-genres", () => Container.get(GenreRepository).getAllGenres());
             promiseIpc.on("get-movies", () => Container.get(MediaRepository).getMovies());
             promiseIpc.on("get-series", () => Container.get(MediaRepository).getSeries());
+            promiseIpc.on("get-episodes", (payload) => Container.get(MediaRepository).getEpisodes(payload));
             promiseIpc.on("get-meta-data", (payload) => Container.get(MediaRepository).getMetaData(payload));
             promiseIpc.on("get-meta-data-by-file-id", (payload) =>
                 Container.get(MediaRepository).getMetaDataByFileId(payload));
@@ -66,6 +67,7 @@ export default class AppListener {
             promiseIpc.on("create-user", (user) => Container.get(UserRepository).createUser(user));
             promiseIpc.on("get-user", (id) => Container.get(UserRepository).getUser(id));
             promiseIpc.on("set-watched", (payload) => Container.get(MediaRepository).setWatched(payload));
+            promiseIpc.on("reprocess-genres", () => Container.get(GenreRepository).reprocessAllGenres());
 
             AppListener.isListening = true;
             await AppController.bootstrapApp();

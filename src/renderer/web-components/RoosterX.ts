@@ -141,7 +141,7 @@ export class RoosterX extends LitElement {
         return mediaArray;
     }
 
-    private getAllMedia() {
+    public getAllMedia() {
         IpcService.getAllMedia().then(media => this.media = media);
         RoosterX.setFocusToVideos();
         this.closeSideBar();

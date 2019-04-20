@@ -70,23 +70,43 @@ export default class FilesController {
     public doFullSweep(directory: string): Promise<any> {
         return new Promise(async (resolve, reject) => {
             const entries = await FilesController.getAllVideos(directory);
-            console.log(entries.length);
+            console.log("total entries", entries.length);
+            if (entries.length === 0) {
+                console.info("no entries found, cancel sweep");
+                resolve();
+                return;
+            }
 
             const mediaFiles: MediaFile[] = [];
-            const seriesArr: MetaData[] = await this.metaDataRepo.find({type: "series"});
-            const moviesArr: MetaData[] = await this.metaDataRepo.find({type: "movie"});
-            const episodesArr: Episode[] = await this.episodeRepo.find();
-            const allFiles = await this.filesRepo.createQueryBuilder()
+            let seriesArr: MetaData[] = [];
+            let moviesArr: MetaData[] = [];
+            let episodesArr: Episode[] = [];
+            let allFiles: MediaFile[] = [];
+            await this.metaDataRepo.find({type: "series"})
+                .then(res => seriesArr = res)
+                .catch(e => console.error("could not get all series", e));
+            await this.metaDataRepo.find({type: "movie"})
+                .then(res => moviesArr = res)
+                .catch(e => console.error("could not get all movies", e));
+            await this.episodeRepo.find()
+                .then(res => episodesArr = res)
+                .catch(e => console.error("could not get all episodes", e));
+            await this.filesRepo.createQueryBuilder()
                 .select(["MediaFile.id", "MediaFile.hash", "MediaFile.path"])
-                .getMany();
+                .getMany()
+                .then(res => allFiles = res)
+                .catch(e => console.error("could not get all files", e));
+
             const allPaths = {};
             let allGenres: string[] = [];
             for (const f of allFiles) {
                 allPaths[f.path] = {id: f.id, hash: f.hash};
             }
             for (const e of entries) {
-                if (allPaths[e.sEntry.fullPath]) {
-                    delete allPaths[e.sEntry.fullPath];
+                const fullPath = e.sEntry.fullPath.toLowerCase();
+                const isInAllPaths = allPaths[fullPath];
+                if (isInAllPaths) {
+                    delete allPaths[fullPath];
                     continue;
                 }
 
@@ -104,9 +124,13 @@ export default class FilesController {
                 if (file.metaData.userMetaData) {
                     delete file.metaData.userMetaData;
                 }
-                await this.connection.manager.save(file);
-                mediaFiles.push(file);
-                console.log(mediaFiles.length);
+                await this.connection.manager.save(file)
+                    .then(() => {
+                        mediaFiles.push(file);
+                        console.log(mediaFiles.length);
+                    }).catch(err => {
+                        console.error("could not save file " + file.raw, err);
+                    });
             }
 
             await Container.get(MediaController).addGenres(allGenres)
@@ -198,7 +222,11 @@ export default class FilesController {
                 file.metaData = FilesController.getMetaData(moviesArr, e, "movie");
             }
 
-            console.log("file.metaData.status", file.metaData.status);
+            console.log("file.metaData.status1", file.metaData.status);
+            if (!file.metaData.status) {
+                file.metaData.status = await file.metaData.status;
+            }
+            console.log("file.metaData.status2", file.metaData.status);
             if (file && file.metaData && file.metaData.status === "not-scanned") {
                 await IMDBController.getMetaDataFromInternetByMediaFile(file)
                     .then(async (res) => {
@@ -283,13 +311,14 @@ export default class FilesController {
 
     public getEpisode(metaData: MetaData, episodesArr: Episode[], e: IEntry): Promise<Episode> {
         return new Promise(async (resolve) => {
-            const tmpArr = episodesArr.filter((s) => {
-                return s.metaData && s.metaData.title === e.mEntry.title
-                    && s.season === e.mEntry.season
-                    && s.episode === e.mEntry.episode;
-            });
-            if (tmpArr && tmpArr.length > 0) {
-                resolve(tmpArr[0]);
+            const ep = await this.episodeRepo.findOne({where: {
+                metaDataId: metaData.id,
+                season: e.mEntry.season,
+                episode: e.mEntry.episode,
+            }});
+            if (ep) {
+                resolve(ep);
+                return;
             } else {
                 const tmpEpisode = new Episode();
                 tmpEpisode.title = e.mEntry.title;
@@ -308,9 +337,9 @@ export default class FilesController {
                 }
 
                 IMDBController.getEpisodeMetaDataFromInternetByEpisode(tmpEpisode)
-                    .then(ep => {
-                        episodesArr.push(ep);
-                        resolve(ep);
+                    .then(episode => {
+                        episodesArr.push(episode);
+                        resolve(episode);
                     })
                     .catch(() => resolve(tmpEpisode));
             }

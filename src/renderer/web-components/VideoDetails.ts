@@ -83,24 +83,25 @@ export class VideoDetails extends LitElement {
 
     public reloadVideo() {
         if (this.video.type === "series") {
-            IpcService.dbQuery("Episode", {
-                where: {
-                    imdbSeriesId: this.video.imdbId,
-                },
-                order: {
-                    season: "ASC",
-                    episode: "ASC",
-                },
-                cache: true,
-            }).then(res => {
-                this.video.episodes = res;
-                this.episodes = res;
+            // IpcService.dbQuery("Episode", {
+            //     where: {
+            //         metaDataId: this.video.id,
+            //     },
+            //     order: {
+            //         season: "ASC",
+            //         episode: "ASC",
+            //     },
+            //     cache: true,
+            IpcService.getEpisodes({metaDataId: this.video.id})
+                .then(res => {
+                    this.video.episodes = res;
+                    this.episodes = res;
             }).catch(console.log);
         }
     }
 
     set episodes(episodes: Episode[]) {
-        const userId = 1;
+        const userId = this.rooster.user.id;
         const newList: IEpisodeExtended[] = [...episodes];
         for (const e of newList) {
             // check if episode is watched
