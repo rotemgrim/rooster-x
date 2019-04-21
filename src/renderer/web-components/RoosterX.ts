@@ -141,6 +141,12 @@ export class RoosterX extends LitElement {
         return mediaArray;
     }
 
+    public getAllTorrents() {
+        IpcService.getAllTorrents().then(media => this.media = media);
+        RoosterX.setFocusToVideos();
+        this.closeSideBar();
+    }
+
     public getAllMedia() {
         IpcService.getAllMedia().then(media => this.media = media);
         RoosterX.setFocusToVideos();
@@ -199,6 +205,7 @@ export class RoosterX extends LitElement {
         <top-bar .rooster=${this}></top-bar>
         <div class="side-bar ${this._sideBar ? "open" : ""}">
             <ul>
+                <li @click=${this.getAllTorrents}><i class="material-icons">cloud_download</i>Download</li>
                 <li @click=${this.getAllMedia}><i class="material-icons">video_library</i>All Media</li>
                 <li @click=${this.getMovies}><i class="material-icons">movie</i>Movies</li>
                 <li @click=${this.getSeries}><i class="material-icons">live_tv</i>Series</li>

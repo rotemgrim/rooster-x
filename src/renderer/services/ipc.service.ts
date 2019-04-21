@@ -102,6 +102,12 @@ export class IpcService {
         });
     }
 
+    public static getAllTorrents(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-all-torrents").then(resolve).catch(reject);
+        });
+    }
+
     public static getAllMedia(): Promise<any> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("get-all-media").then(resolve).catch(reject);
@@ -185,6 +191,12 @@ export class IpcService {
     public static reprocessGenres(): Promise<any> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("reprocess-genres").then(resolve).catch(reject);
+        });
+    }
+
+    public static reprocessTorrents(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("reprocess-torrents").then(resolve).catch(reject);
         });
     }
 }

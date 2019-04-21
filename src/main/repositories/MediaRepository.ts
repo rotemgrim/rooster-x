@@ -40,6 +40,11 @@ export class MediaRepository {
         // return sql.getRawAndEntities();
     }
 
+    public async getAllTorrents() {
+        const metaRepo = this.connection.manager.getRepository(MetaData);
+        return metaRepo.find();
+    }
+
     public getMovies() {
         const metaRepo = this.connection.manager.getRepository(MetaData);
         return metaRepo.find({type: "movie"});

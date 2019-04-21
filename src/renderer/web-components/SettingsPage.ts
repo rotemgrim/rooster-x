@@ -35,6 +35,13 @@ export class SettingsPage extends LitElement {
             }).catch(console.log);
     }
 
+    private reprocessTorrents() {
+        IpcService.reprocessTorrents()
+            .then(() => {
+                this.rooster.getAllTorrents();
+            }).catch(console.log);
+    }
+
     public render() {
         return html`<div class="page filters-page">
             <div class="page-top">
@@ -57,6 +64,8 @@ export class SettingsPage extends LitElement {
                     <h2>Add User</h2>
                 </div>` : ""}
                 <button @click=${this.reprocessGenres}>Reprocess all Genres</button>
+                <br><br><br>
+                <button @click=${this.reprocessTorrents}>Reprocess all Genres</button>
             </div>
         </div>`;
     }

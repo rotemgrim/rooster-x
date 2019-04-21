@@ -14,6 +14,7 @@ import FilesController from "../controllers/FilesController";
 import {UserRepository} from "../repositories/UserRepository";
 import {GenreRepository} from "../repositories/GenreRepository";
 import FilesListener from "./FilesListener";
+import {TorrentsRepository} from "../repositories/TorrentsRepository";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -53,6 +54,7 @@ export default class AppListener {
             promiseIpc.on("get-config", ConfigController.getConfigPromise);
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
             promiseIpc.on("get-all-users", () => Container.get(UserRepository).getAllUsers());
+            promiseIpc.on("get-all-torrents", () => Container.get(TorrentsRepository).getAllTorrents());
             promiseIpc.on("get-all-media", () => Container.get(MediaRepository).getAllMedia());
             promiseIpc.on("get-all-genres", () => Container.get(GenreRepository).getAllGenres());
             promiseIpc.on("get-movies", () => Container.get(MediaRepository).getMovies());
@@ -68,6 +70,7 @@ export default class AppListener {
             promiseIpc.on("get-user", (id) => Container.get(UserRepository).getUser(id));
             promiseIpc.on("set-watched", (payload) => Container.get(MediaRepository).setWatched(payload));
             promiseIpc.on("reprocess-genres", () => Container.get(GenreRepository).reprocessAllGenres());
+            promiseIpc.on("reprocess-torrents", () => Container.get(TorrentsRepository).reprocessTorrents());
 
             AppListener.isListening = true;
             await AppController.bootstrapApp();

@@ -8,6 +8,7 @@ import * as path from "path";
 import {UserMetaData} from "../../entity/UserMetaData";
 import {UserEpisode} from "../../entity/UserEpisode";
 import {Genre} from "../../entity/Genre";
+import {TorrentFile} from "../../entity/TorrentFile";
 
 export default class DBConnection {
 
@@ -27,6 +28,7 @@ export default class DBConnection {
                         UserMetaData,
                         UserEpisode,
                         Genre,
+                        TorrentFile,
                     ],
                     synchronize: true,
                 }).then(() => {

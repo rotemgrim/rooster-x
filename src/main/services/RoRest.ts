@@ -20,27 +20,16 @@ export default class RoRest {
 
     public static async send(method: string, url: string, data: any = {}): Promise<any> {
         await ProxyService.updateProxySettings().catch(() => RoRest.proxy = null);
-        const user: any = {};
         return new Promise((resolve, reject) => {
-            const key = {
-                sessionid: user.getSessionKey().sessionId,
-                csrftoken: user.getSessionKey().csrfToken,
-            };
             const payload = Object.assign({}, data);
             const headers: any = {
-                "Cookie": "sessionid=" + key.sessionid + "; csrftoken=" + key.csrftoken + ";",
                 "Content-Type": "application/json",
                 "Accept": "application/json, text/plain, */*",
-                "X-CSRFToken": key.csrftoken,
                 "User-Agent": userAgent,
-                "referer": AppGlobal.getConfig().serverUrl,
+                // "referer": AppGlobal.getConfig().serverUrl,
             };
-            if (RoRest.basicAuthenticationCode) {
-                headers.Authorization = RoRest.basicAuthenticationCode;
-                delete headers.Cookie;
-            }
             const config = {
-                url: AppGlobal.getConfig().serverUrl.href + url,
+                url,
                 method,
                 headers,
                 data: payload,

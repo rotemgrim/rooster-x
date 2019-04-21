@@ -44,6 +44,7 @@
     "mixpanel": "^0.10.2",
     "mkdirp": "^0.5.1",
     "moment": "^2.24.0",
+    "node-html-parser": "^1.1.15",
     "parse-torrent-name": "^0.5.4",
     "readdirp": "^2.2.1",
     "reflect-metadata": "^0.1.13",
