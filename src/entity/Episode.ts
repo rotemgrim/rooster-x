@@ -4,6 +4,7 @@ import {MediaFile} from "./MediaFile";
 import {MetaData} from "./MetaData";
 import {AbsMetaData} from "./AbsMetaData";
 import {UserEpisode} from "./UserEpisode";
+import {TorrentFile} from "./TorrentFile";
 
 @Entity("Episode")
 @Index(["season", "episode", "metaData"], { unique: true })
@@ -21,6 +22,9 @@ export class Episode extends AbsMetaData {
 
     @OneToMany(() => MediaFile, mediaFile => mediaFile.episode, {eager: true})
     public mediaFiles: MediaFile[];
+
+    @OneToMany(() => TorrentFile, torrentFile => torrentFile.metaData, {eager: true})
+    public torrentFiles: TorrentFile[];
 
     @ManyToOne(() => MetaData, metaData => metaData.episodes, {cascade: true, lazy: true})
     public metaData: MetaData;

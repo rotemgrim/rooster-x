@@ -21,6 +21,7 @@ import {Container, Service} from "typedi";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import {UserMetaData} from "../../entity/UserMetaData";
 import MediaController from "./MediaController";
+import {MediaRepository} from "../repositories/MediaRepository";
 
 @Service()
 export default class FilesController {
@@ -217,7 +218,9 @@ export default class FilesController {
 
             if (e.mEntry.episode || e.mEntry.season) {
                 file.metaData = FilesController.getMetaData(seriesArr, e, "series");
-                file.episode = await this.getEpisode(file.metaData, episodesArr, e);
+                const episode = await Container.get(MediaRepository).getEpisode(file.metaData, e.mEntry);
+                episodesArr.push(episode);
+                file.episode = episode;
             } else {
                 file.metaData = FilesController.getMetaData(moviesArr, e, "movie");
             }
@@ -307,43 +310,6 @@ export default class FilesController {
             metaDataArr.push(metaData);
             return metaData;
         }
-    }
-
-    public getEpisode(metaData: MetaData, episodesArr: Episode[], e: IEntry): Promise<Episode> {
-        return new Promise(async (resolve) => {
-            const ep = await this.episodeRepo.findOne({where: {
-                metaDataId: metaData.id,
-                season: e.mEntry.season,
-                episode: e.mEntry.episode,
-            }});
-            if (ep) {
-                resolve(ep);
-                return;
-            } else {
-                const tmpEpisode = new Episode();
-                tmpEpisode.title = e.mEntry.title;
-                tmpEpisode.episode = e.mEntry.episode || 0;
-                tmpEpisode.season = e.mEntry.season;
-                tmpEpisode.metaData = metaData;
-
-                // check if series is watched
-                const userMetaDataRepo = this.connection.manager.getRepository(UserMetaData);
-                const userMetaData = await userMetaDataRepo.find({where: {metaDataId: metaData.id}});
-                for (const umd of userMetaData) {
-                    if (umd.isWatched === true) {
-                        umd.isWatched = false;
-                        await userMetaDataRepo.save(umd).catch(console.error);
-                    }
-                }
-
-                IMDBController.getEpisodeMetaDataFromInternetByEpisode(tmpEpisode)
-                    .then(episode => {
-                        episodesArr.push(episode);
-                        resolve(episode);
-                    })
-                    .catch(() => resolve(tmpEpisode));
-            }
-        });
     }
 
     private getSEntry(fileFullPath: string): Promise<IFSEntry> {

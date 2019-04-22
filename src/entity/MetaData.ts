@@ -4,6 +4,7 @@ import {MediaFile} from "./MediaFile";
 import {Episode} from "./Episode";
 import {AbsMetaData} from "./AbsMetaData";
 import {UserMetaData} from "./UserMetaData";
+import {TorrentFile} from "./TorrentFile";
 @Entity("MetaData")
 export class MetaData extends AbsMetaData {
 
@@ -16,6 +17,9 @@ export class MetaData extends AbsMetaData {
 
     @OneToMany(() => MediaFile, mediaFile => mediaFile.metaData, {eager: true})
     public mediaFiles: MediaFile[];
+
+    @OneToMany(() => TorrentFile, torrentFile => torrentFile.metaData, {eager: true})
+    public torrentFiles: TorrentFile[];
 
     @OneToMany(() => Episode, episode => episode.metaData, {lazy: true})
     public episodes: Episode[];

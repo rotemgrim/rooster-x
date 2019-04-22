@@ -1,5 +1,5 @@
 import {Service} from "typedi";
-import {Connection, In} from "typeorm";
+import {Connection, In, Repository} from "typeorm";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import {MetaData} from "../../entity/MetaData";
 import {Episode} from "../../entity/Episode";
@@ -9,12 +9,20 @@ import AppGlobal from "../helpers/AppGlobal";
 import {AbsMetaData} from "../../entity/AbsMetaData";
 import {UserEpisode} from "../../entity/UserEpisode";
 import {MediaFile} from "../../entity/MediaFile";
+import {IEntry} from "../../common/models/IEntry";
+import IMDBController from "../controllers/IMDBController";
+import {IMediaEntry} from "../../common/models/IMediaEntry";
 
 @Service()
 export class MediaRepository {
 
-    @InjectConnection("reading")
-    private connection: Connection;
+    private episodeRepo: Repository<Episode>;
+
+    constructor(
+        @InjectConnection("reading") private connection: Connection,
+    ) {
+        this.episodeRepo = this.connection.getRepository(Episode);
+    }
 
     public async getAllMedia() {
         const metaRepo = this.connection.manager.getRepository(MetaData);
@@ -195,6 +203,42 @@ export class MediaRepository {
                     console.error("could not perform query", e);
                     reject();
                 });
+        });
+    }
+
+    public getEpisode(metaData: MetaData, mEntry: IMediaEntry): Promise<Episode> {
+        return new Promise(async (resolve) => {
+            const ep = await this.episodeRepo.findOne({where: {
+                    metaData,
+                    season: mEntry.season,
+                    episode: mEntry.episode,
+                }});
+            if (ep) {
+                resolve(ep);
+                return;
+            } else {
+                const tmpEpisode = new Episode();
+                tmpEpisode.title = mEntry.title;
+                tmpEpisode.episode = mEntry.episode || 0;
+                tmpEpisode.season = mEntry.season;
+                tmpEpisode.metaData = metaData;
+
+                // check if series is watched
+                const userMetaDataRepo = this.connection.manager.getRepository(UserMetaData);
+                const userMetaData = await userMetaDataRepo.find({where: {metaDataId: metaData.id}});
+                for (const umd of userMetaData) {
+                    if (umd.isWatched === true) {
+                        umd.isWatched = false;
+                        await userMetaDataRepo.save(umd).catch(console.error);
+                    }
+                }
+
+                IMDBController.getEpisodeMetaDataFromInternetByEpisode(tmpEpisode)
+                    .then(episode => {
+                        resolve(episode);
+                    })
+                    .catch(() => resolve(tmpEpisode));
+            }
         });
     }
 }

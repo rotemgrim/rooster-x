@@ -2,6 +2,7 @@ import {MediaFile} from "../../entity/MediaFile";
 import AppGlobal from "../helpers/AppGlobal";
 import {Episode} from "../../entity/Episode";
 import IMDBService, {IOmdbEntity} from "../services/IMDBService";
+import {TorrentFile} from "../../entity/TorrentFile";
 
 export default class IMDBController {
 
@@ -23,7 +24,7 @@ export default class IMDBController {
         });
     }
 
-    public static getMetaDataFromInternetByMediaFile(file: MediaFile): Promise<MediaFile> {
+    public static getMetaDataFromInternetByMediaFile<T>(file: MediaFile | TorrentFile): Promise<any> {
         return new Promise((resolve, reject) => {
             IMDBController.getMetaDataFromInternet(file.metaData.title, file.year)
                 .then((data) => {
