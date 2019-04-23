@@ -65,7 +65,7 @@ export class SettingsPage extends LitElement {
                 </div>` : ""}
                 <button @click=${this.reprocessGenres}>Reprocess all Genres</button>
                 <br><br><br>
-                <button @click=${this.reprocessTorrents}>Reprocess all Genres</button>
+                <button @click=${this.reprocessTorrents}>Reprocess Torrents</button>
             </div>
         </div>`;
     }

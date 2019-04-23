@@ -5,6 +5,7 @@ import {MetaData} from "../../entity/MetaData";
 import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
+import "./TorrentFileCard";
 import "./DidWatched";
 import {IEpisodeExtended, IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
@@ -159,6 +160,12 @@ export class VideoDetails extends LitElement {
         }
     }
 
+    public downloadTorrent(e: CustomEvent) {
+        if (e && e.detail) {
+            console.log("download", e.detail);
+        }
+    }
+
     public render() {
         return html`<did-watched .rooster=${this.rooster} .videoDetails=${this}
                 .didYouWatched=${this.didYouWatched}></did-watched>
@@ -215,6 +222,17 @@ export class VideoDetails extends LitElement {
                                 @playMedia=${this.playMedia}
                                 .mediaFile=${mf}>
                             </media-file-card>`;
+                        })}
+                    </div>` : ""}
+
+                ${this.video.type === "movie" && this.video.torrentFiles
+                    && this.video.torrentFiles.length > 0 ?
+                    html`<div class="media-files">
+                        ${this.video.torrentFiles.map(mf => {
+                            return html`<torrent-file-card
+                                @downLoadTorrent=${this.downloadTorrent}
+                                .torrentFile=${mf}>
+                            </torrent-file-card>`;
                         })}
                     </div>` : ""}
 

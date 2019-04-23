@@ -26,7 +26,7 @@ export default class IMDBController {
 
     public static getMetaDataFromInternetByMediaFile<T>(file: MediaFile | TorrentFile): Promise<any> {
         return new Promise((resolve, reject) => {
-            IMDBController.getMetaDataFromInternet(file.metaData.title, file.year)
+            IMDBController.getMetaDataFromInternet(file.metaData.title, file.year, file.metaData.type)
                 .then((data) => {
                     if (data.Title !== "N/A") {file.metaData.name = data.Title; }
                     if (data.imdbID !== "N/A") {file.metaData.imdbId = data.imdbID; }
@@ -67,10 +67,11 @@ export default class IMDBController {
         return 0;
     }
 
-    public static getMetaDataFromInternet(title: string, year?: number): Promise<IOmdbEntity> {
+    public static getMetaDataFromInternet(title: string, year?: number, type?: "movie" | "series" | "episode"):
+        Promise<IOmdbEntity> {
         return new Promise((resolve, reject) => {
             IMDBService.setApiKey(AppGlobal.getConfig().omdbApiKey);
-            IMDBService.get({title, year}).then(resolve).catch(reject);
+            IMDBService.get({title, year, type}).then(resolve).catch(reject);
         });
     }
 
@@ -81,7 +82,7 @@ export default class IMDBController {
             }
             const metaData = await episode.metaData;
             IMDBService.setApiKey(AppGlobal.getConfig().omdbApiKey);
-            IMDBService.get({title: metaData.title, season: episode.season, episode: episode.episode})
+            IMDBService.get({title: metaData.title, season: episode.season, episode: episode.episode, type: "episode"})
                 .then(resolve).catch(reject);
         });
     }

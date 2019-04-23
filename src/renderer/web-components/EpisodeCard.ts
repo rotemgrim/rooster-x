@@ -4,8 +4,10 @@ import {IpcService} from "../services/ipc.service";
 import {MediaFile} from "../../entity/MediaFile";
 import {VideoDetails} from "./VideoDetails";
 import "./MediaFileCard";
+import "./TorrentFileCard";
 import {IEpisodeExtended} from "../../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
+import {TorrentFile} from "../../entity/TorrentFile";
 
 @customElement("episode-card")
 export class EpisodeCard extends LitElement {
@@ -13,6 +15,7 @@ export class EpisodeCard extends LitElement {
     @property() public videoDetails: VideoDetails;
     @property() public episode: IEpisodeExtended;
     @property() public isShowPlayOptions: boolean;
+    @property() public isShowDownloadOptions: boolean;
 
     public createRenderRoot() {
         return this;
@@ -21,12 +24,16 @@ export class EpisodeCard extends LitElement {
     constructor() {
         super();
         this.isShowPlayOptions = false;
+        this.isShowDownloadOptions = false;
     }
 
     public playEpisode() {
         if (this.episode && this.episode.mediaFiles && this.episode.mediaFiles.length > 1) {
             // show options for select
             this.isShowPlayOptions = !this.isShowPlayOptions;
+        } else if (this.episode && this.episode.mediaFiles.length === 0 && this.episode.torrentFiles.length > 0) {
+            // show download options
+            this.isShowDownloadOptions = !this.isShowDownloadOptions;
         } else {
             this.dispatchEvent(new CustomEvent("playMedia", {detail: this.episode.mediaFiles[0]}));
         }
@@ -34,6 +41,10 @@ export class EpisodeCard extends LitElement {
 
     public static fileOptions(file: MediaFile) {
         return html`<media-file-card .mediaFile=${file}></media-file-card>`;
+    }
+
+    public static torrentFileOptions(file: TorrentFile) {
+        return html`<torrent-file-card .torrentFile=${file}></torrent-file-card>`;
     }
 
     private setWatch(e) {
@@ -64,13 +75,20 @@ export class EpisodeCard extends LitElement {
                     ?checked=${this.episode.isWatched}
                     title="${this.episode.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
             <div class="image" @click=${this.playEpisode}>
-                <i class="material-icons">play_circle_outline</i>
+                ${this.episode.mediaFiles.length > 0 ?
+                    html`<i class="material-icons">play_circle_outline</i>` :
+                    html`${this.episode.torrentFiles.length > 0 ?
+                        html`<i class="material-icons">cloud_download</i>` :
+                        html`<i class="material-icons">cancel</i>`}`}
                 ${this.episode.poster ?
                     html`<img src="${this.episode.poster}" alt="${this.episode.title}" />` :
                     html`<div class="img-missing"><span>${this.episode.title}</span></div>`}
             </div>
         </div>
         ${this.isShowPlayOptions ?
-            html`<br>${this.episode.mediaFiles.map(f => EpisodeCard.fileOptions(f))}` : ""}`;
+            html`<br>${this.episode.mediaFiles.map(f => EpisodeCard.fileOptions(f))}` : ""}
+
+        ${this.isShowDownloadOptions ?
+            html`<br>${this.episode.torrentFiles.map(f => EpisodeCard.torrentFileOptions(f))}` : ""}`;
     }
 }

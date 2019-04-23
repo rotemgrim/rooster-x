@@ -23,7 +23,7 @@ export class Episode extends AbsMetaData {
     @OneToMany(() => MediaFile, mediaFile => mediaFile.episode, {eager: true})
     public mediaFiles: MediaFile[];
 
-    @OneToMany(() => TorrentFile, torrentFile => torrentFile.metaData, {eager: true})
+    @OneToMany(() => TorrentFile, torrentFile => torrentFile.episode, {eager: true})
     public torrentFiles: TorrentFile[];
 
     @ManyToOne(() => MetaData, metaData => metaData.episodes, {cascade: true, lazy: true})

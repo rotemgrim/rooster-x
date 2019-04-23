@@ -4,7 +4,7 @@ import {MediaFile} from "../../entity/MediaFile";
 import {RoosterX} from "./RoosterX";
 
 @customElement("media-file-card")
-export class EpisodeCard extends LitElement {
+export class MediaFileCard extends LitElement {
 
     @property() public mediaFile: MediaFile;
 

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import {Entity, PrimaryGeneratedColumn, Column} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, Index} from "typeorm";
 
 @Entity("AbsMetaData")
 export abstract class AbsMetaData {
@@ -7,10 +7,12 @@ export abstract class AbsMetaData {
     @PrimaryGeneratedColumn()
     public id: number;
 
+    @Index()
     @Column({type: "varchar", length: 255, collation: "NOCASE"})
     public title: string;
 
     /** id of the movie on imdb */
+    @Index({unique: true})
     @Column({type: "varchar", length: 40, nullable: true})
     public imdbId?: string;
 

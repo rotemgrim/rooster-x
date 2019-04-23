@@ -7,7 +7,8 @@ var core = require('../core');
  * In case of two groups - 1st is raw, 2nd is clean.
  */
 var patterns = {
-  season: /([Ss]?([0-9]{1,2}))[Eex]/,
+  // season: /([Ss]?([0-9]{1,2}))[Eex]/,
+  season: /([Ss]?([0-9]{1,2}))[\-\s]?[Eex]|([Ss]?([0-9]{1,2}))\s\-\s[Eex]/,
   episode: /([Eex]([0-9]{1,2})(?:[^0-9]|$))/,
   year: /([\[\(]?((?:19[0-9]|20[01])[0-9])[\]\)]?)/,
   resolution: /(([0-9]{3,4}p))[^M]/,
@@ -16,15 +17,15 @@ var patterns = {
   audio: /MP3|DD5\.?1|Dual[\- \.\_]Audio|LiNE|DTS|AAC(?:\.?2\.0)?|AC3(?:\.5\.1)?/,
   group: /(- ?([^-]+(?:-={[^-]+-?$)?))$/,
   region: /R[0-9]/,
-  extended: /EXTENDED/,
+  extended: /EXTENDED/i,
   hardcoded: /HC/,
-  proper: /PROPER/,
-  repack: /REPACK/,
-  container: /MKV|AVI/,
+  proper: /PROPER/i,
+  repack: /REPACK/i,
+  container: /MKV|AVI/i,
   widescreen: /WS/,
   website: /^(\[ ?([^\]]+?) ?\])/,
   language: /rus\.eng/,
-  garbage: /1400Mb|3rd Nov| ((Rip))/
+  garbage: /1400Mb|3rd Nov| ((Rip))/i
 };
 var types = {
   season: 'integer',

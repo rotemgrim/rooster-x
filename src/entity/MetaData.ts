@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import {Entity, PrimaryGeneratedColumn, Column, OneToMany} from "typeorm";
+import {Entity, PrimaryGeneratedColumn, Column, OneToMany, Index} from "typeorm";
 import {MediaFile} from "./MediaFile";
 import {Episode} from "./Episode";
 import {AbsMetaData} from "./AbsMetaData";
@@ -8,8 +8,9 @@ import {TorrentFile} from "./TorrentFile";
 @Entity("MetaData")
 export class MetaData extends AbsMetaData {
 
+    @Index()
     @Column({type: "varchar", length: 40})
-    public type: "movie" | "series" | string;
+    public type: "movie" | "series" | "episode";
 
     /** title of the movie */
     @Column({type: "varchar", length: 255, nullable: true})

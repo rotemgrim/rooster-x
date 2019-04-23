@@ -27,10 +27,10 @@ export class TorrentsRepository {
     public async reprocessTorrents() {
         const links = await this.processTorrentzProvider();
         const metaRepo = this.connection.manager.getRepository(MetaData);
-        const episodeRepo = this.connection.manager.getRepository(Episode);
         const torrentRepo = this.connection.manager.getRepository(TorrentFile);
 
-        console.log(links);
+        let done = 0;
+        console.log("from " + links.length + " links");
         for (const link of links) {
             const mEntry: IMediaEntry = ptn(link.title);
             if (Object.keys(mEntry).length >= 4) {
@@ -77,35 +77,41 @@ export class TorrentsRepository {
                     } else {
                         movie = new MetaData();
                         movie.title = mEntry.title;
-                        movie.type = "series";
+                        movie.type = "movie";
                         tf.metaData = movie;
                     }
                 }
 
-                if (tf && tf.metaData && tf.metaData.status === "not-scanned") {
-                    await IMDBController.getMetaDataFromInternetByMediaFile(tf)
-                        .then(async (res) => {
-                            const tFile = res;
-                            tFile.metaData.status = "omdb";
-                            torrentRepo.save(tFile);
-                        }).catch(async () => {
-                            tf.metaData.status = "failed";
-                            torrentRepo.save(tf);
-                        });
-                } else {
-                    torrentRepo.save(tf);
+                try {
+                    if (tf && tf.metaData && tf.metaData.status === "not-scanned") {
+                        await IMDBController.getMetaDataFromInternetByMediaFile(tf)
+                            .then(async (res) => {
+                                const tFile = res;
+                                tFile.metaData.status = "omdb";
+                                await torrentRepo.save(tFile);
+                                done++;
+                            }).catch(async () => {
+                                tf.metaData.status = "failed";
+                                await torrentRepo.save(tf);
+                            });
+                    } else {
+                        await torrentRepo.save(tf);
+                    }
+                } catch (e) {
+                    console.error("could not save to db", e);
                 }
             }
         }
+        console.log("done " + done + " links");
     }
 
     private async processTorrentzProvider() {
         let links: TorrentLinks = [];
         links = links.concat(await this.torrentzProviderGetPage(0));
-        // links = links.concat(await this.torrentzProviderGetPage(1));
-        // links = links.concat(await this.torrentzProviderGetPage(2));
-        // links = links.concat(await this.torrentzProviderGetPage(3));
-        // links = links.concat(await this.torrentzProviderGetPage(4));
+        links = links.concat(await this.torrentzProviderGetPage(1));
+        links = links.concat(await this.torrentzProviderGetPage(2));
+        links = links.concat(await this.torrentzProviderGetPage(3));
+        links = links.concat(await this.torrentzProviderGetPage(4));
         console.log(links.length);
         return links;
     }
@@ -128,8 +134,9 @@ export class TorrentsRepository {
                                 if (timeEl && timeEl.attributes.hasOwnProperty("title")) {
                                     timestamp = parseInt(timeEl.attributes.title, 10);
                                 }
-
-                                links.push({title: anchorEl.innerHTML, magnet, timestamp});
+                                if (anchorEl.innerHTML.match(/^[a-zA-Z0-9 \.\!\?\[\]\-]*$/i)) {
+                                    links.push({title: anchorEl.innerHTML, magnet, timestamp});
+                                }
                             }
                         });
                     }

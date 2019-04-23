@@ -30,11 +30,20 @@ core.on('part', function (part) {
 });
 
 core.on('common', function () {
-  var raw = end ? torrent.name.substr(start, end - start).split('(')[0] : torrent.name;
-  var clean = raw;
+  const raw = end ? torrent.name.substr(start, end - start).split('(')[0] : torrent.name;
+  let clean = raw;
 
   // clean up title
-  clean = raw.replace(/^ -/, '');
+  // removes [asdfadsf] from start of title
+  clean = clean.replace(/^\[.*?][\s|-]?/, '').trim();
+
+  // removes www.asdf.sdf from start of title
+  clean = clean.replace(/^www\..*\.([^\s|-|_]+)/i, '').trim();
+
+  clean = clean.replace(/^ -/, '');
+  clean = clean.replace(/^-\s/, '');
+  clean = clean.replace(/^-/, '');
+  clean = clean.replace(/\s?-$/, '');
 
   if(clean.indexOf(' ') === -1 && clean.indexOf('.') !== -1) {
     clean = clean.replace(/\./g, ' ');

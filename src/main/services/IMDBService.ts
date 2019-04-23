@@ -17,6 +17,7 @@ export default class IMDBService {
         console.log("get query", opt);
         let url = `http://www.omdbapi.com/?apikey=${IMDBService.apiKey}`;
         if (opt.title) {url += `&t=${opt.title}`; }
+        if (opt.type) {url += `&type=${opt.type}`; }// movie, series, episode
         if (opt.year) {url += `&year=${opt.year}`; }
         if (opt.episode) {url += `&Episode=${opt.episode}`; }
         if (opt.season) {url += `&Season=${opt.season}`; }
@@ -34,7 +35,7 @@ export default class IMDBService {
                 "User-Agent": userAgent,
             };
             const config = {
-                url,
+                url: encodeURI(url),
                 method,
                 headers,
                 data: payload,
@@ -74,6 +75,7 @@ export interface IGetOptions {
     season?: number;
     episode?: number;
     plot?: "full" | "short";
+    type?: "movie" | "series" | "episode";
 }
 
 export interface IOmdbEntity {
@@ -99,6 +101,6 @@ export interface IOmdbEntity {
     imdbVotes: string;
     imdbID: string;
     seriesID: string;
-    Type: string;
+    Type: "movie" | "series" | "episode" | "N/A";
     Response: string;
 }

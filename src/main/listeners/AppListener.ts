@@ -80,6 +80,9 @@ export default class AppListener {
             // FilesListener.init();
             console.log("app is ready!");
 
+            // Container.get(TorrentsRepository).reprocessTorrents()
+            //     .then(console.log).catch(console.error);
+
             // const test = await Container.get(MediaRepository).query({
             //     entity: "Episode",
             //     query: {
