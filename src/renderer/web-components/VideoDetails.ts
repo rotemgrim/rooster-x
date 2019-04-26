@@ -162,12 +162,6 @@ export class VideoDetails extends LitElement {
         }
     }
 
-    public downloadTorrent(e: CustomEvent) {
-        if (e && e.detail) {
-            console.log("download", e.detail);
-        }
-    }
-
     public openImdbLink() {
         IpcService.openExternal(`https://www.imdb.com/title/${this.video.imdbId}/`);
     }
@@ -242,7 +236,6 @@ export class VideoDetails extends LitElement {
                     html`<div class="media-files">
                         ${this.video.torrentFiles.map(mf => {
                             return html`<torrent-file-card
-                                @downLoadTorrent=${this.downloadTorrent}
                                 .torrentFile=${mf}>
                             </torrent-file-card>`;
                         })}

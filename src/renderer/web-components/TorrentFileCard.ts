@@ -2,6 +2,7 @@
 import {LitElement, html, customElement, property} from "lit-element";
 import {TorrentFile} from "../../entity/TorrentFile";
 import {RoosterX} from "./RoosterX";
+import {IpcService} from "../services/ipc.service";
 
 @customElement("torrent-file-card")
 export class TorrentFileCard extends LitElement {
@@ -17,7 +18,7 @@ export class TorrentFileCard extends LitElement {
     }
 
     public downLoadTorrent() {
-        this.dispatchEvent(new CustomEvent("downLoadTorrent", {detail: this.torrentFile}));
+        IpcService.openExternal(`magnet:?xt=urn:btih:${this.torrentFile.magnet}&dn=${this.torrentFile.title}`);
     }
 
     public static fileOptions(file: TorrentFile) {
