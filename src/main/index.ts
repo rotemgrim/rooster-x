@@ -16,6 +16,8 @@ import {useContainer} from "typeorm";
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("ignore-certificate-errors");
+app.commandLine.appendSwitch("high-dpi-support", "true");
+app.commandLine.appendSwitch("force-device-scale-factor", "1");
 // app.commandLine.appendSwitch('enable-transparent-visuals');
 
 (async () => {

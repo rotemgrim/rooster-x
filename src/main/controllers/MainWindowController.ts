@@ -6,27 +6,6 @@ import __static from "../../common/static";
 import __basedir from "../../basepath";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
-const loadView = ({title, scriptUrl}) => {
-    return (`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>This is a boilerplate</title>
-        <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
-        <script>if (window.module) module = window.module;</script>
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-        <script src="${scriptUrl}" type="text/javascript"></script>
-      </head>
-      <body>
-        <rooster-x></rooster-x>
-        <script src="build/renderer.js" type="text/javascript"></script>
-        <script src="../../../../../../build/renderer.js" type="text/javascript"></script>
-      </body>
-    </html>
-  `);
-};
-
 export default class MainWindowController extends AbstractWindowController {
 
     public windowName: string = "Main";
@@ -65,9 +44,8 @@ export default class MainWindowController extends AbstractWindowController {
         this.win.setMenu(null);
         this.registerEvents();
 
-        this.win.webContents.openDevTools();
-
         if (isDevelopment) {
+            this.win.webContents.openDevTools();
             console.log("dir", path.join(__dirname, "../../../build/index.html"));
             this.win.loadFile("build/index.html");
         } else {
