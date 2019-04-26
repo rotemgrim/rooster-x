@@ -171,6 +171,25 @@ export class VideoDetails extends LitElement {
             `https://www.youtube.com/results?search_query=${this.video.title}+trailer+${this.video.year}`);
     }
 
+    public torrentSearch() {
+        let sLink = "https://1337x.to/sort-category-search/";
+        const title = this.video.title.replace(" ", "+");
+        if (this.video.type === "series") {
+            // get latest episode
+            const eps = _.filter(this._episodes, (o => o.mediaFiles.length > 0));
+            const episodeMax = _.maxBy(eps, ["season", "episode"]);
+            let se = "";
+            if (episodeMax && episodeMax.season && episodeMax.episode) {
+                se = "+S" + episodeMax.season.toString().padStart(2, "0") +
+                    "E" + (episodeMax.episode + 1).toString().padStart(2, "0");
+            }
+            sLink += `${title}${se}/TV/seeders/desc/1/`;
+        } else { // movie
+            sLink += `${title}/Movies/seeders/desc/1/`;
+        }
+        IpcService.openExternal(sLink);
+    }
+
     private static getSep() {
         return html`<span class="separator">|</span>`;
     }
@@ -200,6 +219,7 @@ export class VideoDetails extends LitElement {
                 ${this.video.imdbId ?
                     html`<div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
                 <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
+                <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
             </div>
             <div class="main-details">
                 <h1>${this.video.name}</h1>

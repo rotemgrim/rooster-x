@@ -98,29 +98,35 @@ video-details {
       //Instead of the line below you could use @include border-radius($radius, $vertical-radius)
       border-radius: 10px;
       text-align: center;
-      margin: 10px 0.4em 10px 0.4em;
+      width: 252px;
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 20px 10px 20px;
       cursor: pointer;
       &:hover {
         background: #e8b708;
       }
     }
     .trailer {
-      font-family: $titleFontFamily;
+      @extend .imdb;
       font-size: 4em;
       color: #e6e6e6;
       background: #d80a0a;
-      //Instead of the line below you could use @include border-radius($radius, $vertical-radius)
-      border-radius: 10px;
-      text-align: center;
-      width: 252px;
-      margin: 10px 0.4em 10px 0.4em;
-      cursor: pointer;
-      height: 74px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+
       &:hover {
         color: #ffffff;
+        background: #d80a0a;
+      }
+    }
+    .torrent-search {
+      @extend .trailer;
+      background: greenyellow;
+      color: #0D0D0D;
+      &:hover {
+        color: #000000;
+        background: greenyellow;
       }
     }
   }
