@@ -170,6 +170,11 @@ export class VideoDetails extends LitElement {
         IpcService.openExternal(`https://www.imdb.com/title/${this.video.imdbId}/`);
     }
 
+    public trailerSearch() {
+        IpcService.openExternal(
+            `https://www.youtube.com/results?search_query=${this.video.title}+trailer+${this.video.year}`);
+    }
+
     public render() {
         return html`<did-watched .rooster=${this.rooster} .videoDetails=${this}
                 .didYouWatched=${this.didYouWatched}></did-watched>
@@ -194,7 +199,7 @@ export class VideoDetails extends LitElement {
                 </div>
                 ${this.video.imdbId ?
                     html`<div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
-                <div class="trailer">Trailer</div>
+                <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
             </div>
             <div class="main-details">
                 <h1>${this.video.name}</h1>
