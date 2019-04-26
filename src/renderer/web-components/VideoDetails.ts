@@ -11,6 +11,7 @@ import {IEpisodeExtended, IMetaDataExtended} from "../../common/models/IMetaData
 import {RoosterX} from "./RoosterX";
 import {Episode} from "../../entity/Episode";
 import {MediaFile} from "../../entity/MediaFile";
+import * as _ from "lodash";
 
 @customElement("video-details")
 export class VideoDetails extends LitElement {
@@ -103,13 +104,14 @@ export class VideoDetails extends LitElement {
 
     set episodes(episodes: Episode[]) {
         const userId = this.rooster.user.id;
-        const newList: IEpisodeExtended[] = [...episodes];
+        let newList: IEpisodeExtended[] = [...episodes];
         for (const e of newList) {
             // check if episode is watched
             if (e.userEpisode.filter(x => x.isWatched && x.userId === userId).length > 0) {
                 e.isWatched = true;
             }
         }
+        newList = _.orderBy(newList, ["season", "episode"], ["desc", "desc"]);
         this._episodes = newList;
         console.log("episodes", this._episodes);
         this.requestUpdate();
