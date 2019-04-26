@@ -13,6 +13,10 @@
   color: white !important;
 }
 
+.close {
+  @extend %close-button;
+}
+
 video-details {
   display: block;
   position: fixed;
@@ -45,7 +49,22 @@ video-details {
     max-width: $posterWidth;
     position: fixed;
     width: $posterWidth;
+    .close {
+      position: relative;
+      font-size: 3em;
+      display: flex;
+      align-items: center;
+      height: 2.5em;
 
+      i {
+        font-size: 1em;
+      }
+
+      &:hover {
+        background: $accentColor;
+        color: black;
+      }
+    }
     .poster {
       width: $posterWidth;
       max-width: $posterWidth;

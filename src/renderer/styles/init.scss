@@ -20,10 +20,6 @@ body {
   @extend %background-gradient;
 }
 
-.close {
-  @extend %close-button;
-}
-
 .videos {
   position: relative;
   height: calc(100vh - #{$topBarHeight});

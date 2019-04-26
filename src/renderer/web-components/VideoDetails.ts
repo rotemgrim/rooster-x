@@ -179,10 +179,10 @@ export class VideoDetails extends LitElement {
         return html`<did-watched .rooster=${this.rooster} .videoDetails=${this}
                 .didYouWatched=${this.didYouWatched}></did-watched>
         <div class="video-details">
-            <div class="close" @click="${this.close}">
-                X
-            </div>
             <div class="aside">
+                <div class="close" @click="${this.close}">
+                    <i class="material-icons">arrow_back</i> BACK
+                </div>
                 <div class="poster ${this.video.isWatched ? "watched" : ""}">
                     <div class="filter"></div>
                     <div class="watch-btn" @click=${this.setWatch}
