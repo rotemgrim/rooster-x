@@ -35,12 +35,20 @@ export class EpisodeCard extends LitElement {
             // show download options
             this.isShowDownloadOptions = !this.isShowDownloadOptions;
         } else {
-            this.dispatchEvent(new CustomEvent("playMedia", {detail: this.episode.mediaFiles[0]}));
+            this.playFile(this.episode.mediaFiles[0]);
         }
     }
 
-    public static fileOptions(file: MediaFile) {
-        return html`<media-file-card .mediaFile=${file}></media-file-card>`;
+    private playFile(mFile: MediaFile) {
+        this.dispatchEvent(new CustomEvent("playMedia", {detail: mFile}));
+    }
+
+    private playMediaEvent(e: CustomEvent) {
+        this.playFile(e.detail);
+    }
+
+    public fileOptions(file: MediaFile) {
+        return html`<media-file-card .mediaFile=${file} @playMedia=${this.playMediaEvent}></media-file-card>`;
     }
 
     public static torrentFileOptions(file: TorrentFile) {
@@ -86,7 +94,7 @@ export class EpisodeCard extends LitElement {
             </div>
         </div>
         ${this.isShowPlayOptions ?
-            html`<br>${this.episode.mediaFiles.map(f => EpisodeCard.fileOptions(f))}` : ""}
+            html`<br>${this.episode.mediaFiles.map(f => this.fileOptions(f))}` : ""}
 
         ${this.isShowDownloadOptions ?
             html`<br>${this.episode.torrentFiles.map(f => EpisodeCard.torrentFileOptions(f))}` : ""}`;

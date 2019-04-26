@@ -35,7 +35,7 @@ export class VideoDetails extends LitElement {
         });
     }
 
-    public static getRuntime(vid: MetaData): string {
+    public static getRuntime(vid: MetaData) {
         let min = vid.runtime; // in minutes
         if (min === 0 || !min) {
             return "";
@@ -53,21 +53,21 @@ export class VideoDetails extends LitElement {
             humanTime += hMin;
         }
         if (humanTime) {
-            humanTime += "|";
+            return html`${humanTime} ${VideoDetails.getSep()}`;
         }
-        return humanTime;
+        return html``;
     }
 
-    public static getYear(vid: MetaData): string {
+    public static getYear(vid: MetaData) {
         if (vid.year) {
-            return vid.year + " |";
+            return html`${vid.year} ${VideoDetails.getSep()}`;
         } else if (vid.released) {
             const tmp = (vid.released.toString()).split("-");
             if (tmp.length > 0) {
-                return tmp[0] + " |";
+                return html`${tmp[0]} ${VideoDetails.getSep()}`;
             }
         }
-        return "";
+        return html``;
     }
 
     public close() {
@@ -171,6 +171,10 @@ export class VideoDetails extends LitElement {
             `https://www.youtube.com/results?search_query=${this.video.title}+trailer+${this.video.year}`);
     }
 
+    private static getSep() {
+        return html`<span class="separator">|</span>`;
+    }
+
     public render() {
         return html`<did-watched .rooster=${this.rooster} .videoDetails=${this}
                 .didYouWatched=${this.didYouWatched}></did-watched>
@@ -201,11 +205,12 @@ export class VideoDetails extends LitElement {
                 <h1>${this.video.name}</h1>
                 <p>${this.video.plot}</p>
                 <div class="small-details">
-                    <br><br>
-                    <p class="geners">${this.video.genres} |
-                     ${VideoDetails.getRuntime(this.video)}
-                     ${VideoDetails.getYear(this.video)}
-                     ${this.video.languages}</p>
+                    <div class="genres">${this.video.genres}</div> ${VideoDetails.getSep()}
+                    <div>
+                        ${VideoDetails.getRuntime(this.video)}
+                        ${VideoDetails.getYear(this.video)}
+                        ${this.video.languages}
+                    </div>
                 </div>
 
                 ${this.video.type === "series" && this._episodes

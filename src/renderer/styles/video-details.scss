@@ -116,10 +116,21 @@ video-details {
     letter-spacing: 1px;
   }
   .small-details {
-    margin-bottom: 4em;
+    margin: 1.8em 0;
     color: #6bec5d;
     font-weight: 900;
-    font-size: 0.8em;
+    font-size: 1.8em;
+
+    & > div {
+      display: inline-block;
+    }
+
+    .genres {
+      color: #f5c518;
+    }
+    .separator {
+      color: antiquewhite;
+    }
   }
   .episodes {
     display: flex;
@@ -168,6 +179,7 @@ episode-card {
 media-file-card {
   width: 100%;
   display: inline-block;
+  position: relative;
 }
 
 .media-file {
