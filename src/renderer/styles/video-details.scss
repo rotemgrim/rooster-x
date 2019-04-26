@@ -98,7 +98,7 @@ video-details {
       //Instead of the line below you could use @include border-radius($radius, $vertical-radius)
       border-radius: 10px;
       text-align: center;
-      margin: 0.2em 0.4em 0.4em 0.4em;
+      margin: 10px 0.4em 10px 0.4em;
       cursor: pointer;
       &:hover {
         background: #e8b708;
@@ -112,9 +112,13 @@ video-details {
       //Instead of the line below you could use @include border-radius($radius, $vertical-radius)
       border-radius: 10px;
       text-align: center;
-      width: 236px;
-      margin: auto;
+      width: 252px;
+      margin: 10px 0.4em 10px 0.4em;
       cursor: pointer;
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       &:hover {
         color: #ffffff;
       }
@@ -195,10 +199,13 @@ episode-card {
   margin-bottom: 1.7em;
 }
 
-media-file-card {
+media-file-card, torrent-file-card {
   width: 100%;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   position: relative;
+  margin-bottom: 1em;
 }
 
 .media-file {
@@ -213,7 +220,7 @@ media-file-card {
   padding: 0.3em;
   cursor: pointer;
   color: white;
-  margin-bottom: 1em;
+  //margin-bottom: 1em;
   i {
     font-size: 3em;
   }
@@ -238,6 +245,26 @@ media-file-card {
       color: black;
     }
   }
+
+  & + .buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4em;
+
+    .open-folder {
+      cursor: pointer;
+      i {
+        font-size: 2em;
+      }
+      &:hover {
+        color: $accentColor;
+        i {
+          color: $accentColor;
+        }
+      }
+    }
+  }
 }
 
 .img-missing {
@@ -259,4 +286,8 @@ media-file-card {
     font-family: "Material Icons";
     font-size: 6em;
   }
+}
+
+.torrent-file {
+  @extend .media-file;
 }

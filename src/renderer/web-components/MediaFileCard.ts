@@ -39,8 +39,9 @@ export class MediaFileCard extends LitElement {
             ${this.mediaFile.audio ? html`<div class="audio">${this.mediaFile.audio}</div>` : ""}
             ${this.mediaFile.quality ? html`<div class="quality">${this.mediaFile.quality}</div>` : ""}
             ${this.mediaFile.raw ? html`<div class="raw">${this.mediaFile.raw}</div>` : ""}
-            <div class="open-folder"
-                @click=${this.showInFolder} style="float: right;">
+        </div>
+        <div class="buttons">
+            <div class="open-folder" @click=${this.showInFolder} >
                 <i class="material-icons">folder</i>
             </div>
         </div>`;

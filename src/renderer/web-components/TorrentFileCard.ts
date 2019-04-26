@@ -26,7 +26,7 @@ export class TorrentFileCard extends LitElement {
     }
 
     public render() {
-        return html`<div @click=${this.downLoadTorrent} class="media-file" title="${this.torrentFile.magnet}">
+        return html`<div @click=${this.downLoadTorrent} class="torrent-file" title="${this.torrentFile.magnet}">
             <i class="material-icons">cloud_download</i>
             ${this.torrentFile.resolution ? html`<div class="resolution">${this.torrentFile.resolution}</div>` : ""}
             ${this.torrentFile.audio ? html`<div class="audio">${this.torrentFile.audio}</div>` : ""}
