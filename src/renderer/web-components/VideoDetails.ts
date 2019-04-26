@@ -166,6 +166,10 @@ export class VideoDetails extends LitElement {
         }
     }
 
+    public openImdbLink() {
+        IpcService.openExternal(`https://www.imdb.com/title/${this.video.imdbId}/`);
+    }
+
     public render() {
         return html`<did-watched .rooster=${this.rooster} .videoDetails=${this}
                 .didYouWatched=${this.didYouWatched}></did-watched>
@@ -188,7 +192,8 @@ export class VideoDetails extends LitElement {
                     <span class="rating">${this.video.rating}</span>
                     <span class="votes">${this.formatNumber(this.video.votes)} <small>/ votes</small></span>
                 </div>
-                <div class="imdb">IMDb</div>
+                ${this.video.imdbId ?
+                    html`<div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
                 <div class="trailer">Trailer</div>
             </div>
             <div class="main-details">
