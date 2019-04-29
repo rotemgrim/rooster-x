@@ -37,6 +37,8 @@ export class RoosterX extends LitElement {
         orderBy: "latestChange",
         showUnwatchedFirst: false,
     };
+    @property() public _sweepStatus: string = "";
+    @property() public _sweepCount: string = "";
 
     public createRenderRoot() {
         return this;
@@ -59,9 +61,21 @@ export class RoosterX extends LitElement {
             }
         });
 
-        ipcRenderer.on("done-media-file", (e, data) => {
-            console.log("done-media-file", data);
+        ipcRenderer.on("sweep-update", (e, data) => {
+            console.log("sweep-update", data);
+            this.sweepStatus = data.status;
+            this.sweepCount = data.count;
         });
+    }
+
+    set sweepStatus(value) {
+        this._sweepStatus = value;
+        this.requestUpdate();
+    }
+
+    set sweepCount(value) {
+        this._sweepCount = value;
+        this.requestUpdate();
     }
 
     set media(data) {
@@ -207,6 +221,9 @@ export class RoosterX extends LitElement {
 
     public render() {
         return html`
+        ${this._sweepStatus ? html`<div class="sweep-status">
+            ${this._sweepStatus} <span>${this._sweepCount}</span>
+        </div>` : ""}
         <top-bar .rooster=${this}></top-bar>
         <div class="side-bar ${this._sideBar ? "open" : ""}">
             <ul>

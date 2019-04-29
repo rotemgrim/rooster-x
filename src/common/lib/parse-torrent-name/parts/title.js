@@ -48,9 +48,7 @@ core.on('common', function () {
   // if(clean.indexOf(' ') === -1 && clean.indexOf('.') !== -1) {
   //   clean = clean.replace(/\./g, ' ');
   // }
-  if(clean.indexOf('.') !== -1) {
-    clean = clean.replace(/\./g, ' ');
-  }
+  clean = clean.replace(/\./g, ' ');
 
   clean = clean.replace(/_/g, ' ');
   clean = clean.replace(/([\(_]|- )$/, '').trim();

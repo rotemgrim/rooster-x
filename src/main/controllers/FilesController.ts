@@ -23,6 +23,9 @@ import MediaController from "./MediaController";
 import {MediaRepository} from "../repositories/MediaRepository";
 import WindowManager from "../services/WindowManager";
 
+const test = ptn("The Archer.2017.HDRip.XViD.AC3-ETRG.avi");
+console.log("test", test);
+
 @Service()
 export default class FilesController {
 
@@ -75,6 +78,8 @@ export default class FilesController {
             console.log("total entries", entries.length);
             if (entries.length === 0) {
                 console.info("no entries found, cancel sweep");
+                WindowManager.getMainWindow()
+                    .send("sweep-update", {status: "", count: 0});
                 resolve();
                 return;
             }
@@ -130,7 +135,9 @@ export default class FilesController {
                     .then(() => {
                         mediaFiles.push(file);
                         console.log(mediaFiles.length);
-                        WindowManager.getMainWindow().send("done-media-file", {count: mediaFiles.length});
+                        WindowManager.getMainWindow()
+                            .send("sweep-update", {status: "Getting data...",
+                                count: mediaFiles.length + " of " + entries.length});
                     }).catch(err => {
                         console.error("could not save file " + file.raw, err);
                     });
@@ -153,6 +160,8 @@ export default class FilesController {
                     .delete().where("id IN (:...ids)", {ids: idsToDelete})
                     .execute();
             }
+            WindowManager.getMainWindow()
+                .send("sweep-update", {status: "", count: 0});
         });
     }
 
@@ -265,10 +274,13 @@ export default class FilesController {
                 stream
                     .on("data", (sEntry: IFSEntry) => {
                         const mEntry: IMediaEntry = ptn(sEntry.name);
-                        if (Object.keys(mEntry).length >= 4 && mEntry.title.length > 3) {
+                        if (Object.keys(mEntry).length >= 5 && mEntry.title.length > 3
+                            && !/^[0-9]{2,3}[\s|-|.|_]/.test(mEntry.title)) {
                             // console.log(mEntry);
                             entries.push({mEntry, sEntry});
                             console.log(entries.length);
+                            WindowManager.getMainWindow()
+                                .send("sweep-update", {status: "Scanning files...", count: entries.length});
                         }
                     })
                     .on("end", () => {

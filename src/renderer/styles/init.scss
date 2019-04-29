@@ -20,6 +20,15 @@ body {
   @extend %background-gradient;
 }
 
+.sweep-status {
+  background: antiquewhite;
+  position: absolute;
+  z-index: 5;
+  bottom: 0;
+  padding: 0.5em 1em;
+  border-radius: 0 0.5em 0 0;
+}
+
 .videos {
   position: relative;
   height: calc(100vh - #{$topBarHeight});
