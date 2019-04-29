@@ -6,7 +6,7 @@ import * as fs from "fs";
 import * as path from "path";
 import {IEntry} from "../../common/models/IEntry";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
-import {Connection, In, Not, Repository} from "typeorm";
+import {Connection, Repository} from "typeorm";
 import {IFSEntry} from "../../common/models/IFSEntry";
 import {getFileMd5} from "../helpers/Utils";
 import {to} from "../../common/commonUtils";
@@ -19,9 +19,9 @@ import AppGlobal from "../helpers/AppGlobal";
 import AppController from "./AppController";
 import {Container, Service} from "typedi";
 import {InjectConnection} from "typeorm-typedi-extensions";
-import {UserMetaData} from "../../entity/UserMetaData";
 import MediaController from "./MediaController";
 import {MediaRepository} from "../repositories/MediaRepository";
+import WindowManager from "../services/WindowManager";
 
 @Service()
 export default class FilesController {
@@ -130,6 +130,7 @@ export default class FilesController {
                     .then(() => {
                         mediaFiles.push(file);
                         console.log(mediaFiles.length);
+                        WindowManager.getMainWindow().send("done-media-file", {count: mediaFiles.length});
                     }).catch(err => {
                         console.error("could not save file " + file.raw, err);
                     });
@@ -222,20 +223,19 @@ export default class FilesController {
             file.wideScreen = e.mEntry.widescreen || false;
             file.downloadedAt = e.sEntry.stat.birthtime;
 
-            if (e.mEntry.episode || e.mEntry.season) {
-                file.metaData = FilesController.getMetaData(seriesArr, e, "series");
+            if (e.mEntry.episode && e.mEntry.season !== undefined) {
+                file.metaData = await this.getMetaData(seriesArr, e, "series");
                 const episode = await Container.get(MediaRepository).getEpisode(file.metaData, e.mEntry);
                 episodesArr.push(episode);
                 file.episode = episode;
             } else {
-                file.metaData = FilesController.getMetaData(moviesArr, e, "movie");
+                file.metaData = await this.getMetaData(moviesArr, e, "movie");
             }
 
-            console.log("file.metaData.status1", file.metaData.status);
             if (!file.metaData.status) {
                 file.metaData.status = await file.metaData.status;
             }
-            console.log("file.metaData.status2", file.metaData.status);
+            // console.log("file.metaData.status2", file.metaData.status);
             if (file && file.metaData && file.metaData.status === "not-scanned") {
                 await IMDBController.getMetaDataFromInternetByMediaFile(file)
                     .then(async (res) => {
@@ -265,7 +265,7 @@ export default class FilesController {
                 stream
                     .on("data", (sEntry: IFSEntry) => {
                         const mEntry: IMediaEntry = ptn(sEntry.name);
-                        if (Object.keys(mEntry).length >= 4) {
+                        if (Object.keys(mEntry).length >= 4 && mEntry.title.length > 3) {
                             // console.log(mEntry);
                             entries.push({mEntry, sEntry});
                             console.log(entries.length);
@@ -305,17 +305,30 @@ export default class FilesController {
         });
     }
 
-    public static getMetaData(metaDataArr: MetaData[], e: IEntry, type: "series" | "movie"): MetaData {
-        const tmpArr = metaDataArr.filter((s) => s.title === e.mEntry.title);
-        if (tmpArr && tmpArr.length > 0) {
-            return tmpArr[0];
-        } else {
-            const metaData = new MetaData();
-            metaData.title = e.mEntry.title;
-            metaData.type = type;
-            metaDataArr.push(metaData);
-            return metaData;
-        }
+    public getMetaData(metaDataArr: MetaData[], e: IEntry, type: "series" | "movie"): Promise<MetaData> {
+        return new Promise(async resolve => {
+            const tmpArr = metaDataArr.filter((s) => s.title === e.mEntry.title);
+            if (tmpArr && tmpArr.length > 0) {
+                resolve(tmpArr[0]);
+            } else {
+
+                const md = await this.metaDataRepo.findOne({where: {
+                    title: e.mEntry.title,
+                    type,
+                }});
+                if (md) {
+                    metaDataArr.push(md);
+                    resolve(md);
+                    return;
+                }
+
+                const metaData = new MetaData();
+                metaData.title = e.mEntry.title;
+                metaData.type = type;
+                metaDataArr.push(metaData);
+                resolve(metaData);
+            }
+        });
     }
 
     private getSEntry(fileFullPath: string): Promise<IFSEntry> {

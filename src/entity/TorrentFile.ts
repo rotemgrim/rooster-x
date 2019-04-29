@@ -10,6 +10,9 @@ export class TorrentFile {
     public id: number;
 
     @Column("text")
+    public raw: string;
+
+    @Column("text")
     public title: string;
 
     @Index({unique: true})

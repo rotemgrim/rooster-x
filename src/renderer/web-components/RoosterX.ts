@@ -14,6 +14,7 @@ import {List} from "linqts";
 import * as _ from "lodash";
 import {MediaFile} from "../../entity/MediaFile";
 import {isStringContains} from "../../main/helpers/Utils";
+import {ipcRenderer} from "electron";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
@@ -56,6 +57,10 @@ export class RoosterX extends LitElement {
                     RoosterX.setFocusToVideos();
                 }
             }
+        });
+
+        ipcRenderer.on("done-media-file", (e, data) => {
+            console.log("done-media-file", data);
         });
     }
 

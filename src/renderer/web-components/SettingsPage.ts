@@ -26,9 +26,7 @@ export class SettingsPage extends LitElement {
     }
 
     private scanNow() {
-        IpcService.scanDir({dir: this.scanDir})
-            .then(res => console.log(res))
-            .catch(console.log);
+        IpcService.scanDir({dir: this.scanDir});
     }
 
     private reprocessGenres() {

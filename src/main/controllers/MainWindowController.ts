@@ -74,6 +74,7 @@ export default class MainWindowController extends AbstractWindowController {
     public init() {
         super.init();
         this.isCreated = true;
+        this.isExist = true;
     }
 
     public onClose(e) {

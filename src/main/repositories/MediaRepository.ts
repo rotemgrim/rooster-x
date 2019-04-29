@@ -12,6 +12,7 @@ import {MediaFile} from "../../entity/MediaFile";
 import {IEntry} from "../../common/models/IEntry";
 import IMDBController from "../controllers/IMDBController";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
+import WindowManager from "../services/WindowManager";
 
 @Service()
 export class MediaRepository {

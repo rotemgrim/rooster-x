@@ -50,6 +50,7 @@ export default class AppListener {
             ipcMain.on("logout-force", () => AppController.logout(true));
 
             ipcMain.on("open-external", (e, url) => shell.openExternal(url));
+            ipcMain.on("scan-dir", (e, payload) => Container.get(FilesController).doFullSweep(payload.dir));
 
             promiseIpc.on("get-config", ConfigController.getConfigPromise);
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);
@@ -64,7 +65,6 @@ export default class AppListener {
             promiseIpc.on("get-meta-data-by-file-id", (payload) =>
                 Container.get(MediaRepository).getMetaDataByFileId(payload));
             promiseIpc.on("db-query", (payload) => Container.get(MediaRepository).query(payload));
-            promiseIpc.on("scan-dir", (payload) => Container.get(FilesController).doFullSweep(payload.dir));
             promiseIpc.on("select-directory-dialog", () => FilesController.selectDbPathFolder());
             promiseIpc.on("create-user", (user) => Container.get(UserRepository).createUser(user));
             promiseIpc.on("get-user", (id) => Container.get(UserRepository).getUser(id));

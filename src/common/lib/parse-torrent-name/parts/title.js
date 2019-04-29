@@ -45,7 +45,10 @@ core.on('common', function () {
   clean = clean.replace(/^-/, '');
   clean = clean.replace(/\s?-$/, '');
 
-  if(clean.indexOf(' ') === -1 && clean.indexOf('.') !== -1) {
+  // if(clean.indexOf(' ') === -1 && clean.indexOf('.') !== -1) {
+  //   clean = clean.replace(/\./g, ' ');
+  // }
+  if(clean.indexOf('.') !== -1) {
     clean = clean.replace(/\./g, ' ');
   }
 

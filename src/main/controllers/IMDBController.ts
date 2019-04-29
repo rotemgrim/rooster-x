@@ -20,7 +20,11 @@ export default class IMDBController {
                     if (data.imdbVotes !== "N/A") {episode.votes = parseInt(data.imdbVotes.replace(/,/g, ""), 10); }
                     if (data.imdbRating !== "N/A") {episode.rating = parseFloat(data.imdbRating); }
                     resolve(episode);
-                }).catch(reject);
+                }).catch(e => {
+                    console.warn("NOT FOUND Episode: " + episode.metaData.title +
+                        " S" + episode.season + " - E" + episode.episode);
+                    reject(e);
+                });
         });
     }
 
@@ -49,7 +53,10 @@ export default class IMDBController {
                     if (data.Released !== "N/A") {file.metaData.released = data.Released; }
                     // file.metaData.trailer = data.trailer;
                     resolve(file);
-            }).catch(reject);
+            }).catch(e => {
+                console.warn("NOT FOUND: " + file.raw);
+                reject(e);
+            });
         });
     }
 

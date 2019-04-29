@@ -164,10 +164,8 @@ export class IpcService {
         });
     }
 
-    public static scanDir(payload: {dir: string}): Promise<any> {
-        return new Promise((resolve, reject) => {
-            promiseIpc.send("scan-dir", payload).then(resolve).catch(reject);
-        });
+    public static scanDir(payload: {dir: string}) {
+        ipcRenderer.send("scan-dir", payload);
     }
 
     public static openSelectFolderDialog() {

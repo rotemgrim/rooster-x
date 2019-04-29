@@ -43,6 +43,14 @@ export default class WindowManager {
         }
     }
 
+    public static sendToAll(channel, payload) {
+        for (const winController of WindowManager.allWindows) {
+            if (winController.isExist) {
+                winController.send(channel, payload);
+            }
+        }
+    }
+
     public static hideSender(event) {
         const win = BrowserWindow.fromWebContents(event.sender);
         const windowController = WindowManager.getWindowControllerById(win.id);

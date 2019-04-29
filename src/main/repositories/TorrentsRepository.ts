@@ -41,7 +41,8 @@ export class TorrentsRepository {
                 }
 
                 const tf = new TorrentFile();
-                tf.title = link.title;
+                tf.title = mEntry.title;
+                tf.raw = link.title;
                 tf.magnet = link.magnet;
                 tf.uploadedAt = link.timestamp;
                 tf.year = mEntry.year;
