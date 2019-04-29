@@ -79,11 +79,15 @@ export default class IMDBController {
         return new Promise(async (resolve, reject) => {
             if (!episode || !episode.season || !episode.episode) {
                 reject();
+            } else {
+                const metaData = await episode.metaData;
+                IMDBService.setApiKey(AppGlobal.getConfig().omdbApiKey);
+                IMDBService.get({
+                        title: metaData.title,
+                        season: episode.season,
+                        episode: episode.episode,
+                        type: "episode"}).then(resolve).catch(reject);
             }
-            const metaData = await episode.metaData;
-            IMDBService.setApiKey(AppGlobal.getConfig().omdbApiKey);
-            IMDBService.get({title: metaData.title, season: episode.season, episode: episode.episode, type: "episode"})
-                .then(resolve).catch(reject);
         });
     }
 }

@@ -15,7 +15,10 @@ export class SettingsPage extends LitElement {
 
     constructor() {
         super();
-        this.scanDir = "Z:\\Complete\\Fay\\";
+        setTimeout(() => {
+            this.scanDir = this.rooster.config.dbPath || "";
+            this.requestUpdate();
+        });
     }
 
     private close() {
@@ -52,7 +55,7 @@ export class SettingsPage extends LitElement {
                 <div class="section">
                     <h2>Scan Directories under</h2>
                     <input type="text" @input=${(e) => this.scanDir = e.target.value}
-                        value="">
+                        value="${this.scanDir}">
                     <button @click=${this.scanNow}>Scan Now!</button>
                 </div>
                 <div class="section">

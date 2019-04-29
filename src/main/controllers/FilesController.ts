@@ -70,6 +70,7 @@ export default class FilesController {
 
     public doFullSweep(directory: string): Promise<any> {
         return new Promise(async (resolve, reject) => {
+            directory = path.resolve(directory);
             const entries = await FilesController.getAllVideos(directory);
             console.log("total entries", entries.length);
             if (entries.length === 0) {
@@ -138,14 +139,19 @@ export default class FilesController {
                 .catch(console.error);
 
             const idsToDelete: any[] = [];
+            const dirStr = directory.toLowerCase();
             for (const i in allPaths) {
                 if (allPaths.hasOwnProperty(i)) {
-                    idsToDelete.push(allPaths[i].id);
+                    if (path.resolve(i).startsWith(dirStr)) {
+                        idsToDelete.push(allPaths[i].id);
+                    }
                 }
             }
-            await this.filesRepo.createQueryBuilder()
-                .delete().where("id IN (:...ids)", {ids: idsToDelete})
-                .execute();
+            if (idsToDelete.length > 0) {
+                await this.filesRepo.createQueryBuilder()
+                    .delete().where("id IN (:...ids)", {ids: idsToDelete})
+                    .execute();
+            }
         });
     }
 
