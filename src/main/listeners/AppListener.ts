@@ -32,6 +32,7 @@ export default class AppListener {
         app.on("window-all-closed", (e) => AppController.windowAllClosed(e));
         app.on("will-quit", e => AppController.willQuit(e));
         app.on("login", ProxyService.initProxySettings);
+        app.on("second-instance", (event, argv, cwd) => WindowManager.getMainWindow().showCenter());
         app.on("ready", async () => {
 
             // from renderer -> ask to do stuff

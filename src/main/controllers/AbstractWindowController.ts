@@ -70,6 +70,11 @@ abstract class AbstractWindowController {
         this.win.setPosition(x, y);
     }
 
+    public showCenter(): void {
+        this.show();
+        this.jumpToCenter();
+    }
+
     public hide(): void {
         if (this.isVisible && this.win) {
             // this.position = this.win.getPosition();

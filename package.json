@@ -1,6 +1,6 @@
 {
   "name": "rooster-x",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "build/main.js",
   "license": "MIT",
   "author": "Rotem Grimberg <rotemgrim@gmail.com>",

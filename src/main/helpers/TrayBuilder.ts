@@ -46,8 +46,7 @@ export default class TrayBuilder {
         contextMenu = Menu.buildFromTemplate(template);
 
         tray.on("click", () => {
-            WindowManager.getMainWindow().show();
-            WindowManager.getMainWindow().jumpToCenter();
+            WindowManager.getMainWindow().showCenter();
         });
         tray.setContextMenu(contextMenu);
     }
