@@ -13,22 +13,20 @@ export default class AppGlobal {
     }
 
     public static init() {
-        const userDataDir = path.join(app.getPath("appData"), "Rooster-X Sync App");
+        const userDataDir = path.join(app.getPath("appData"), "rooster-x");
         const logsDir = path.join(userDataDir, "logs");
         let workingDir;
         if (is.dev()) {
-            // workingDir = path.join(app.getPath("programfiles(x86)"), "Rooster-X Sync App");
-            workingDir = "C:\\Program Files (x86)\\Rooster-X Sync App";
+            // workingDir = path.join(app.getPath("programfiles(x86)"), "Rooster-X");
+            workingDir = "C:\\Program Files (x86)\\rooster-x";
         } else {
-            // todo: get it from registry -> HKEY_LOCAL_MACHINE\SOFTWARE\Rooster-X Sync App
+            // todo: get it from registry -> HKEY_LOCAL_MACHINE\SOFTWARE\Rooster-X
             // workingDir = process.cwd();
             workingDir = path.dirname(process.argv[0]);
         }
-        const fileSyncAppPath = path.join(workingDir, "RoFileSyncAppLauncher.exe");
         global["appGlobal.userDataPath"] = userDataDir;
         global["appGlobal.logsDir"] = logsDir;
         global["appGlobal.workingDir"] = workingDir;
-        global["appGlobal.fileSyncAppPath"] = fileSyncAppPath;
     }
 
     public static getConfig(): IConfig {

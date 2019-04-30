@@ -1,9 +1,7 @@
-import {app, BrowserWindow, BrowserWindowConstructorOptions} from "electron";
+import {app, BrowserWindow, BrowserWindowConstructorOptions, nativeImage} from "electron";
 import AbstractWindowController from "./AbstractWindowController";
 import * as path from "path";
-import {format as formatUrl} from "url";
-import __static from "../../common/static";
-import __basedir from "../../basepath";
+import {icon} from "../../common/static";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 export default class MainWindowController extends AbstractWindowController {
@@ -15,10 +13,10 @@ export default class MainWindowController extends AbstractWindowController {
         alwaysOnTop: false,
         frame: false,
         height: 800,
-        icon: path.join(__static, "assets/images/icons/icon.ico"),
+        icon: nativeImage.createFromDataURL(icon),
         maximizable: true,
         show: true,
-        skipTaskbar: true,
+        skipTaskbar: false,
         transparent: false,
         width: 1024,
         minWidth: 800,

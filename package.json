@@ -1,8 +1,10 @@
 {
   "name": "rooster-x",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "build/main.js",
   "license": "MIT",
+  "author": "Rotem Grimberg <rotemgrim@gmail.com>",
+  "description": "Movie and series file manager",
   "scripts": {
     "fix": "tslint --fix 'src/**/*.ts'",
     "start": "npm-run-all build run-electron",
@@ -97,9 +99,9 @@
   },
   "build": {
     "appId": "rooster-x",
-    "asar": false,
+    "asar": true,
     "directories": {
-      "buildResources": "assets",
+      "buildResources": "src/renderer/images",
       "output": "dist"
     },
     "files": [

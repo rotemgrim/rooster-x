@@ -10,7 +10,6 @@ import ConfigController from "./controllers/ConfigController";
 import AppListener from "./listeners/AppListener";
 import MakeSingular from "./helpers/MakeSingleInstance";
 import WindowManager from "./services/WindowManager";
-import DBConnection from "./repositories/DBConnection";
 import {Container} from "typedi";
 import {useContainer} from "typeorm";
 

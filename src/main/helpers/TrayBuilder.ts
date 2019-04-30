@@ -1,8 +1,9 @@
-import {Menu, Tray} from "electron";
+import {Menu, Tray, nativeImage} from "electron";
 import AppController from "../controllers/AppController";
 import WindowManager from "../services/WindowManager";
 import MenuItemConstructorOptions = Electron.MenuItemConstructorOptions;
 import MixPanelService from "../services/MixPanelService";
+import {icon} from "../../common/static";
 
 let tray: Tray;
 
@@ -33,7 +34,8 @@ export default class TrayBuilder {
         let contextMenu;
         // tray = new Tray(path.join(__static, "assets/images/icons/online-icon.ico"));
         // tray = new Tray(path.join(__static, "assets/images/icons/shield_256x256_online.ico"));
-        tray = new Tray("assets/icon.ico");
+        tray = new Tray(nativeImage.createFromDataURL(icon));
+        // tray = new Tray("assets/icon.ico");
 
         tray.setToolTip("RoosterX");
         const template: MenuItemConstructorOptions[] =

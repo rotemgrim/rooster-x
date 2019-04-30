@@ -26,7 +26,7 @@ let common_config = {
                 ]
             },
             {
-                test: /\.(jpe?g|png|gif|svg)$/i,
+                test: /\.(jpe?g|png|gif|svg|ico)$/i,
                 loader: 'url-loader',
                 query: {
                     // Inline images smaller than 10kb as data URIs
