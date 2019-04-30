@@ -39,7 +39,7 @@ export default class IMDBService {
                 method,
                 headers,
                 data: payload,
-                timeout: 30000,
+                timeout: 60000,
             };
 
             axios.request(config).then(res => {
@@ -55,14 +55,13 @@ export default class IMDBService {
                     reject();
                 }
             }).catch(e => {
-                console.warn("rest error: " + e.response.status, e.response.data);
+                if (e && e.response && e.response.status && e.response.data) {
+                    console.warn("rest error: " + e.response.status, e.response.data);
+                } else {
+                    console.warn("rest error: " + e);
+                }
                 console.warn("endpoint: " + method + " | " + url);
                 console.warn("payload: ", payload);
-                if (e.response && e.response.data) {
-                    console.warn("rest error: " + e.response.status, e.response.data);
-                    console.warn("endpoint: " + method + " | " + url);
-                    console.warn("payload: ", payload);
-                }
                 reject(e);
             });
         });

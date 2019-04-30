@@ -261,7 +261,7 @@ abstract class AbstractWindowController {
         this.win.webContents.on(event, callback);
     }
 
-    public send(channel: string, obj: any): void {
+    public send(channel: string, obj?: any): void {
         if (this.isExist) {
             // console.info("sending to ", channel);
             this.win.webContents.send(channel, obj);

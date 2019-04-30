@@ -62,9 +62,13 @@ export class RoosterX extends LitElement {
         });
 
         ipcRenderer.on("sweep-update", (e, data) => {
-            console.log("sweep-update", data);
+            // console.log("sweep-update", data);
             this.sweepStatus = data.status;
             this.sweepCount = data.count;
+        });
+
+        ipcRenderer.on("refresh-media", (e, data) => {
+            IpcService.getAllMedia().then(media => this.media = media);
         });
     }
 

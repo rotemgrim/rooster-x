@@ -72,7 +72,7 @@ export default class FilesController {
     }
 
     public doFullSweep(directory: string): Promise<any> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise(async (resolve) => {
             directory = path.resolve(directory);
             const entries = await FilesController.getAllVideos(directory);
             console.log("total entries", entries.length);
@@ -160,8 +160,9 @@ export default class FilesController {
                     .delete().where("id IN (:...ids)", {ids: idsToDelete})
                     .execute();
             }
-            WindowManager.getMainWindow()
-                .send("sweep-update", {status: "", count: 0});
+            WindowManager.getMainWindow().send("sweep-update", {status: "", count: 0});
+            WindowManager.getMainWindow().send("refresh-media");
+            resolve();
         });
     }
 

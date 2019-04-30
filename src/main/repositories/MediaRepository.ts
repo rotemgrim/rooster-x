@@ -26,6 +26,7 @@ export class MediaRepository {
     }
 
     public async getAllMedia() {
+        console.info("getting all media");
         const metaRepo = this.connection.manager.getRepository(MetaData);
         return metaRepo.find();
 
