@@ -40,7 +40,7 @@ export default class AppListener {
             ipcMain.on("quit-app", () => AppController.quit());
             ipcMain.on("maximize-me", (event) => WindowManager.maximizeSender(event));
             ipcMain.on("original-size-me", (event) => WindowManager.originalSizeSender(event));
-            ipcMain.on("set-icon", (e, status) => TrayBuilder.setIcon(status));
+            // ipcMain.on("set-icon", (e, status) => TrayBuilder.setIcon(status));
             ipcMain.on("change-win-height", (e, height) => WindowManager.changeSenderHeight(e, height));
             ipcMain.on("send-to-logger", (e, data) => rendererLogger(data));
             ipcMain.on("open-all-dev-tools", () => WindowManager.openDevTools());
@@ -75,7 +75,7 @@ export default class AppListener {
             AppListener.isListening = true;
             await AppController.bootstrapApp();
             // CommandListener.init();
-            // TrayBuilder.init();
+            TrayBuilder.init();
             await AppController.preOpenWindows();
             // FilesListener.init();
             console.log("app is ready!");

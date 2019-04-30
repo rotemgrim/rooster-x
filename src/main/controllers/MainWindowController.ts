@@ -18,7 +18,7 @@ export default class MainWindowController extends AbstractWindowController {
         icon: path.join(__static, "assets/images/icons/icon.ico"),
         maximizable: true,
         show: true,
-        skipTaskbar: false,
+        skipTaskbar: true,
         transparent: false,
         width: 1024,
         minWidth: 800,
@@ -45,7 +45,7 @@ export default class MainWindowController extends AbstractWindowController {
         this.registerEvents();
 
         if (isDevelopment) {
-            this.win.webContents.openDevTools();
+            // this.win.webContents.openDevTools();
             console.log("dir", path.join(__dirname, "../../../build/index.html"));
             this.win.loadFile("build/index.html");
         } else {

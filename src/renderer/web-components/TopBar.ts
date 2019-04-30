@@ -68,7 +68,7 @@ export class TopBar extends LitElement {
     }
 
     private static close() {
-        IpcService.quitApp();
+        IpcService.hideMe();
     }
 
     private logout() {
