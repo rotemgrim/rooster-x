@@ -9,6 +9,14 @@ export default class FilesListener {
     private static watcher = {} as FilesWatch;
     private static isListening: boolean = false;
 
+    public static startSweepInterval(directory, interval = 3600): void {
+        setInterval(() => {
+            console.info("starting a full sweep from interval");
+            Container.get(FilesController).doFullSweep(directory)
+                .catch(console.error);
+        }, interval * 1000);
+    }
+
     public static init(): void {
         const dir = AppGlobal.getConfig().dbPath;
         if (!FilesListener.isListening) {

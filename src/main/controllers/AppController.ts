@@ -3,6 +3,10 @@ import WindowManager from "../services/WindowManager";
 import {IConfirmationMsg} from "../../common/models/IConfirmationMsg";
 import AppGlobal from "../helpers/AppGlobal";
 import DBConnection from "../repositories/DBConnection";
+import {Container} from "typedi";
+import {User} from "../../entity/User";
+import {getConnection} from "typeorm";
+import FilesListener from "../listeners/FilesListener";
 
 export default class AppController {
 
@@ -37,7 +41,14 @@ export default class AppController {
         return new Promise(async (resolve) => {
             const config = AppGlobal.getConfig();
             if (config.dbPath) {
-                await DBConnection.connect();
+                await DBConnection.connect()
+                    .then(async () => {
+                        const conn = getConnection("reading");
+                        const user = await conn.getRepository(User).findOne(config.userId);
+                        if (user && user.isAdmin) {
+                            FilesListener.startSweepInterval(config.dbPath, 3600);
+                        }
+                    }).catch(e => console.error("could not establish DB connection", e));
             }
             resolve();
         });

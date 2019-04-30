@@ -37,6 +37,7 @@ export default class FilesController {
     private filesRepo: Repository<MediaFile>;
     private metaDataRepo: Repository<MetaData>;
     private episodeRepo: Repository<Episode>;
+    private isSweepStarted: boolean = false;
 
     public static selectDbPathFolder(): Promise<any> {
         return new Promise((resolve, reject) => {
@@ -73,6 +74,14 @@ export default class FilesController {
 
     public doFullSweep(directory: string): Promise<any> {
         return new Promise(async (resolve) => {
+
+            if (this.isSweepStarted) {
+                console.warn("cant start another sweep while sweep is running");
+                resolve();
+                return;
+            }
+
+            this.isSweepStarted = true;
             directory = path.resolve(directory);
             const entries = await FilesController.getAllVideos(directory);
             console.log("total entries", entries.length);
@@ -80,6 +89,7 @@ export default class FilesController {
                 console.info("no entries found, cancel sweep");
                 WindowManager.getMainWindow()
                     .send("sweep-update", {status: "", count: 0});
+                this.isSweepStarted = false;
                 resolve();
                 return;
             }
@@ -162,6 +172,7 @@ export default class FilesController {
             }
             WindowManager.getMainWindow().send("sweep-update", {status: "", count: 0});
             WindowManager.getMainWindow().send("refresh-media");
+            this.isSweepStarted = false;
             resolve();
         });
     }
