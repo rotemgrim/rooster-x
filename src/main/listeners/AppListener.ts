@@ -15,6 +15,7 @@ import {UserRepository} from "../repositories/UserRepository";
 import {GenreRepository} from "../repositories/GenreRepository";
 import FilesListener from "./FilesListener";
 import {TorrentsRepository} from "../repositories/TorrentsRepository";
+import {UserMetaData} from "../../entity/UserMetaData";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 

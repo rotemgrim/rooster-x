@@ -7,6 +7,7 @@ import {Container} from "typedi";
 import {User} from "../../entity/User";
 import {getConnection} from "typeorm";
 import FilesListener from "../listeners/FilesListener";
+import {UserRepository} from "../repositories/UserRepository";
 
 export default class AppController {
 
@@ -47,6 +48,12 @@ export default class AppController {
                         const user = await conn.getRepository(User).findOne(config.userId);
                         if (user && user.isAdmin) {
                             FilesListener.startSweepInterval(config.dbPath, 3600);
+                            UserRepository.startWatchedBackupInterval(10800);
+                        } else {
+                            // refresh view media every hour
+                            setInterval(() => {
+                                WindowManager.getMainWindow().send("refresh-media");
+                            }, 3600 * 1000);
                         }
                     }).catch(e => console.error("could not establish DB connection", e));
             }
