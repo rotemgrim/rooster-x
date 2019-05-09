@@ -11,6 +11,7 @@ export class TopBar extends LitElement {
     @property() public _fullScreen: boolean = false;
     @property() public _searchTerm: string = "";
     @property() public showProfileMenu: boolean = false;
+    @property() public _toggleTorrents: boolean = false;
 
     public createRenderRoot() {
         return this;
@@ -28,6 +29,18 @@ export class TopBar extends LitElement {
 
     private showFilters() {
         this.rooster.openSideBar("filters");
+    }
+
+    private showTorrents() {
+        this._toggleTorrents = true;
+        this.rooster.showTorrents();
+        this.requestUpdate();
+    }
+
+    private showFolders() {
+        this._toggleTorrents = false;
+        this.rooster.showFolders();
+        this.requestUpdate();
     }
 
     private toggleSideBar() {
@@ -61,7 +74,8 @@ export class TopBar extends LitElement {
         const input = document.querySelector(".search input") as HTMLInputElement;
         if (input) {
             input.value = "";
-            this.search();
+            // this.search();
+            this.rooster.refreshMedia();
             RoosterX.setFocusToVideos();
             this.requestUpdate();
         }
@@ -86,6 +100,12 @@ export class TopBar extends LitElement {
         <div class="top-bar">
             <div>
                 <div class="logo" @click="${this.toggleSideBar}"></div>
+                <div class="filter ${this._toggleTorrents ? `` : `active`}" @click="${this.showFolders}">
+                    <i class="material-icons">folder</i>
+                </div>
+                <div class="filter ${this._toggleTorrents ? `active` : ``}" @click="${this.showTorrents}">
+                    <i class="material-icons">cloud_download</i>
+                </div>
                 <div class="filter" @click="${this.showFilters}" style="display: block; color: white;">
                     <i class="material-icons">filter_list</i>
                 </div>

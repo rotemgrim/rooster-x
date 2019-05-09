@@ -84,6 +84,13 @@ export class TorrentsRepository {
                 }
 
                 try {
+                    // todo: figure out why we need to empty this before saving
+                    if (tf.metaData && tf.metaData.userMetaData) {
+                        delete tf.metaData.userMetaData;
+                    }
+                    if (tf.episode && tf.episode.userEpisode) {
+                        delete tf.episode.userEpisode;
+                    }
                     if (tf && tf.metaData && tf.metaData.status === "not-scanned") {
                         await IMDBController.getMetaDataFromInternetByMediaFile(tf)
                             .then(async (res) => {
@@ -99,7 +106,7 @@ export class TorrentsRepository {
                         await torrentRepo.save(tf);
                     }
                 } catch (e) {
-                    console.error("could not save to db", e);
+                    console.error("could not save torrent to db", e);
                 }
             }
         }
@@ -113,6 +120,7 @@ export class TorrentsRepository {
         links = links.concat(await this.torrentzProviderGetPage(2));
         links = links.concat(await this.torrentzProviderGetPage(3));
         links = links.concat(await this.torrentzProviderGetPage(4));
+        links = links.concat(await this.torrentzProviderGetPage(5));
         console.log(links.length);
         return links;
     }

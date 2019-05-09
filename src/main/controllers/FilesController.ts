@@ -138,8 +138,11 @@ export default class FilesController {
                 }
 
                 // todo: figure out why we need to empty this before saving
-                if (file.metaData.userMetaData) {
+                if (file.metaData && file.metaData.userMetaData) {
                     delete file.metaData.userMetaData;
+                }
+                if (file.episode && file.episode.userEpisode) {
+                    delete file.episode.userEpisode;
                 }
                 await this.connection.manager.save(file)
                     .then(() => {

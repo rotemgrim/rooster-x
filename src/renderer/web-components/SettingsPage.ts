@@ -39,7 +39,7 @@ export class SettingsPage extends LitElement {
     private reprocessTorrents() {
         IpcService.reprocessTorrents()
             .then(() => {
-                this.rooster.getAllTorrents();
+                this.rooster.getAllMedia();
             }).catch(console.log);
     }
 

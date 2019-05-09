@@ -224,9 +224,9 @@ abstract class AbstractWindowController {
             }
         }
 
-        if (isDevelopment) {
-            // this.win.webContents.openDevTools();
-        }
+        // if (isDevelopment) {
+        //     this.win.webContents.openDevTools();
+        // }
 
         this.isExist = true;
         this.isVisible = false;

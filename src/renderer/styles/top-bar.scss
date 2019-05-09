@@ -75,10 +75,16 @@
     }
   }
   .filter {
+    display: block;
     user-select: none;
     -webkit-app-region: no-drag;
     margin-left: 2em;
     cursor: pointer;
+    color: white;
+
+    &.active {
+      color: $accentColor;
+    }
 
     i {
       font-size: 3em;

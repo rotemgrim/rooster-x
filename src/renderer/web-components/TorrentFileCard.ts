@@ -18,7 +18,7 @@ export class TorrentFileCard extends LitElement {
     }
 
     public downLoadTorrent() {
-        IpcService.openExternal(`magnet:?xt=urn:btih:${this.torrentFile.magnet}&dn=${this.torrentFile.title}`);
+        IpcService.openExternal(`magnet:?xt=urn:btih:${this.torrentFile.magnet}&dn=${this.torrentFile.raw}`);
     }
 
     public static fileOptions(file: TorrentFile) {
@@ -31,7 +31,7 @@ export class TorrentFileCard extends LitElement {
             ${this.torrentFile.resolution ? html`<div class="resolution">${this.torrentFile.resolution}</div>` : ""}
             ${this.torrentFile.audio ? html`<div class="audio">${this.torrentFile.audio}</div>` : ""}
             ${this.torrentFile.quality ? html`<div class="quality">${this.torrentFile.quality}</div>` : ""}
-            ${this.torrentFile.title ? html`<div class="raw">${this.torrentFile.title}</div>` : ""}
+            ${this.torrentFile.title ? html`<div class="raw">${this.torrentFile.raw}</div>` : ""}
         </div>`;
     }
 }

@@ -18,11 +18,12 @@ export default class IMDBService {
         let url = `http://www.omdbapi.com/?apikey=${IMDBService.apiKey}`;
         if (opt.title) {url += `&t=${opt.title}`; }
         if (opt.type) {url += `&type=${opt.type}`; }// movie, series, episode
-        if (opt.year) {url += `&year=${opt.year}`; }
+        if (opt.year) {url += `&y=${opt.year}`; }
         if (opt.episode) {url += `&Episode=${opt.episode}`; }
         if (opt.season) {url += `&Season=${opt.season}`; }
         if (opt.plot) {url += `&plot=${opt.plot}`; }
         else {url += `&plot=full`; }
+        console.log("omdb url", url);
         return IMDBService.sendQuery("get", url);
     }
 

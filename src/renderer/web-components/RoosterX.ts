@@ -20,6 +20,7 @@ import {ipcRenderer} from "electron";
 export class RoosterX extends LitElement {
 
     @property() public _media: MetaData[] = [];
+    @property() public _torrents: MetaData[] = [];
     @property() public _filteredMedia: IMetaDataExtended[] = [];
     @property() public _sideBar: boolean = false;
     @property() public _panel: string = "";
@@ -39,6 +40,7 @@ export class RoosterX extends LitElement {
     };
     @property() public _sweepStatus: string = "";
     @property() public _sweepCount: string = "";
+    @property() public _showTorrents: boolean = false;
 
     public createRenderRoot() {
         return this;
@@ -85,11 +87,7 @@ export class RoosterX extends LitElement {
     set media(data) {
         console.log(data);
         this._media = data;
-        this._filteredMedia = this.prepareMedia(data);
-        this._filteredMedia = this.filterMedia(this._filteredMedia);
-        this._filteredMedia = this.sortMedia(this._filteredMedia);
-        console.log(this._filteredMedia);
-        this.requestUpdate();
+        this.refreshMedia(data);
     }
 
     set filterConfig(data) {
@@ -100,6 +98,22 @@ export class RoosterX extends LitElement {
     set orderConfig(data) {
         this._orderConfig = data;
         this.media = this._media;
+    }
+
+    public refreshMedia(data?) {
+        if (data) {
+            this._filteredMedia = this.prepareMedia(data);
+        } else {
+            this._filteredMedia = this.prepareMedia(this._media);
+        }
+        if (this._showTorrents) {
+            this._filteredMedia = this.filterTorrents(this._filteredMedia);
+        } else {
+            this._filteredMedia = this.filterMedia(this._filteredMedia);
+        }
+        this._filteredMedia = this.sortMedia(this._filteredMedia);
+        console.log(this._filteredMedia);
+        this.requestUpdate();
     }
 
     private prepareMedia(metaDataList: MetaData[]): IMetaDataExtended[] {
@@ -147,6 +161,28 @@ export class RoosterX extends LitElement {
         return list;
     }
 
+    private filterTorrents(list: IMetaDataExtended[]): IMetaDataExtended[] {
+        // filter media with files
+        list = list.filter((m) => m.mediaFiles.length === 0 && m.torrentFiles.length > 0);
+
+        // filter watched
+        if (this._filterConfig.unwatchedMedia) {
+            list = list.filter((m) => !m.isWatched);
+        }
+
+        // filter media entries that don't have meta data from imdb
+        if (this._filterConfig.noMediaWithoutMetaData) {
+            list = list.filter((m) => m.status !== "failed");
+        }
+
+        // filter media by genres
+        console.log("noMediaWithoutGenres", this._filterConfig.noMediaWithoutGenres);
+        if (this._filterConfig.noMediaWithoutGenres.length > 0) {
+            list = list.filter((m) => isStringContains(m.genres, this._filterConfig.noMediaWithoutGenres));
+        }
+        return list;
+    }
+
     private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
         const linqList = new List<IMetaDataExtended>([...list]);
         console.log("orderBy", this._orderConfig);
@@ -164,8 +200,16 @@ export class RoosterX extends LitElement {
         return mediaArray;
     }
 
-    public getAllTorrents() {
-        IpcService.getAllTorrents().then(media => this.media = media);
+    public showTorrents() {
+        this._showTorrents = true;
+        this.refreshMedia(this._media);
+        RoosterX.setFocusToVideos();
+        this.closeSideBar();
+    }
+
+    public showFolders() {
+        this._showTorrents = false;
+        this.refreshMedia(this._media);
         RoosterX.setFocusToVideos();
         this.closeSideBar();
     }
@@ -231,7 +275,6 @@ export class RoosterX extends LitElement {
         <top-bar .rooster=${this}></top-bar>
         <div class="side-bar ${this._sideBar ? "open" : ""}">
             <ul>
-                <li @click=${this.getAllTorrents}><i class="material-icons">cloud_download</i>Download</li>
                 <li @click=${this.getAllMedia}><i class="material-icons">video_library</i>All Media</li>
                 <li @click=${this.getMovies}><i class="material-icons">movie</i>Movies</li>
                 <li @click=${this.getSeries}><i class="material-icons">live_tv</i>Series</li>
