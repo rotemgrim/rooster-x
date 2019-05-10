@@ -12,6 +12,7 @@ import {RoosterX} from "./RoosterX";
 import {Episode} from "../../entity/Episode";
 import {MediaFile} from "../../entity/MediaFile";
 import * as _ from "lodash";
+import {IOmdbSearchEntity} from "../../main/services/IMDBService";
 
 @customElement("video-details")
 export class VideoDetails extends LitElement {
@@ -20,6 +21,7 @@ export class VideoDetails extends LitElement {
     @property() public video: IMetaDataExtended;
     @property() public card: VideoCard;
     @property() public _episodes: IEpisodeExtended[];
+    @property() public _searchResults: IOmdbSearchEntity[] = [];
 
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
@@ -33,6 +35,11 @@ export class VideoDetails extends LitElement {
         setTimeout(() => {
             this.focus();
         });
+    }
+
+    set searchResults(results) {
+        this._searchResults = results;
+        this.requestUpdate();
     }
 
     public static getRuntime(vid: MetaData) {
@@ -190,6 +197,25 @@ export class VideoDetails extends LitElement {
         IpcService.openExternal(sLink);
     }
 
+    public reSearch() {
+        IpcService.reSearch(this.video.title)
+            .then(res => {
+                this.searchResults = res;
+                console.log(res);
+            })
+            .catch(console.log);
+    }
+
+    private onSelectSearchOption(m: IOmdbSearchEntity) {
+        IpcService.updateMetaDataById(m.imdbID, this.video.id)
+            .then(res => {
+                console.log(res);
+                this.video = Object.assign(this.video, res);
+                this.requestUpdate();
+            })
+            .catch(console.log);
+    }
+
     private static getSep() {
         return html`<span class="separator">|</span>`;
     }
@@ -232,7 +258,6 @@ export class VideoDetails extends LitElement {
                         ${this.video.languages}
                     </div>
                 </div>
-
                 ${this.video.type === "series" && this._episodes
                     && this._episodes.length > 0 ?
                     html`<div class="episodes">
@@ -244,7 +269,6 @@ export class VideoDetails extends LitElement {
                             </episode-card>`;
                         })}
                     </div>` : ""}
-
                 ${this.video.type === "movie" && this.video.mediaFiles
                     && this.video.mediaFiles.length > 0 ?
                     html`<div class="media-files">
@@ -255,7 +279,6 @@ export class VideoDetails extends LitElement {
                             </media-file-card>`;
                         })}
                     </div>` : ""}
-
                 ${this.video.type === "movie" && this.video.torrentFiles
                     && this.video.torrentFiles.length > 0 ?
                     html`<div class="media-files">
@@ -265,11 +288,18 @@ export class VideoDetails extends LitElement {
                             </torrent-file-card>`;
                         })}
                     </div>` : ""}
-
                 <br><br>
                 <p>Actors: <small>${this.video.actors}</small></p>
                 <br><br>
                 <p>Made in ${this.video.country}</p>
+                <br><br>
+                <button @click="${this.reSearch}">Research video in internet database</button>
+                ${this.rooster.user.isAdmin ?
+                this._searchResults.map(m => html`<div @click=${() => this.onSelectSearchOption(m)}
+                        style="margin-bottom: 2em;">
+                    <div class="title">${m.Title} | ${m.Year} | ${m.Type}</div>
+                    <div class="poster"><img src="${m.Poster}" alt="${m.Title}"></div>
+                </div>`) : ""}
             </div>
         </div>`;
     }

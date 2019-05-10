@@ -197,4 +197,18 @@ export class IpcService {
             promiseIpc.send("reprocess-torrents").then(resolve).catch(reject);
         });
     }
+
+    public static reSearch(title: string, year?: number, type?: "movie" | "series" | "episode"): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const payload = {title};
+            promiseIpc.send("re-search-title", payload).then(resolve).catch(reject);
+        });
+    }
+
+    public static updateMetaDataById(imdbId: string, id: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const payload = {imdbId, id};
+            promiseIpc.send("update-meta-data-by-id", payload).then(resolve).catch(reject);
+        });
+    }
 }

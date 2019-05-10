@@ -13,10 +13,10 @@ export default class IMDBService {
         }
     }
 
-    public static get(opt: IGetOptions): Promise<IOmdbEntity> {
+    public static search(opt: IGetOptions): Promise<IOmdbSearchResult> {
         console.log("get query", opt);
         let url = `http://www.omdbapi.com/?apikey=${IMDBService.apiKey}`;
-        if (opt.title) {url += `&t=${opt.title}`; }
+        if (opt.title) {url += `&s=${opt.title}`; }
         if (opt.type) {url += `&type=${opt.type}`; }// movie, series, episode
         if (opt.year) {url += `&y=${opt.year}`; }
         if (opt.episode) {url += `&Episode=${opt.episode}`; }
@@ -27,7 +27,24 @@ export default class IMDBService {
         return IMDBService.sendQuery("get", url);
     }
 
-    public static async sendQuery(method: string, url: string, data: any = {}): Promise<IOmdbEntity> {
+    public static get(opt: IGetOptions): Promise<IOmdbEntity> {
+        console.log("get query", opt);
+        let url = `http://www.omdbapi.com/?apikey=${IMDBService.apiKey}`;
+        if (opt.imdbId) {url += `&i=${opt.imdbId}`; }
+        else if (opt.title) {
+            url += `&t=${opt.title}`;
+            if (opt.type) {url += `&type=${opt.type}`; }// movie, series, episode
+            if (opt.year) {url += `&y=${opt.year}`; }
+        }
+        if (opt.episode) {url += `&Episode=${opt.episode}`; }
+        if (opt.season) {url += `&Season=${opt.season}`; }
+        if (opt.plot) {url += `&plot=${opt.plot}`; }
+        else {url += `&plot=full`; }
+        console.log("omdb url", url);
+        return IMDBService.sendQuery("get", url);
+    }
+
+    public static async sendQuery(method: string, url: string, data: any = {}): Promise<any> {
         return new Promise((resolve, reject) => {
             const payload = Object.assign({}, data);
             const headers: any = {
@@ -70,12 +87,13 @@ export default class IMDBService {
 }
 
 export interface IGetOptions {
-    title: string;
+    title?: string;
     year?: number;
     season?: number;
     episode?: number;
     plot?: "full" | "short";
     type?: "movie" | "series" | "episode";
+    imdbId?: string;
 }
 
 export interface IOmdbEntity {
@@ -102,5 +120,19 @@ export interface IOmdbEntity {
     imdbID: string;
     seriesID: string;
     Type: "movie" | "series" | "episode" | "N/A";
+    Response: string;
+}
+
+export interface IOmdbSearchEntity {
+    Title: string;
+    Year: string;
+    Poster: string;
+    imdbID: string;
+    Type: "movie" | "series" | "episode" | "N/A";
+}
+
+export interface IOmdbSearchResult {
+    Search: IOmdbSearchEntity[];
+    totalResults: number;
     Response: string;
 }

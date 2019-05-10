@@ -75,9 +75,27 @@ export class EpisodeCard extends LitElement {
             .catch(console.log);
     }
 
+    private getTitle() {
+        let title = "";
+        if (this.episode.mediaFiles.length === 0) {
+            if (this.episode.torrentFiles.length === 0) {
+                title = "Missing file";
+            } else if (this.episode.torrentFiles.length === 1) {
+                title = "click to download " + this.episode.torrentFiles[0].raw;
+            } else {
+                title = "click to see " + this.episode.torrentFiles.length + " torrents";
+            }
+        } else if (this.episode.mediaFiles.length === 1) {
+            title = this.episode.mediaFiles[0].raw;
+        } else {
+            title = "Click to see " + this.episode.mediaFiles.length + " files";
+        }
+        return title;
+    }
+
     public render() {
         return html`<div class="episode ${this.episode.isWatched ? `watched` : ``}"
-                title="${this.episode.title}">
+                title="${this.getTitle()}">
             <span class="title">${this.episode.season}.${this.episode.episode} - ${this.episode.title}</span>
             <div class="watch-btn" @click=${this.setWatch}
                     ?checked=${this.episode.isWatched}

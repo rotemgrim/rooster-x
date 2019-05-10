@@ -6,29 +6,28 @@ import {Episode} from "../../entity/Episode";
 import {UserMetaData} from "../../entity/UserMetaData";
 import {User} from "../../entity/User";
 import AppGlobal from "../helpers/AppGlobal";
-import {AbsMetaData} from "../../entity/AbsMetaData";
 import {UserEpisode} from "../../entity/UserEpisode";
 import {MediaFile} from "../../entity/MediaFile";
-import {IEntry} from "../../common/models/IEntry";
 import IMDBController from "../controllers/IMDBController";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
-import WindowManager from "../services/WindowManager";
+import {IOmdbEntity} from "../services/IMDBService";
 
 @Service()
 export class MediaRepository {
 
     private episodeRepo: Repository<Episode>;
+    private metaRepo: Repository<MetaData>;
 
     constructor(
         @InjectConnection("reading") private connection: Connection,
     ) {
         this.episodeRepo = this.connection.getRepository(Episode);
+        this.metaRepo = this.connection.getRepository(MetaData);
     }
 
     public async getAllMedia() {
         console.info("getting all media");
-        const metaRepo = this.connection.manager.getRepository(MetaData);
-        return metaRepo.find();
+        return this.metaRepo.find();
 
         // const userId = AppGlobal.getConfig().userId;
         // const sql = this.connection.manager
@@ -51,34 +50,27 @@ export class MediaRepository {
     }
 
     public async getAllTorrents() {
-        const metaRepo = this.connection.manager.getRepository(MetaData);
-        return metaRepo.find();
+        return this.metaRepo.find();
     }
 
     public getMovies() {
-        const metaRepo = this.connection.manager.getRepository(MetaData);
-        return metaRepo.find({type: "movie"});
+        return this.metaRepo.find({type: "movie"});
     }
 
     public getSeries() {
-        const metaRepo = this.connection.manager.getRepository(MetaData);
-        return metaRepo.find({type: "series"});
+        return this.metaRepo.find({type: "series"});
     }
 
     public getEpisodes(payload: {metaDataId: number}) {
         return new Promise(async (resolve) => {
-            const metaRepo = this.connection.manager.getRepository(MetaData);
-            const metaData = await metaRepo.findOne(payload.metaDataId);
-
-            const episodeRepo = this.connection.manager.getRepository(Episode);
-            const episodes = await episodeRepo.find({where: {metaData}});
+            const metaData = await this.metaRepo.findOne(payload.metaDataId);
+            const episodes = await this.episodeRepo.find({where: {metaData}});
             resolve(episodes);
         });
     }
 
     public getMetaData(payload: {id: number}) {
-        const metaRepo = this.connection.manager.getRepository(MetaData);
-        return metaRepo.findOne(payload.id);
+        return this.metaRepo.findOne(payload.id);
     }
 
     public getMetaDataByFileId(payload: {id: number}): Promise<MetaData|Episode> {
@@ -240,6 +232,35 @@ export class MediaRepository {
                         resolve(episode);
                     })
                     .catch(() => resolve(tmpEpisode));
+            }
+        });
+    }
+
+    public updateMetaDataById(payload: {imdbId: string, id: number}) {
+        return new Promise(async (resolve, reject) => {
+            const metaData: MetaData | undefined = await this.metaRepo.findOne(payload.id);
+            if (metaData) {
+                IMDBController.getMetaDataFromInternetByImdbId(payload.imdbId)
+                    .then(async data => {
+                        IMDBController.IOmdbEntityToMetaData(metaData, data);
+                        await this.metaRepo.save(metaData);
+                        if (metaData.type === "series") {
+                            for (const ep of await metaData.episodes) {
+                                const omdbEntity = await IMDBController.getEpisodeMetaDataFromInternet(ep);
+                                if (omdbEntity) {
+                                    IMDBController.IOmdbEntityToEpisode(ep, omdbEntity);
+                                    await this.episodeRepo.save(ep);
+                                }
+                            }
+                        }
+                        resolve(metaData);
+                    }).catch(e => {
+                        console.error("could not update metaData", e);
+                        reject();
+                    });
+            } else {
+                console.error("could not update metaData", "metaData not found for update");
+                reject();
             }
         });
     }

@@ -48,7 +48,7 @@ export class TopBar extends LitElement {
     }
 
     private search(e?: any) {
-        this.rooster._filteredMedia = [...this.rooster._media];
+        // this.rooster._filteredMedia = [...this.rooster._media];
         if (e && e.target.value) {
             const searchTerm = e.target.value;
             this.rooster._filteredMedia = this.rooster._filteredMedia.filter((v) => {
@@ -66,6 +66,7 @@ export class TopBar extends LitElement {
             });
         } else {
             this._searchTerm = "";
+            this.rooster.refreshMedia();
         }
         this.requestUpdate();
     }

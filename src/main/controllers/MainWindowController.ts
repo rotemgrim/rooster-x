@@ -1,8 +1,8 @@
 import {app, BrowserWindow, BrowserWindowConstructorOptions, nativeImage} from "electron";
 import AbstractWindowController from "./AbstractWindowController";
 import * as path from "path";
+import * as isDev from "electron-is-dev";
 import {icon} from "../../common/static";
-const isDevelopment = process.env.NODE_ENV !== "production";
 
 export default class MainWindowController extends AbstractWindowController {
 
@@ -42,7 +42,7 @@ export default class MainWindowController extends AbstractWindowController {
         this.win.setMenu(null);
         this.registerEvents();
 
-        if (isDevelopment) {
+        if (isDev) {
             this.win.webContents.openDevTools();
             console.log("dir", path.join(__dirname, "../../../build/index.html"));
             this.win.loadFile("build/index.html");
@@ -76,7 +76,7 @@ export default class MainWindowController extends AbstractWindowController {
     }
 
     public onClose(e) {
-        if (isDevelopment || this.forceClose) {
+        if (isDev || this.forceClose) {
         // if (this.forceClose) {
              this.isCreated = false;
              this.isExist = false;

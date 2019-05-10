@@ -16,6 +16,8 @@ import {GenreRepository} from "../repositories/GenreRepository";
 import FilesListener from "./FilesListener";
 import {TorrentsRepository} from "../repositories/TorrentsRepository";
 import {UserMetaData} from "../../entity/UserMetaData";
+import IMDBService from "../services/IMDBService";
+import IMDBController from "../controllers/IMDBController";
 
 const promiseIpc = new MainPromiseIpc({ maxTimeoutMs: 10000 });
 
@@ -73,6 +75,9 @@ export default class AppListener {
             promiseIpc.on("set-watched", (payload) => Container.get(MediaRepository).setWatched(payload));
             promiseIpc.on("reprocess-genres", () => Container.get(GenreRepository).reprocessAllGenres());
             promiseIpc.on("reprocess-torrents", () => Container.get(TorrentsRepository).reprocessTorrents());
+            promiseIpc.on("re-search-title", (payload) => IMDBController.searchMetaDataFromInternet(payload));
+            promiseIpc.on("update-meta-data-by-id", (payload) =>
+                Container.get(MediaRepository).updateMetaDataById(payload));
 
             AppListener.isListening = true;
             await AppController.bootstrapApp();
