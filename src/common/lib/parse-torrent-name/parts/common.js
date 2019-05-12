@@ -18,11 +18,11 @@ var patterns = {
   group: /(- ?([^-]+(?:-={[^-]+-?$)?))$/,
   region: /R[0-9]/,
   extended: /EXTENDED/i,
-  hardcoded: /HC/,
+  hardcoded: /HC|\.hc\.|\shc\s/,
   proper: /PROPER/i,
   repack: /REPACK/i,
   container: /MKV|AVI/i,
-  widescreen: /WS/,
+  widescreen: /WS|\.ws\.|\sws\s/,
   website: /^(\[ ?([^\]]+?) ?\])/,
   language: /rus\.eng/,
   garbage: /1400Mb|3rd Nov| ((Rip))/i

@@ -7,7 +7,6 @@ import {HTMLElement, parse} from "node-html-parser";
 import {TorrentFile} from "../../entity/TorrentFile";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
 import * as ptn from "../../common/lib/parse-torrent-name";
-import {Episode} from "../../entity/Episode";
 import {MediaRepository} from "./MediaRepository";
 import IMDBController from "../controllers/IMDBController";
 
@@ -18,6 +17,18 @@ export class TorrentsRepository {
 
     @InjectConnection("reading")
     private connection: Connection;
+
+    public static startTorrentsWatch(): void {
+        setInterval(() => {
+            const d = new Date();
+            const minutes = d.getMinutes();
+            const hours = d.getHours();
+            if (hours === 18 && minutes >= 15 && minutes < 45) {
+                Container.get(TorrentsRepository).reprocessTorrents()
+                    .catch(console.error);
+            }
+        }, 1800 * 1000);
+    }
 
     public async getAllTorrents() {
         const metaRepo = this.connection.manager.getRepository(MetaData);
@@ -33,7 +44,11 @@ export class TorrentsRepository {
         console.log("from " + links.length + " links");
         for (const link of links) {
             const mEntry: IMediaEntry = ptn(link.title);
+            // console.log("");
+            // console.log(link.title);
+
             if (Object.keys(mEntry).length >= 4) {
+                // console.log(mEntry.title);
                 // check if torrentFile exist
                 const torrent = await torrentRepo.findOne({magnet: link.magnet});
                 if (torrent) {
@@ -143,8 +158,10 @@ export class TorrentsRepository {
                                 if (timeEl && timeEl.attributes.hasOwnProperty("title")) {
                                     timestamp = parseInt(timeEl.attributes.title, 10);
                                 }
-                                if (anchorEl.innerHTML.match(/^[a-zA-Z0-9 \.\!\?\[\]\-]*$/i)) {
+                                if (anchorEl.innerHTML.match(/^[a-zA-Z0-9 \.\!\?\[\]\-\(\)]*$/i)) {
                                     links.push({title: anchorEl.innerHTML, magnet, timestamp});
+                                } else {
+                                    // console.log("not matched", anchorEl.innerHTML);
                                 }
                             }
                         });

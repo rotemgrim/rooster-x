@@ -3,11 +3,11 @@ import WindowManager from "../services/WindowManager";
 import {IConfirmationMsg} from "../../common/models/IConfirmationMsg";
 import AppGlobal from "../helpers/AppGlobal";
 import DBConnection from "../repositories/DBConnection";
-import {Container} from "typedi";
 import {User} from "../../entity/User";
 import {getConnection} from "typeorm";
 import FilesListener from "../listeners/FilesListener";
 import {UserRepository} from "../repositories/UserRepository";
+import {TorrentsRepository} from "../repositories/TorrentsRepository";
 
 export default class AppController {
 
@@ -49,6 +49,7 @@ export default class AppController {
                         if (user && user.isAdmin) {
                             FilesListener.startSweepInterval(config.dbPath, 3600);
                             UserRepository.startWatchedBackupInterval(10800);
+                            TorrentsRepository.startTorrentsWatch();
                         } else {
                             // refresh view media every hour
                             setInterval(() => {
