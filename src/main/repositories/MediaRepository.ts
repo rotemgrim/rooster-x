@@ -10,19 +10,26 @@ import {UserEpisode} from "../../entity/UserEpisode";
 import {MediaFile} from "../../entity/MediaFile";
 import IMDBController from "../controllers/IMDBController";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
-import {IOmdbEntity} from "../services/IMDBService";
+import {Alias} from "../../entity/Alias";
+import {TorrentFile} from "../../entity/TorrentFile";
 
 @Service()
 export class MediaRepository {
 
     private episodeRepo: Repository<Episode>;
     private metaRepo: Repository<MetaData>;
+    private aliasRepo: Repository<Alias>;
+    private filesRepo: Repository<MediaFile>;
+    private torrentFileRepo: Repository<TorrentFile>;
 
     constructor(
         @InjectConnection("reading") private connection: Connection,
     ) {
         this.episodeRepo = this.connection.getRepository(Episode);
         this.metaRepo = this.connection.getRepository(MetaData);
+        this.aliasRepo = this.connection.getRepository(Alias);
+        this.filesRepo = this.connection.getRepository(MediaFile);
+        this.torrentFileRepo = this.connection.getRepository(TorrentFile);
     }
 
     public async getAllMedia() {
@@ -240,27 +247,71 @@ export class MediaRepository {
         return new Promise(async (resolve, reject) => {
             const metaData: MetaData | undefined = await this.metaRepo.findOne(payload.id);
             if (metaData) {
-                IMDBController.getMetaDataFromInternetByImdbId(payload.imdbId)
-                    .then(async data => {
-                        IMDBController.IOmdbEntityToMetaData(metaData, data);
-                        await this.metaRepo.save(metaData);
-                        if (metaData.type === "series") {
-                            for (const ep of await metaData.episodes) {
-                                const omdbEntity = await IMDBController.getEpisodeMetaDataFromInternet(ep);
-                                if (omdbEntity) {
-                                    IMDBController.IOmdbEntityToEpisode(ep, omdbEntity);
-                                    await this.episodeRepo.save(ep);
+                // if already metaData exists then do a replace for the files to that metaData
+                const correctMetaData: MetaData | undefined =
+                    await this.metaRepo.findOne({where: {imdbId: payload.imdbId}});
+                if (correctMetaData) {
+                    // do a replace and delete
+                    for (const file of await metaData.mediaFiles) {
+                        file.metaData = correctMetaData;
+                        await this.filesRepo.save(file);
+                    }
+                    for (const file of await metaData.torrentFiles) {
+                        file.metaData = correctMetaData;
+                        await this.torrentFileRepo.save(file);
+                    }
+                    await this.saveAnAlias(correctMetaData, metaData.title);
+                    await this.metaRepo.delete(metaData);
+                } else {
+                    // get the right metaData from internet and save it in the same place
+                    IMDBController.getMetaDataFromInternetByImdbId(payload.imdbId)
+                        .then(async data => {
+                            const oldTitle = metaData.title;
+                            IMDBController.IOmdbEntityToMetaData(metaData, data);
+                            await this.metaRepo.save(metaData);
+
+                            // if new title is different then add to aliases
+                            await this.saveAnAlias(metaData, oldTitle);
+
+                            if (metaData.type === "series") {
+                                for (const ep of await metaData.episodes) {
+                                    const omdbEntity = await IMDBController.getEpisodeMetaDataFromInternet(ep);
+                                    if (omdbEntity) {
+                                        IMDBController.IOmdbEntityToEpisode(ep, omdbEntity);
+                                        await this.episodeRepo.save(ep);
+                                    }
                                 }
                             }
-                        }
-                        resolve(metaData);
-                    }).catch(e => {
+                            resolve(metaData);
+                        }).catch(e => {
                         console.error("could not update metaData", e);
                         reject();
                     });
+                }
             } else {
                 console.error("could not update metaData", "metaData not found for update");
                 reject();
+            }
+        });
+    }
+
+    private saveAnAlias(metaData: MetaData, oldTitle: string): Promise<any> {
+        return new Promise(async (resolve) => {
+            if (metaData.name.toLowerCase() !== oldTitle) {
+                try {
+                    const alias = new Alias();
+                    alias.alias = oldTitle;
+                    alias.realTitle = metaData.name;
+                    alias.metaData = metaData;
+                    await this.aliasRepo.save(alias);
+                    resolve();
+                } catch (e) {
+                    console.info("could not save alias", e);
+                    // do nothing
+                    resolve();
+                }
+            } else {
+                resolve();
             }
         });
     }

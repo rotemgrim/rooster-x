@@ -22,6 +22,7 @@ import {InjectConnection} from "typeorm-typedi-extensions";
 import MediaController from "./MediaController";
 import {MediaRepository} from "../repositories/MediaRepository";
 import WindowManager from "../services/WindowManager";
+import {Alias} from "../../entity/Alias";
 
 const test = ptn("The Archer.2017.HDRip.XViD.AC3-ETRG.avi");
 console.log("test", test);
@@ -37,6 +38,7 @@ export default class FilesController {
     private filesRepo: Repository<MediaFile>;
     private metaDataRepo: Repository<MetaData>;
     private episodeRepo: Repository<Episode>;
+    private aliasRepo: Repository<Alias>;
     private isSweepStarted: boolean = false;
 
     public static selectDbPathFolder(): Promise<any> {
@@ -70,6 +72,7 @@ export default class FilesController {
         this.filesRepo = this.connection.getRepository(MediaFile);
         this.metaDataRepo = this.connection.getRepository(MetaData);
         this.episodeRepo = this.connection.getRepository(Episode);
+        this.aliasRepo = this.connection.getRepository(Alias);
     }
 
     public doFullSweep(directory: string): Promise<any> {
@@ -339,10 +342,17 @@ export default class FilesController {
                 resolve(tmpArr[0]);
             } else {
 
-                const md = await this.metaDataRepo.findOne({where: {
-                    title: e.mEntry.title,
-                    type,
-                }});
+                let md: MetaData | undefined;
+                const alias = await this.aliasRepo.findOne({where: {alias: e.mEntry.title}});
+                if (alias) {
+                    md = alias.metaData;
+                } else {
+                    md = await this.metaDataRepo.findOne({where: {
+                        title: e.mEntry.title,
+                        type,
+                    }});
+                }
+
                 if (md) {
                     metaDataArr.push(md);
                     resolve(md);

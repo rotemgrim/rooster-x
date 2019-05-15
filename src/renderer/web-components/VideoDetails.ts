@@ -22,6 +22,7 @@ export class VideoDetails extends LitElement {
     @property() public card: VideoCard;
     @property() public _episodes: IEpisodeExtended[];
     @property() public _searchResults: IOmdbSearchEntity[] = [];
+    @property() public searchTitle: string;
 
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
@@ -101,10 +102,12 @@ export class VideoDetails extends LitElement {
             //         episode: "ASC",
             //     },
             //     cache: true,
+            this.searchTitle = this.video.title;
             IpcService.getEpisodes({metaDataId: this.video.id})
                 .then(res => {
                     this.video.episodes = res;
                     this.episodes = res;
+                    this.requestUpdate();
             }).catch(console.log);
         }
     }
@@ -165,7 +168,7 @@ export class VideoDetails extends LitElement {
                             this.requestUpdate();
                         }
                     }).catch(console.log);
-            }, 300000); // this is 5 min
+            }, 3000); // this is 5 min
         }
     }
 
@@ -198,7 +201,7 @@ export class VideoDetails extends LitElement {
     }
 
     public reSearch() {
-        IpcService.reSearch(this.video.title)
+        IpcService.reSearch(this.searchTitle)
             .then(res => {
                 this.searchResults = res;
                 console.log(res);
@@ -293,7 +296,10 @@ export class VideoDetails extends LitElement {
                 <br><br>
                 <p>Made in ${this.video.country}</p>
                 <br><br>
-                <button @click="${this.reSearch}">Research video in internet database</button>
+                <input type="text" @input=${(e) => this.searchTitle = e.target.value} value="${this.video.title}" />
+                <button @click="${this.reSearch}">
+                    Research video in internet database
+                </button>
                 ${this.rooster.user.isAdmin ?
                 this._searchResults.map(m => html`<div @click=${() => this.onSelectSearchOption(m)}
                         style="margin-bottom: 2em;">

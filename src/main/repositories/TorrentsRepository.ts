@@ -9,6 +9,7 @@ import {IMediaEntry} from "../../common/models/IMediaEntry";
 import * as ptn from "../../common/lib/parse-torrent-name";
 import {MediaRepository} from "./MediaRepository";
 import IMDBController from "../controllers/IMDBController";
+import {Alias} from "../../entity/Alias";
 
 type TorrentLinks = Array<{title: string, magnet: string, timestamp: number}>;
 
@@ -39,6 +40,7 @@ export class TorrentsRepository {
         const links = await this.processTorrentzProvider();
         const metaRepo = this.connection.manager.getRepository(MetaData);
         const torrentRepo = this.connection.manager.getRepository(TorrentFile);
+        const aliasRepo = this.connection.manager.getRepository(Alias);
 
         let done = 0;
         console.log("from " + links.length + " links");
@@ -80,10 +82,16 @@ export class TorrentsRepository {
                     if (series) {
                         tf.metaData = series;
                     } else {
-                        series = new MetaData();
-                        series.title = mEntry.title;
-                        series.type = "series";
-                        tf.metaData = series;
+                        const alias = await aliasRepo.findOne({where: {alias: mEntry.title}});
+                        if (alias) {
+                            series = alias.metaData;
+                            tf.metaData = series;
+                        } else {
+                            series = new MetaData();
+                            series.title = mEntry.title;
+                            series.type = "series";
+                            tf.metaData = series;
+                        }
                     }
                     tf.episode = await Container.get(MediaRepository).getEpisode(series, mEntry);
                 } else if (mEntry.year) {
@@ -91,10 +99,15 @@ export class TorrentsRepository {
                     if (movie) {
                         tf.metaData = movie;
                     } else {
-                        movie = new MetaData();
-                        movie.title = mEntry.title;
-                        movie.type = "movie";
-                        tf.metaData = movie;
+                        const alias = await aliasRepo.findOne({where: {alias: mEntry.title}});
+                        if (alias) {
+                            tf.metaData = alias.metaData;
+                        } else {
+                            movie = new MetaData();
+                            movie.title = mEntry.title;
+                            movie.type = "movie";
+                            tf.metaData = movie;
+                        }
                     }
                 }
 
