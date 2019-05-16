@@ -134,6 +134,7 @@ export class FiltersPage extends LitElement {
                                 <!--<li value="3" selected>Item 3</li>-->
                                 <!--<li value="4">Item 4</li>-->
                             <!--</x-multiselect>-->
+                            <br><br>
                         </li>
                         <li>
                             <h3>Show ONLY unwatched media</h3>

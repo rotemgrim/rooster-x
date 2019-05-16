@@ -168,7 +168,7 @@ export class VideoDetails extends LitElement {
                             this.requestUpdate();
                         }
                     }).catch(console.log);
-            }, 3000); // this is 5 min
+            }, 300000); // this is 5 min
         }
     }
 
@@ -198,6 +198,12 @@ export class VideoDetails extends LitElement {
             sLink += `${title}/Movies/seeders/desc/1/`;
         }
         IpcService.openExternal(sLink);
+    }
+
+    private searchKeyPress(e) {
+        if (e.target.value && e.key === "Enter") {
+            this.reSearch();
+        }
     }
 
     public reSearch() {
@@ -295,17 +301,23 @@ export class VideoDetails extends LitElement {
                 <p>Actors: <small>${this.video.actors}</small></p>
                 <br><br>
                 <p>Made in ${this.video.country}</p>
-                <br><br>
-                <input type="text" @input=${(e) => this.searchTitle = e.target.value} value="${this.video.title}" />
-                <button @click="${this.reSearch}">
+                ${this.rooster.user.isAdmin ? html`<br><br>
+                <input type="text" style="font-size: 26px;"
+                    @input=${(e) => this.searchTitle = e.target.value}
+                    @keypress=${this.searchKeyPress}
+                    value="${this.video.title}" />
+                <button @click="${this.reSearch}" style="font-size: 26px;">
                     Research video in internet database
                 </button>
+                <button @click="${this.reSearch}" style="font-size: 26px;">
+                    Delete Video
+                </button>` : ""}
                 ${this.rooster.user.isAdmin ?
-                this._searchResults.map(m => html`<div @click=${() => this.onSelectSearchOption(m)}
+                    this._searchResults.map(m => html`<div @click=${() => this.onSelectSearchOption(m)}
                         style="margin-bottom: 2em;">
-                    <div class="title">${m.Title} | ${m.Year} | ${m.Type}</div>
-                    <div class="poster"><img src="${m.Poster}" alt="${m.Title}"></div>
-                </div>`) : ""}
+                        <div class="title">${m.Title} | ${m.Year} | ${m.Type}</div>
+                        <div class="poster"><img src="${m.Poster}" alt="${m.Title}"></div>
+                    </div>`) : ""}
             </div>
         </div>`;
     }
