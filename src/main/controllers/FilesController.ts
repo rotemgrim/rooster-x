@@ -33,7 +33,7 @@ export default class FilesController {
     public static includedExtensions = ["*.mkv", "*.avi", "3g2", "*.3gp", "*.aaf", "*.asf", "*.avchd", "*.drc", "*.flv",
         "*.m2v", "*.m4p", "*.m4v", "*.mng", "*.mov", "*.mp2", "*.mp4", "*.mpe", "*.mpeg", "*.mpg",
         "*.mpv", "*.mxf", "*.nsv", "*.ogg", "*.ogv", "*.qt", "*.rm", "*.rmvb", "*.roq", "*.svi",
-        "*.vob", "*.webm", "*.wmv"];
+        "*.vob", "*.webm", "*.wmv", "!*sample*"];
 
     private filesRepo: Repository<MediaFile>;
     private metaDataRepo: Repository<MetaData>;
@@ -286,7 +286,7 @@ export default class FilesController {
                 const stream = readdirp({
                     root: directory,
                     fileFilter: FilesController.includedExtensions,
-                    directoryFilter: ["!.git", "!*samples", "!*modules", "!.*", "!subs"],
+                    directoryFilter: ["!.git", "!*samples", "!*sample", "!*modules", "!.*", "!subs"],
                 });
 
                 stream

@@ -15,6 +15,7 @@ import * as _ from "lodash";
 import {MediaFile} from "../../entity/MediaFile";
 import {isStringContains} from "../../main/helpers/Utils";
 import {ipcRenderer} from "electron";
+import {TorrentFile} from "../../entity/TorrentFile";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
@@ -101,16 +102,22 @@ export class RoosterX extends LitElement {
     }
 
     public refreshMedia(data?) {
-        if (data) {
-            this._filteredMedia = this.prepareMedia(data);
-        } else {
-            this._filteredMedia = this.prepareMedia(this._media);
-        }
         if (this._showTorrents) {
+            if (data) {
+                this._filteredMedia = this.prepareMediaTorrents(data);
+            } else {
+                this._filteredMedia = this.prepareMediaTorrents(this._media);
+            }
             this._filteredMedia = this.filterTorrents(this._filteredMedia);
         } else {
+            if (data) {
+                this._filteredMedia = this.prepareMedia(data);
+            } else {
+                this._filteredMedia = this.prepareMedia(this._media);
+            }
             this._filteredMedia = this.filterMedia(this._filteredMedia);
         }
+
         this._filteredMedia = this.sortMedia(this._filteredMedia);
         console.log(this._filteredMedia);
         this.requestUpdate();
@@ -131,6 +138,27 @@ export class RoosterX extends LitElement {
             });
             if (latestMediaFile) {
                 me.latestChange = new Date(latestMediaFile.downloadedAt).getTime();
+            }
+
+        }
+        return newList;
+    }
+
+    private prepareMediaTorrents(metaDataList: MetaData[]): IMetaDataExtended[] {
+        const newList: IMetaDataExtended[] = [...metaDataList];
+        for (const me of newList) {
+
+            // check if media is watched
+            if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
+                me.isWatched = true;
+            }
+
+            // get latest max date downloaded / changed
+            const latestMediaFile: TorrentFile | undefined = _.maxBy(me.torrentFiles, (o) => {
+                return o.uploadedAt;
+            });
+            if (latestMediaFile) {
+                me.latestChange = latestMediaFile.uploadedAt;
             }
 
         }
@@ -186,7 +214,10 @@ export class RoosterX extends LitElement {
     private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
         const linqList = new List<IMetaDataExtended>([...list]);
         console.log("orderBy", this._orderConfig);
-        if (this._orderConfig.directionDescending) {
+        // static order for torrents
+        if (this._showTorrents) {
+            linqList.OrderByDescending((x: IMetaDataExtended): any => x.id);
+        } else if (this._orderConfig.directionDescending) {
             linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
         } else {
             linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
