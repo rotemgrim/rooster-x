@@ -1,4 +1,5 @@
 @import "vars";
+@import "animsta";
 
 //@extend-elements
 //original selectors
@@ -27,8 +28,8 @@ video-details {
   height: 100%;
   //Instead of the line below you could use @include box-sizing($bs)
   box-sizing: border-box;
-  overflow: auto;
-  padding: 5em;
+  overflow: hidden;
+  padding: $topBarHeight 0 0 $topBarHeight;
   outline: none;
 }
 
@@ -41,10 +42,14 @@ video-details {
   font-family: $bodyFontFamily;
   display: flex;
   align-items: start;
+  padding-right: $topBarHeight;
+  box-sizing: border-box;
+  overflow: auto;
+  left: 0;
 
   .aside {
     float: left;
-    margin-right: 5em;
+    margin-right: $topBarHeight;
     height: 100%;
     max-width: $posterWidth;
     position: fixed;
@@ -132,7 +137,7 @@ video-details {
   }
   .main-details {
     float: left;
-    padding-left: calc(300px + 5em);
+    padding-left: calc(300px + #{$topBarHeight});
     padding-bottom: 15em;
   }
   h1 {
@@ -162,20 +167,42 @@ video-details {
     }
   }
   .episodes {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
+    //display: flex;
+    //justify-content: space-between;
+    //flex-wrap: wrap;
+    clear: both;
+    overflow: hidden;
   }
   .episode {
     width: $posterWidth;
     position: relative;
+    overflow: hidden;
     .title {
       display: inline-block;
       white-space: nowrap;
       text-overflow: ellipsis;
       width: calc(100% - 1em);
-      overflow: hidden;
       text-align: left;
+      position: relative;
+      z-index: 1;
+
+      &[alt]:hover:before {
+        content: attr(alt);
+        position: absolute;
+        top: 14px;
+        left: 0;
+        width: 300px;
+        display: block;
+        height: 165px;
+        white-space: normal;
+        background: #000000cc;
+        z-index: -1;
+        padding: 0.5em;
+        box-sizing: border-box;
+        font-size: 14px;
+        overflow: auto;
+        @extend .slide-in-bottom;
+      }
     }
     .image {
       height: 165px;
@@ -187,8 +214,10 @@ video-details {
       i {
         position: absolute;
         font-size: 7em;
-        opacity: 0.5;
+        opacity: 0;
         z-index: 1;
+        width: 100%;
+        text-align: center;
       }
       &:hover i {
         opacity: 1;
@@ -203,6 +232,8 @@ video-details {
 
 episode-card {
   margin-bottom: 1.7em;
+  float: left;
+  margin-right: 2.7vw;
 }
 
 media-file-card, torrent-file-card {
@@ -288,9 +319,22 @@ media-file-card, torrent-file-card {
     text-align: center;
   }
   &:after {
-    content: "missed_video_call";
+    //content: "missed_video_call";
+    content: "theaters";
+    height: 1.5em;
+
     font-family: "Material Icons";
     font-size: 6em;
+  }
+}
+
+.episode {
+  .img-missing:after {
+    content: " ";
+  }
+  .plot {
+    font-size: 11px;
+    display: none;
   }
 }
 

@@ -5,6 +5,7 @@
   ],
   "jsRules": {},
   "rules": {
+    "no-bitwise": false,
     "arrow-parens": ["error", "as-needed"],
     "member-ordering": [true, {
       "order": [

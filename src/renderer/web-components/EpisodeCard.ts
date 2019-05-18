@@ -93,14 +93,23 @@ export class EpisodeCard extends LitElement {
         return title;
     }
 
+    private getPlotTitle() {
+        let title = " N/A ";
+        if (this.episode.plot) {
+            title = this.episode.plot;
+        }
+        return title;
+    }
+
     public render() {
-        return html`<div class="episode ${this.episode.isWatched ? `watched` : ``}"
-                title="${this.getTitle()}">
-            <span class="title">${this.episode.season}.${this.episode.episode} - ${this.episode.title}</span>
+        return html`<div class="episode ${this.episode.isWatched ? `watched` : ``}">
+            <span class="title" alt="${this.getPlotTitle()}">
+                ${this.episode.season}.${this.episode.episode} - ${this.episode.title}
+            </span>
             <div class="watch-btn" @click=${this.setWatch}
                     ?checked=${this.episode.isWatched}
                     title="${this.episode.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
-            <div class="image" @click=${this.playEpisode}>
+            <div class="image" @click=${this.playEpisode} title="${this.getTitle()}">
                 ${this.episode.mediaFiles.length > 0 ?
                     html`<i class="material-icons">play_circle_outline</i>` :
                     html`${this.episode.torrentFiles.length > 0 ?
@@ -110,6 +119,7 @@ export class EpisodeCard extends LitElement {
                     html`<img src="${this.episode.poster}" alt="${this.episode.title}" />` :
                     html`<div class="img-missing"><span>${this.episode.title}</span></div>`}
             </div>
+            <span class="plot">${this.episode.plot}</span>
         </div>
         ${this.isShowPlayOptions ?
             html`<br>${this.episode.mediaFiles.map(f => this.fileOptions(f))}` : ""}

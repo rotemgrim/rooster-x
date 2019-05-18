@@ -59,6 +59,16 @@ export class UserLogin extends LitElement {
             .catch(console.log);
     }
 
+    private strToHslColor(str: string, saturation: number = 86, lightness: number = 32) {
+        return "";
+        // let hash = 0;
+        // for (let i = 0; i < str.length; i++) {
+        //     hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        // }
+        // const h = hash % 360;
+        // return `hsl(${h}, ${saturation}%, ${lightness}%)`;
+    }
+
     public createAdmin() {
         const user = new User();
         user.firstName = this.firstName;
@@ -92,15 +102,19 @@ export class UserLogin extends LitElement {
         } else if (this._users && this._users.length > 0) {
             title = "User Login";
             form = html`${this._users.map((u) =>
-                html`<button @click=${() => this.login(u)}>${u.firstName}</button><br>`)}`;
+                html`<button class="user-btn" @click=${() => this.login(u)}
+                        style="background-color: ${this.strToHslColor(u.firstName)}">
+                    <span class="initials">${u.firstName[0] + u.lastName[0]}</span>
+                    <span class="first-name">${u.firstName}</span>
+                </button>`)}`;
         }
         return html`
         <top-bar></top-bar>
         <div class="side-bar open"></div>
         <div class="panel">
-            <div class="page">
+            <div class="page user-page">
                 <h1>${title}</h1>
-                <div>
+                <div class="form">
                     ${form}
                     <br>
                     ${button}

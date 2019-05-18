@@ -168,7 +168,7 @@ export class VideoDetails extends LitElement {
                             this.requestUpdate();
                         }
                     }).catch(console.log);
-            }, 300000); // this is 5 min
+            }, 3000); // this is 5 min
         }
     }
 

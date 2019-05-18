@@ -1,0 +1,53 @@
+@import "vars";
+@import "animsta";
+
+.user-page {
+  .form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 3vh;
+  }
+  .user-btn {
+    background-color: #7d203f;
+    border-radius: 50%;
+    border: none;
+    color: white;
+    position: relative;
+    text-align: center;
+    display: flex;
+    width: 25vh;
+    height: 25vh;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    margin-bottom: 3vh;
+    cursor: pointer;
+
+    .initials {
+      font-size: 10vh;
+    }
+    .first-name {
+      font-size: 2vh;
+      display: none;
+    }
+
+    &:nth-child(1) {
+      background-color: #d61c5a;
+    }
+    &:nth-child(2) {
+      background-color: #0fa53f;
+    }
+    &:nth-child(3) {
+      background-color: #b78825;
+    }
+    &:nth-child(4) {
+      background-color: #455ada;
+    }
+    &:nth-child(5) {
+      background-color: #b54cbb;
+    }
+  }
+}

@@ -1,20 +1,22 @@
+@import "vars";
+
 %background-gradient {
   // animate background
-  // background: linear-gradient(-45deg, #EE7752, #E73C7E, #23A6D5, #23D5AB);
-  // background-size: 400% 400%;
-  // -webkit-animation: Gradient 15s ease infinite;
-  // -moz-animation: Gradient 15s ease infinite;
-  // animation: Gradient 15s ease infinite;
+   // background: linear-gradient(-45deg, #431450, #63160a, #0e0e40, #000000);
+   //background: linear-gradient(-45deg, #000000, #000000, #000000, $accentColor);
+   //background-size: 400% 400%;
+   //-webkit-animation: Gradient 15s ease infinite;
+   //-moz-animation: Gradient 15s ease infinite;
+   //animation: Gradient 15s ease infinite;
 
 
-  background: rgba(87,102,117,1);
-  background: -moz-linear-gradient(-45deg, rgba(87,102,117,1) 0%, rgba(8,30,54,1) 100%);
-  background: -webkit-gradient(left top, right bottom, color-stop(0%, rgba(87,102,117,1)), color-stop(100%, rgba(8,30,54,1)));
-  background: -webkit-linear-gradient(-45deg, rgba(87,102,117,1) 0%, rgba(8,30,54,1) 100%);
-  background: -o-linear-gradient(-45deg, rgba(87,102,117,1) 0%, rgba(8,30,54,1) 100%);
-  background: -ms-linear-gradient(-45deg, rgba(87,102,117,1) 0%, rgba(8,30,54,1) 100%);
-  background: linear-gradient(135deg, rgba(87,102,117,1) 0%, rgba(8,30,54,1) 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#576675', endColorstr='#081e36', GradientType=1 );
+  /* Permalink - use to edit and share this gradient: https://colorzilla.com/gradient-editor/#000000+0,05204c+100 */
+  //background: rgb(0,0,0); /* Old browsers */
+  //background: -moz-linear-gradient(-45deg,  rgba(0,0,0,1) 0%, rgba(5,32,76,1) 100%); /* FF3.6-15 */
+  background: -webkit-linear-gradient(-45deg,  rgba(0,0,0,1) 0%, rgb(76, 10, 6) 100%); /* Chrome10-25,Safari5.1-6 */
+  //background: linear-gradient(135deg,  rgba(0,0,0,1) 0%,rgba(5,32,76,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  //filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#05204c',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+
 }
 
 @-webkit-keyframes Gradient {
