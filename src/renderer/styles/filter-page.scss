@@ -1,6 +1,42 @@
-
+@import "vars";
 
 .filters-page {
+  overflow: hidden;
+  position: relative;
+
+  .page-body {
+    overflow: auto;
+  }
+  .page-body > div {
+    overflow: auto;
+    min-width: 1200px;
+    position: relative;
+  }
+  .sorting {
+    margin-top: $topBarHeight;
+    float: left;
+    clear: both;
+    width: 30vw;
+    min-width: 750px;
+  }
+
+  .filters-genres {
+    margin-top: $topBarHeight;
+    float: right;
+    width: 30vw;
+    height: 72vh;
+    overflow: hidden;
+  }
+
+  .filters {
+    margin-top: $topBarHeight;
+    float: left;
+    clear: left;
+    position: absolute;
+    bottom: 64px;
+    min-width: 750px;
+  }
+
   ul {
     li {
       font-size: 2em;
@@ -28,5 +64,29 @@
     font-size: 1.5em;
     padding: 0.1em;
     border-radius: 0.1em;
+  }
+  #noMediaWithoutGenres {
+    border-radius: 0;
+    margin: 0;
+    font-size: 3em;
+    height: calc(72vh - (21px + #{$topBarHeight}));
+    background-color: transparent;
+    color: white;
+    border: none;
+    padding: 0;
+    width: 100%;
+    overflow: auto;
+
+    option {
+      padding: 0.2em;
+
+      &:hover {
+        background-color: $accentColor;
+        color: black;
+      }
+      &[selected] {
+        background-color: #d80a0a;
+      }
+    }
   }
 }

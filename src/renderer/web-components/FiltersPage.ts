@@ -73,8 +73,8 @@ export class FiltersPage extends LitElement {
                 <div class="close" @click=${this.close}>X</div>
             </div>
             <div class="page-body">
+                <div>
                 <div class="sorting">
-                    <br><br><br><br>
                     <h2>Sorting</h2>
                     <ul>
                         <li>
@@ -112,30 +112,22 @@ export class FiltersPage extends LitElement {
                         </li>
                     </ul>
                 </div>
+                <div class="filters-genres">
+                    <h2>Filter by genre</h2>
+                    <select id="noMediaWithoutGenres" multiple @change=${this.filterGenreChange}>
+                        <option value="All"
+                            ?selected=${this.rooster._filterConfig.noMediaWithoutGenres.includes("All")}>
+                            All</option>
+                        ${this._genres.map(g =>
+                            html`<option value="${g.type}"
+                                ?selected=${this.rooster._filterConfig.noMediaWithoutGenres
+                                    .includes(g.type.toLowerCase())}>
+                                ${g.type}</option>`)}
+                    </select>
+                </div>
                 <div class="filters">
-                    <br><br><br><br>
                     <h2>Filters</h2>
                     <ul>
-                        <li>
-                            <h3>Filter by genre</h3>
-                            <select id="noMediaWithoutGenres" multiple @change=${this.filterGenreChange}>
-                                <option value="All"
-                                    ?selected=${this.rooster._filterConfig.noMediaWithoutGenres.includes("All")}>
-                                    All</option>
-                                ${this._genres.map(g =>
-                                    html`<option value="${g.type}"
-                                        ?selected=${this.rooster._filterConfig.noMediaWithoutGenres
-                                            .includes(g.type.toLowerCase())}>
-                                        ${g.type}</option>`)}
-                            </select>
-                            <!--<x-multiselect placeholder="Select Value">-->
-                                <!--<li value="1" selected>Item 1</li>-->
-                                <!--<li value="2">Item 2</li>-->
-                                <!--<li value="3" selected>Item 3</li>-->
-                                <!--<li value="4">Item 4</li>-->
-                            <!--</x-multiselect>-->
-                            <br><br>
-                        </li>
                         <li>
                             <h3>Show ONLY unwatched media</h3>
                             <input @change=${this.filterChange} id="unwatchedMedia"
@@ -158,6 +150,7 @@ export class FiltersPage extends LitElement {
                             <label class="tgl-btn" for="noMediaWithoutMetaData"></label>
                         </li>
                     </ul>
+                </div>
                 </div>
             </div>
         </div>`;
