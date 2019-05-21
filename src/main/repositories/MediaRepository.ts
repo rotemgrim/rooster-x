@@ -254,11 +254,11 @@ export class MediaRepository {
                     // do a replace and delete
                     for (const file of await metaData.mediaFiles) {
                         file.metaData = correctMetaData;
-                        await this.filesRepo.save(file);
+                        await this.filesRepo.update(file.id, file);
                     }
                     for (const file of await metaData.torrentFiles) {
                         file.metaData = correctMetaData;
-                        await this.torrentFileRepo.save(file);
+                        await this.torrentFileRepo.update(file.id, file);
                     }
                     await this.saveAnAlias(correctMetaData, metaData.title);
                     await this.metaRepo.delete(metaData);

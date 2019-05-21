@@ -75,6 +75,12 @@ video-card {
   }
 }
 
+select {
+  option {
+    cursor: pointer;
+  }
+}
+
 img {
   position: relative;
   overflow: hidden;
