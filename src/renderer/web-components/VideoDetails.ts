@@ -27,15 +27,14 @@ export class VideoDetails extends LitElement {
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
 
+    private mainDetailsEl: HTMLElement;
+
     public createRenderRoot() {
         return this;
     }
 
     constructor() {
         super();
-        setTimeout(() => {
-            this.focus();
-        });
     }
 
     set searchResults(results) {
@@ -89,6 +88,29 @@ export class VideoDetails extends LitElement {
 
     protected firstUpdated(): void {
         this.reloadVideo();
+        console.log("firstUpdateed");
+    }
+
+    public async connectedCallback() {
+        super.connectedCallback();
+        await this.updateComplete;
+        this.mainDetailsEl = document.querySelector(".main-details") as HTMLElement;
+        this.mainDetailsEl.focus();
+        this.mainDetailsEl.addEventListener("blur", this.setMainDetailsFocus);
+    }
+
+    public disconnectedCallback() {
+        this.mainDetailsEl.removeEventListener("blur", this.setMainDetailsFocus);
+        super.disconnectedCallback();
+    }
+
+    private setMainDetailsFocus() {
+        setTimeout(() => {
+            const tmp = document.querySelector(".main-details") as HTMLElement;
+            if (tmp) {
+                tmp.focus();
+            }
+        });
     }
 
     public reloadVideo() {
@@ -256,7 +278,7 @@ export class VideoDetails extends LitElement {
                 <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
                 <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
             </div>
-            <div class="main-details">
+            <div class="main-details" tabindex="0">
                 <h1>${this.video.name}</h1>
                 <p>${this.video.plot}</p>
                 <div class="small-details">

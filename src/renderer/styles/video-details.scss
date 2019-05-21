@@ -139,6 +139,9 @@ video-details {
     float: left;
     padding-left: calc(300px + #{$topBarHeight});
     padding-bottom: 15em;
+    &:focus {
+      outline: none;
+    }
   }
   h1 {
     font-size: 6em;

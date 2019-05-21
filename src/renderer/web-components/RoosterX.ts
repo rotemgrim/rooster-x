@@ -287,6 +287,7 @@ export class RoosterX extends LitElement {
     public closeSideBar() {
         this._panel = "";
         this._sideBar = false;
+        RoosterX.setFocusToVideos();
         this.requestUpdate();
     }
 
