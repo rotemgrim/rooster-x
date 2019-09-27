@@ -1,3 +1,8 @@
+import * as fs from "fs";
+import * as path from "path";
+import AppGlobal from "./AppGlobal";
+import {app} from "electron";
+import WindowManager from "../services/WindowManager";
 
 export function getChromiumErrorTypeByNetErrorCode(code: number): string {
     let errorType = "Unknown";
@@ -51,4 +56,59 @@ export function getProxy(): any {
         return "none";
     }
     return tmp;
+}
+
+export async function uploadDbFile(): Promise<any> {
+    WindowManager.getMainWindow().send("sweep-update", {status: "Uploading Media to DataBase...", count: ""});
+    const config = AppGlobal.getConfig();
+    if (config.dbPath) {
+        let dbPath: string = config.dbPath;
+        const dbp = path.join(dbPath, "database.sqlite");
+        dbPath = path.join(app.getPath("appData"), "rooster-x", "db.sqlite");
+        console.info("upload database to share folder");
+        return copyFile(dbPath, dbp)
+            .then(() => {
+                WindowManager.getMainWindow().send("sweep-update", {status: "", count: 0});
+            })
+            .catch((e) => {
+                console.error(e);
+                throw new Error("can't upload DB");
+            });
+    } else {
+        throw new Error("can't upload DB");
+    }
+}
+
+export async function copyDbFile(): Promise<any> {
+    WindowManager.getMainWindow().send("sweep-update", {status: "Downloading Media From DataBase...", count: ""});
+    const config = AppGlobal.getConfig();
+    if (config.dbPath) {
+        let dbPath: string = config.dbPath;
+        const dbp = path.join(dbPath, "database.sqlite");
+        dbPath = path.join(app.getPath("appData"), "rooster-x", "db.sqlite");
+        console.info("copy database to local");
+        return copyFile(dbp, dbPath)
+            .then(() => {
+                WindowManager.getMainWindow().send("sweep-update", {status: "", count: 0});
+            })
+            .catch((e) => {
+                console.error(e);
+                throw new Error("can't upload DB");
+            });
+    } else {
+        throw new Error("can't copy DB");
+    }
+}
+
+export async function copyFile(from: string, to: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+        fs.copyFile(from, to, (err) => {
+            if (err) {
+                console.error(err);
+                reject("cant copy file " + from + " to " + to);
+            } else {
+                resolve();
+            }
+        });
+    });
 }

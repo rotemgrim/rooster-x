@@ -98,6 +98,7 @@ export default class ConfigController {
                     dbPath: tmpData.dbPath !== undefined ? tmpData.dbPath : "",
                     omdbApiKey: tmpData.omdbApiKey !== undefined ? tmpData.omdbApiKey : "",
                     userId: tmpData.userId !== undefined ? tmpData.userId : 0,
+                    isAdmin: tmpData.isAdmin !== undefined ? tmpData.isAdmin : false,
                 };
                 if (tmpData.proxySettings !== undefined) {
                     res.proxySettings = tmpData.proxySettings;
@@ -115,6 +116,7 @@ export default class ConfigController {
                 dbPath: "",
                 omdbApiKey: "",
                 userId: 0,
+                isAdmin: false,
             };
             return ConfigController.saveConfigToFile(config);
         }

@@ -8,4 +8,5 @@ export interface IConfig {
     dbPath?: string;
     omdbApiKey?: string;
     userId?: number;
+    isAdmin?: boolean;
 }

@@ -8,6 +8,7 @@ import {getConnection} from "typeorm";
 import FilesListener from "../listeners/FilesListener";
 import {UserRepository} from "../repositories/UserRepository";
 import {TorrentsRepository} from "../repositories/TorrentsRepository";
+import {copyDbFile, uploadDbFile} from "../helpers/miscFuncs";
 
 export default class AppController {
 
@@ -47,12 +48,15 @@ export default class AppController {
                         const conn = getConnection("reading");
                         const user = await conn.getRepository(User).findOne(config.userId);
                         if (user && user.isAdmin) {
+                            await uploadDbFile();
                             FilesListener.startSweepInterval(config.dbPath, 3600);
                             UserRepository.startWatchedBackupInterval(10800);
                             TorrentsRepository.startTorrentsWatch();
+                            await FilesListener.startMergeDbInterval(config.dbPath, 60 * 2);
                         } else {
                             // refresh view media every hour
-                            setInterval(() => {
+                            WindowManager.getMainWindow().send("refresh-media");
+                            setInterval(async () => {
                                 WindowManager.getMainWindow().send("refresh-media");
                             }, 3600 * 1000);
                         }

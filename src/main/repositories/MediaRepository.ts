@@ -12,6 +12,15 @@ import IMDBController from "../controllers/IMDBController";
 import {IMediaEntry} from "../../common/models/IMediaEntry";
 import {Alias} from "../../entity/Alias";
 import {TorrentFile} from "../../entity/TorrentFile";
+import FilesController from "../controllers/FilesController";
+import {copyDbFile} from "../helpers/miscFuncs";
+
+export interface IWatchedRequest {
+    type: string;
+    entityId: number;
+    isWatched: boolean;
+    userId?: number;
+}
 
 @Service()
 export class MediaRepository {
@@ -34,6 +43,7 @@ export class MediaRepository {
 
     public async getAllMedia() {
         console.info("getting all media");
+        await copyDbFile();
         return this.metaRepo.find();
 
         // const userId = AppGlobal.getConfig().userId;
@@ -108,13 +118,25 @@ export class MediaRepository {
         });
     }
 
-    public setWatched(payload: {type: string, entityId: number, isWatched: boolean}) {
+    public setWatched(payload: IWatchedRequest) {
         return new Promise(async (resolve, reject) => {
-            console.log(payload);
+            console.debug("payload", payload);
             const metaRepo = this.connection.manager.getRepository(payload.type);
             const userRepo = this.connection.manager.getRepository(User);
-            const user = await userRepo.findOne(AppGlobal.getConfig().userId);
             const metaData: any = await metaRepo.findOne(payload.entityId);
+
+            let userId;
+            if (payload.userId) {
+                userId = payload.userId;
+            } else {
+                userId = AppGlobal.getConfig().userId;
+                try {
+                    await FilesController.saveSetWatchedRequest(payload, userId);
+                } catch (err) {
+                    console.error("could not save set watched request", err);
+                }
+            }
+            const user = await userRepo.findOne(userId);
 
             if (user && metaData) {
                 if (payload.type === "MetaData") {

@@ -20,7 +20,7 @@ import AppController from "./AppController";
 import {Container, Service} from "typedi";
 import {InjectConnection} from "typeorm-typedi-extensions";
 import MediaController from "./MediaController";
-import {MediaRepository} from "../repositories/MediaRepository";
+import {IWatchedRequest, MediaRepository} from "../repositories/MediaRepository";
 import WindowManager from "../services/WindowManager";
 import {Alias} from "../../entity/Alias";
 
@@ -319,6 +319,30 @@ export default class FilesController {
             }
         });
 
+    }
+
+    public static async saveSetWatchedRequest(payload: IWatchedRequest, userId: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            const config = AppGlobal.getConfig();
+            if (config.dbPath) {
+                const savePath = path.join(
+                    config.dbPath, ".rooster",
+                    `${(new Date()).getTime()}-watched-${userId}.json`,
+                );
+                payload.userId = userId;
+                fs.writeFile(savePath, JSON.stringify(payload), "utf8", (err) => {
+                    if (err) {
+                        reject();
+                    } else {
+                        console.info("The watched request has been saved!");
+                        resolve();
+                    }
+                });
+            } else {
+                console.error("no db path set");
+                reject();
+            }
+        });
     }
 
     public static calcEntryHash(e: IEntry): Promise<any> {

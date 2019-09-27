@@ -301,9 +301,12 @@ export class RoosterX extends LitElement {
 
     public render() {
         return html`
-        ${this._sweepStatus ? html`<div class="sweep-status">
-            ${this._sweepStatus} <span>${this._sweepCount}</span>
-        </div>` : ""}
+        ${this._sweepStatus ?
+            html`<div class="status-wrap">
+                <div class="sweep-status">
+                    ${this._sweepStatus} <span>${this._sweepCount}</span>
+                </div>
+            </div>` : ""}
         <top-bar .rooster=${this}></top-bar>
         <div class="side-bar ${this._sideBar ? "open" : ""}">
             <ul>

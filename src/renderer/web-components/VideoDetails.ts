@@ -232,9 +232,9 @@ export class VideoDetails extends LitElement {
         IpcService.reSearch(this.searchTitle)
             .then(res => {
                 this.searchResults = res;
-                console.log(res);
+                console.log("reSearch results", res);
             })
-            .catch(console.log);
+            .catch(e => console.log("reSearch failed", e));
     }
 
     private onSelectSearchOption(m: IOmdbSearchEntity) {

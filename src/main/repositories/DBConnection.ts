@@ -10,6 +10,9 @@ import {UserEpisode} from "../../entity/UserEpisode";
 import {Genre} from "../../entity/Genre";
 import {TorrentFile} from "../../entity/TorrentFile";
 import {Alias} from "../../entity/Alias";
+import {app} from "electron";
+import {copyDbFile} from "../helpers/miscFuncs";
+import * as fs from "fs";
 
 export default class DBConnection {
 
@@ -17,10 +20,14 @@ export default class DBConnection {
         return new Promise(async (resolve, reject) => {
             const config = AppGlobal.getConfig();
             if (config.dbPath) {
+                const localDb = path.join(app.getPath("appData"), "rooster-x", "db.sqlite");
+                if (!fs.existsSync(localDb)) {
+                    await copyDbFile();
+                }
                 await createConnection({
                     name: "reading",
                     type: "sqlite",
-                    database: path.join(config.dbPath, "database.sqlite"),
+                    database: localDb,
                     entities: [
                         Alias,
                         User,
