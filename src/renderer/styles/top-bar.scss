@@ -16,6 +16,8 @@
     display: flex;
     align-items: center;
     justify-content: start;
+    position: relative;
+    z-index: 1;
   }
   > div:first-child {
     overflow: hidden;
