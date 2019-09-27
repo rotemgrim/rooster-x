@@ -13,12 +13,23 @@ export class TopBar extends LitElement {
     @property() public showProfileMenu: boolean = false;
     @property() public _toggleTorrents: boolean = false;
 
+    @property() public hours: number = 0;
+    @property() public minutes: number = 0;
+
     public createRenderRoot() {
         return this;
     }
 
     constructor() {
         super();
+    }
+
+    public firstUpdated() {
+        setInterval(() => {
+            const date = new Date();
+            this.hours = date.getHours();
+            this.minutes = date.getMinutes();
+        }, 1000);
     }
 
     private toggleFullScreen() {
@@ -115,6 +126,11 @@ export class TopBar extends LitElement {
                     ${this._searchTerm ? html`<i class="material-icons" @click=${this.clearSearch}>backspace</i>` : ""}
                 </div>
                 <div class="refresh"></div>
+            </div>
+            <div class="clock">
+                <div class="time">
+                    ${this.hours}:${this.minutes}
+                </div>
             </div>
             <div>
                 ${this.rooster && this.rooster.user ?
