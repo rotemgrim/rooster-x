@@ -56,6 +56,7 @@ export class RoosterX extends LitElement {
             if (e && !e.target.closest(".side-bar")
                 && !e.target.closest(".top-bar")
                 && !e.target.closest(".page")
+                && !e.target.closest(".video-details")
             ) {
                 if (this._sideBar) {
                     this._sideBar = false;

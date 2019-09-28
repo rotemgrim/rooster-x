@@ -68,7 +68,7 @@ export async function uploadDbFile(): Promise<any> {
         console.info("upload database to share folder");
         return copyFile(dbPath, dbp)
             .then(() => {
-                WindowManager.getMainWindow().send("sweep-update", {status: "", count: 0});
+                WindowManager.getMainWindow().send("sweep-update", {status: "", count: ""});
             })
             .catch((e) => {
                 console.error(e);
@@ -89,7 +89,7 @@ export async function copyDbFile(): Promise<any> {
         console.info("copy database to local");
         return copyFile(dbp, dbPath)
             .then(() => {
-                WindowManager.getMainWindow().send("sweep-update", {status: "", count: 0});
+                WindowManager.getMainWindow().send("sweep-update", {status: "", count: ""});
             })
             .catch((e) => {
                 console.error(e);

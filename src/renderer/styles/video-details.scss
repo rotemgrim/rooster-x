@@ -142,6 +142,18 @@ video-details {
     &:focus {
       outline: none;
     }
+
+    .searchResultDiv {
+      margin-bottom: 2em;
+      img {
+        border: 2px solid $blackBackground;
+      }
+      &:hover {
+        img {
+          border: 2px solid $accentColor;
+        }
+      }
+    }
   }
   h1 {
     font-size: 6em;

@@ -23,6 +23,7 @@ import MediaController from "./MediaController";
 import {IWatchedRequest, MediaRepository} from "../repositories/MediaRepository";
 import WindowManager from "../services/WindowManager";
 import {Alias} from "../../entity/Alias";
+import {uploadDbFile} from "../helpers/miscFuncs";
 
 const test = ptn("The Archer.2017.HDRip.XViD.AC3-ETRG.avi");
 console.log("test", test);
@@ -150,7 +151,7 @@ export default class FilesController {
                 await this.connection.manager.save(file)
                     .then(() => {
                         mediaFiles.push(file);
-                        console.log(mediaFiles.length);
+                        // console.log(mediaFiles.length);
                         WindowManager.getMainWindow()
                             .send("sweep-update", {status: "Getting data...",
                                 count: mediaFiles.length + " of " + entries.length});
@@ -177,6 +178,7 @@ export default class FilesController {
                     .execute();
             }
             WindowManager.getMainWindow().send("sweep-update", {status: "", count: 0});
+            await uploadDbFile();
             WindowManager.getMainWindow().send("refresh-media");
             this.isSweepStarted = false;
             resolve();
@@ -296,7 +298,7 @@ export default class FilesController {
                             && !/^[0-9]{2,3}[\s|-|.|_]/.test(mEntry.title)) {
                             // console.log(mEntry);
                             entries.push({mEntry, sEntry});
-                            console.log(entries.length);
+                            // console.log(entries.length);
                             WindowManager.getMainWindow()
                                 .send("sweep-update", {status: "Scanning files...", count: entries.length});
                         }

@@ -291,6 +291,7 @@ export class MediaRepository {
                             const oldTitle = metaData.title;
                             IMDBController.IOmdbEntityToMetaData(metaData, data);
                             metaData.status = "omdb";
+                            delete metaData.userMetaData;
                             await this.metaRepo.save(metaData);
 
                             // if new title is different then add to aliases

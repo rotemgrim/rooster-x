@@ -104,16 +104,22 @@ export class VideoDetails extends LitElement {
         super.disconnectedCallback();
     }
 
-    private setMainDetailsFocus() {
+    private setMainDetailsFocus(event) {
         setTimeout(() => {
-            const tmp = document.querySelector(".main-details") as HTMLElement;
-            if (tmp) {
-                tmp.focus();
+            if (!event.relatedTarget || !event.relatedTarget.closest(".main-details")) {
+                console.debug("set focus to main details div", event);
+                const tmp = document.querySelector(".main-details") as HTMLElement;
+                if (tmp) {
+                    tmp.focus();
+                }
+            } else {
+                console.debug("skip set focus", event);
             }
         });
     }
 
     public reloadVideo() {
+        this.searchTitle = this.video.title;
         if (this.video.type === "series") {
             // IpcService.dbQuery("Episode", {
             //     where: {
@@ -124,7 +130,6 @@ export class VideoDetails extends LitElement {
             //         episode: "ASC",
             //     },
             //     cache: true,
-            this.searchTitle = this.video.title;
             IpcService.getEpisodes({metaDataId: this.video.id})
                 .then(res => {
                     this.video.episodes = res;
@@ -328,17 +333,16 @@ export class VideoDetails extends LitElement {
                     @input=${(e) => this.searchTitle = e.target.value}
                     @keypress=${this.searchKeyPress}
                     value="${this.video.title}" />
-                <button @click="${this.reSearch}" style="font-size: 26px;">
+                <button @click="${this.reSearch}" style="font-size: 26px; cursor: pointer;">
                     Research video in internet database
-                </button>
-                <button @click="${this.reSearch}" style="font-size: 26px;">
-                    Delete Video
                 </button>` : ""}
                 ${this.rooster.user.isAdmin ?
-                    this._searchResults.map(m => html`<div @click=${() => this.onSelectSearchOption(m)}
-                        style="margin-bottom: 2em;">
+                    this._searchResults.map(m =>
+                        html`<div class="searchResultDiv" @click=${() => this.onSelectSearchOption(m)}>
                         <div class="title">${m.Title} | ${m.Year} | ${m.Type}</div>
-                        <div class="poster"><img src="${m.Poster}" alt="${m.Title}"></div>
+                        <div class="poster">
+                            <img src="${m.Poster}" alt="${m.Title}">
+                        </div>
                     </div>`) : ""}
             </div>
         </div>`;
