@@ -27,11 +27,14 @@ export default class IMDBController {
             if (data.Runtime !== "N/A") {episode.runtime = IMDBController.extractRuntime(data.Runtime); }
             if (data.Poster !== "N/A") {episode.poster = data.Poster; }
             if (data.Plot !== "N/A") {episode.plot = data.Plot; }
-            if (data.Released !== "N/A") {episode.released = data.Released; }
             if (data.imdbID !== "N/A") {episode.imdbId = data.imdbID; }
             if (data.seriesID !== "N/A") {episode.imdbSeriesId = data.seriesID; }
             if (data.imdbVotes !== "N/A") {episode.votes = parseInt(data.imdbVotes.replace(/,/g, ""), 10); }
             if (data.imdbRating !== "N/A") {episode.rating = parseFloat(data.imdbRating); }
+            if (data.Released !== "N/A") {
+                episode.released = data.Released;
+                episode.released_unix = new Date(data.Released).getTime() / 1000;
+            }
         }
         return episode;
     }
@@ -56,7 +59,10 @@ export default class IMDBController {
             if (data.Director !== "N/A") {metaData.director = data.Director; }
             if (data.Writer !== "N/A") {metaData.writer = data.Writer; }
             if (data.Actors !== "N/A") {metaData.actors = data.Actors; }
-            if (data.Released !== "N/A") {metaData.released = data.Released; }
+            if (data.Released !== "N/A") {
+                metaData.released = data.Released;
+                metaData.released_unix = new Date(data.Released).getTime() / 1000;
+            }
             // file.metaData.trailer = data.trailer;
         }
         return metaData;

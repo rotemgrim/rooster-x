@@ -76,6 +76,10 @@ export abstract class AbsMetaData {
     @Column({type: "varchar", length: 255, nullable: true})
     public released?: string;
 
+    /** date that the movie was originally released in unix format */
+    @Column({type: "int", nullable: true})
+    public released_unix?: number;
+
     @Column({type: "text", nullable: true})
     public trailer?: string;
 

@@ -39,7 +39,7 @@ export default class DBConnection {
                         Genre,
                         TorrentFile,
                     ],
-                    synchronize: true,
+                    synchronize: false,
                 }).then(() => {
                     console.info("db connection made");
                     resolve();

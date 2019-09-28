@@ -9,6 +9,8 @@ import FilesListener from "../listeners/FilesListener";
 import {UserRepository} from "../repositories/UserRepository";
 import {TorrentsRepository} from "../repositories/TorrentsRepository";
 import {copyDbFile, uploadDbFile} from "../helpers/miscFuncs";
+import {MetaData} from "../../entity/MetaData";
+import {Episode} from "../../entity/Episode";
 
 export default class AppController {
 
@@ -47,6 +49,23 @@ export default class AppController {
                     .then(async () => {
                         const conn = getConnection("reading");
                         const user = await conn.getRepository(User).findOne(config.userId);
+
+                        // const allMeta = await conn.getRepository(MetaData).find();
+                        // for (const m of allMeta) {
+                        //     if (m.released) {
+                        //         await conn.getRepository(MetaData)
+                        //             .update(m.id, { released_unix: (new Date(m.released).getTime() / 1000) });
+                        //     }
+                        // }
+
+                        // const allEpisodes = await conn.getRepository(Episode).find();
+                        // for (const m of allEpisodes) {
+                        //     if (m.released) {
+                        //         await conn.getRepository(Episode)
+                        //             .update(m.id, { released_unix: (new Date(m.released).getTime() / 1000) });
+                        //     }
+                        // }
+
                         if (user && user.isAdmin) {
                             await uploadDbFile();
                             FilesListener.startSweepInterval(config.dbPath, 3600);

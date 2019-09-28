@@ -328,6 +328,8 @@ export class VideoDetails extends LitElement {
                 <p>Actors: <small>${this.video.actors}</small></p>
                 <br><br>
                 <p>Made in ${this.video.country}</p>
+                <br><br>
+                <p>Released at ${this.video.released}</p>
                 ${this.rooster.user.isAdmin ? html`<br><br>
                 <input type="text" style="font-size: 26px;"
                     @input=${(e) => this.searchTitle = e.target.value}

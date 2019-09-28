@@ -88,8 +88,8 @@ export class FiltersPage extends LitElement {
                                     value="votes">IMDB Votes</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "year"}
                                     value="year">Year</option>
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "released"}
-                                    value="released">Release Date</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "released_unix"}
+                                    value="released_unix">Release Date</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "runtime"}
                                     value="runtime">Runtime</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "status"}
