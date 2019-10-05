@@ -13,7 +13,7 @@ import {IMediaEntry} from "../../common/models/IMediaEntry";
 import {Alias} from "../../entity/Alias";
 import {TorrentFile} from "../../entity/TorrentFile";
 import FilesController from "../controllers/FilesController";
-import {copyDbFile} from "../helpers/miscFuncs";
+import {copyDbFile, uploadDbFile} from "../helpers/miscFuncs";
 
 export interface IWatchedRequest {
     type: string;
@@ -274,16 +274,32 @@ export class MediaRepository {
                     await this.metaRepo.findOne({where: {imdbId: payload.imdbId}});
                 if (correctMetaData) {
                     // do a replace and delete
-                    for (const file of await metaData.mediaFiles) {
-                        file.metaData = correctMetaData;
-                        await this.filesRepo.update(file.id, file);
+                    try {
+                        for (const file of await metaData.mediaFiles) {
+                            file.metaData = correctMetaData;
+                            await this.filesRepo.update(file.id, file);
+                        }
+                        for (const file of await metaData.torrentFiles) {
+                            file.metaData = correctMetaData;
+                            await this.torrentFileRepo.update(file.id, file);
+                        }
+                        if (correctMetaData.type === "series") {
+                            await this.saveAnAlias(correctMetaData, metaData.title);
+                            // for (const ep of await metaData.episodes) {
+                            //     ep.metaData = correctMetaData;
+                            //     await this.episodeRepo.update(ep.id, ep);
+                            // }
+                            delete metaData.episodes;
+                        }
+                        delete metaData.userMetaData;
+                        delete metaData.torrentFiles;
+                        delete metaData.mediaFiles;
+                        await uploadDbFile();
+                        await this.metaRepo.delete(metaData);
+                        await uploadDbFile();
+                    } catch (e) {
+                        console.error("could not replace in db", e);
                     }
-                    for (const file of await metaData.torrentFiles) {
-                        file.metaData = correctMetaData;
-                        await this.torrentFileRepo.update(file.id, file);
-                    }
-                    await this.saveAnAlias(correctMetaData, metaData.title);
-                    await this.metaRepo.delete(metaData);
                 } else {
                     // get the right metaData from internet and save it in the same place
                     IMDBController.getMetaDataFromInternetByImdbId(payload.imdbId)
@@ -306,6 +322,7 @@ export class MediaRepository {
                                     }
                                 }
                             }
+                            await uploadDbFile();
                             resolve(metaData);
                         }).catch(e => {
                         console.error("could not update metaData", e);

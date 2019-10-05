@@ -168,6 +168,10 @@ export class IpcService {
         ipcRenderer.send("scan-dir", payload);
     }
 
+    public static scanFile(payload: {file: string}) {
+        ipcRenderer.send("scan-file", payload);
+    }
+
     public static openSelectFolderDialog() {
         return new Promise((resolve, reject) => {
             promiseIpc.send("select-directory-dialog").then(resolve).catch(reject);

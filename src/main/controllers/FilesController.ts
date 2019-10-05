@@ -213,7 +213,7 @@ export default class FilesController {
 
                     delete file.metaData.userMetaData;
                     await this.connection.manager.save(file);
-
+                    await uploadDbFile();
                     resolve();
                 } else {
                     console.info("no media entry was found in " + sEntry.name);

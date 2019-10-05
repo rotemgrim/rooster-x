@@ -55,6 +55,7 @@ export default class AppListener {
 
             ipcMain.on("open-external", (e, url) => shell.openExternal(url));
             ipcMain.on("scan-dir", (e, payload) => Container.get(FilesController).doFullSweep(payload.dir));
+            ipcMain.on("scan-file", (e, payload) => Container.get(FilesController).sweepFile(payload.file));
 
             promiseIpc.on("get-config", ConfigController.getConfigPromise);
             promiseIpc.on("save-config", ConfigController.updateConfigAndRestart);

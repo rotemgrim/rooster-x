@@ -8,6 +8,7 @@ export class SettingsPage extends LitElement {
 
     @property() public rooster: RoosterX;
     @property() public scanDir: string;
+    @property() public scanFile: string;
 
     public createRenderRoot() {
         return this;
@@ -27,6 +28,10 @@ export class SettingsPage extends LitElement {
 
     private scanNow() {
         IpcService.scanDir({dir: this.scanDir});
+    }
+
+    private scanFileNow() {
+        IpcService.scanFile({file: this.scanFile});
     }
 
     private reprocessGenres() {
@@ -56,6 +61,14 @@ export class SettingsPage extends LitElement {
                         value="${this.scanDir}">
                     <button @click=${this.scanNow}>Scan Now!</button>
                 </div>
+                <br>
+                <div class="section">
+                    <h2>Scan single file</h2>
+                    <input type="text" @input=${(e) => this.scanFile = e.target.value}
+                        value="${this.scanFile}">
+                    <button @click=${this.scanFileNow}>Scan File!</button>
+                </div>
+                <br>
                 <div class="section">
                     <h2>Rescan Policy</h2>
                     <p>Some configuration for every time to scan?</p>

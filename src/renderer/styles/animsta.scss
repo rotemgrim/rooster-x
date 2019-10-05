@@ -50,3 +50,7 @@
     backdrop-filter: blur(1em);
   }
 }
+
+
+.rotate-center{-webkit-animation:rotate-center .8s ease-in-out infinite both;animation:rotate-center .8s ease-in-out infinite both}
+@-webkit-keyframes rotate-center{0%{-webkit-transform:rotate(0);transform:rotate(0)}100%{-webkit-transform:rotate(360deg);transform:rotate(360deg)}}@keyframes rotate-center{0%{-webkit-transform:rotate(0);transform:rotate(0)}100%{-webkit-transform:rotate(360deg);transform:rotate(360deg)}}

@@ -23,6 +23,7 @@ export class VideoDetails extends LitElement {
     @property() public _episodes: IEpisodeExtended[];
     @property() public _searchResults: IOmdbSearchEntity[] = [];
     @property() public searchTitle: string;
+    @property() public isLoading: boolean = false;
 
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
@@ -181,6 +182,10 @@ export class VideoDetails extends LitElement {
 
     public playMedia(e: CustomEvent) {
         if (e && e.detail) {
+            this.isLoading = true;
+            setTimeout(() => {
+                this.isLoading = false;
+            }, 3000);
             const mediaFile: MediaFile = e.detail;
             IpcService.openExternal(mediaFile.path);
             clearTimeout(this.playTimer);
@@ -208,6 +213,30 @@ export class VideoDetails extends LitElement {
             `https://www.youtube.com/results?search_query=${this.video.title}+trailer+${this.video.year}`);
     }
 
+    public subsSearch() {
+        if (this.video.type === "series") {
+            const eps = _.filter(this._episodes, (o => o.mediaFiles.length > 0));
+            const episodeMax = _.maxBy(eps, ["season", "episode"]);
+            IpcService.openExternal(
+                `https://www.google.com/search?q=site:subscene.com`
+                + `+Subtitles+for+${this.video.title}`
+                + `+${VideoDetails.getSeriesStringFromEpisode(episodeMax)}`);
+        } else {
+            IpcService.openExternal(
+                `https://www.google.com/search?q=site:subscene.com`
+                + `+Subtitles+for+${this.video.title}+${this.video.year}`);
+        }
+    }
+
+    public static getSeriesStringFromEpisode(ep: IEpisodeExtended|undefined, add: number = 0) {
+        let se = "";
+        if (ep && ep.season && ep.episode) {
+            se = "+S" + ep.season.toString().padStart(2, "0") +
+                "E" + (ep.episode + add).toString().padStart(2, "0");
+        }
+        return se;
+    }
+
     public torrentSearch() {
         let sLink = "https://1337x.to/sort-category-search/";
         const title = this.video.title.replace(" ", "+");
@@ -215,11 +244,7 @@ export class VideoDetails extends LitElement {
             // get latest episode
             const eps = _.filter(this._episodes, (o => o.mediaFiles.length > 0));
             const episodeMax = _.maxBy(eps, ["season", "episode"]);
-            let se = "";
-            if (episodeMax && episodeMax.season && episodeMax.episode) {
-                se = "+S" + episodeMax.season.toString().padStart(2, "0") +
-                    "E" + (episodeMax.episode + 1).toString().padStart(2, "0");
-            }
+            const se = VideoDetails.getSeriesStringFromEpisode(episodeMax, 1);
             sLink += `${title}${se}/TV/seeders/desc/1/`;
         } else { // movie
             sLink += `${title}/Movies/seeders/desc/1/`;
@@ -234,22 +259,32 @@ export class VideoDetails extends LitElement {
     }
 
     public reSearch() {
+        this.isLoading = true;
         IpcService.reSearch(this.searchTitle)
             .then(res => {
                 this.searchResults = res;
                 console.log("reSearch results", res);
+                this.isLoading = false;
             })
-            .catch(e => console.log("reSearch failed", e));
+            .catch(e => {
+                console.log("reSearch failed", e);
+                this.isLoading = false;
+            });
     }
 
     private onSelectSearchOption(m: IOmdbSearchEntity) {
+        this.isLoading = true;
         IpcService.updateMetaDataById(m.imdbID, this.video.id)
             .then(res => {
                 console.log(res);
                 this.video = Object.assign(this.video, res);
+                this.isLoading = false;
                 this.requestUpdate();
             })
-            .catch(console.log);
+            .catch(e => {
+                console.log(e);
+                this.isLoading = false;
+            });
     }
 
     private static getSep() {
@@ -264,6 +299,9 @@ export class VideoDetails extends LitElement {
                 <div class="close" @click="${this.close}">
                     <i class="material-icons">arrow_back</i> BACK
                 </div>
+                ${this.isLoading ? html`<div class="isLoading">
+                    <i class="material-icons rotate-center">sync</i>
+                </div>` : ``}
                 <div class="poster ${this.video.isWatched ? "watched" : ""}">
                     <div class="filter"></div>
                     <div class="watch-btn" @click=${this.setWatch}
@@ -282,6 +320,7 @@ export class VideoDetails extends LitElement {
                     html`<div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
                 <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
                 <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
+                <div class="subs" @click=${this.subsSearch}>Subs</div>
             </div>
             <div class="main-details" tabindex="0">
                 <h1>${this.video.name}</h1>

@@ -85,6 +85,10 @@ export async function copyDbFile(): Promise<any> {
     if (config.dbPath) {
         let dbPath: string = config.dbPath;
         const dbp = path.join(dbPath, "database.sqlite");
+        if (!fs.existsSync(dbp)) {
+            console.log("cant copy db file 1 -> file is not existing");
+            return;
+        }
         dbPath = path.join(app.getPath("appData"), "rooster-x", "db.sqlite");
         console.info("copy database to local");
         return copyFile(dbp, dbPath)
@@ -93,10 +97,11 @@ export async function copyDbFile(): Promise<any> {
             })
             .catch((e) => {
                 console.error(e);
-                throw new Error("can't upload DB");
+                throw new Error("can't copy DB");
             });
     } else {
-        throw new Error("can't copy DB");
+        // throw new Error("can't copy DB");
+        console.log("cant copy db file 2 -> no dbPath");
     }
 }
 
