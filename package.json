@@ -44,7 +44,6 @@
     "lit-element": "^2.1.0",
     "lodash": "^4.17.11",
     "md5-file": "^4.0.0",
-    "mixpanel": "^0.10.2",
     "mkdirp": "^0.5.1",
     "moment": "^2.24.0",
     "node-html-parser": "^1.1.15",

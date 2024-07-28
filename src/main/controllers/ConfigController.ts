@@ -4,7 +4,7 @@ import * as mkdirp from "mkdirp";
 import {IConfig} from "../../common/models/IConfig";
 import {URL} from "url";
 import AppGlobal from "../helpers/AppGlobal";
-import MixPanelService from "../services/MixPanelService";
+// import MixPanelService from "../services/MixPanelService";
 import ProxyService from "../services/ProxyService";
 
 const RO_FOLDER = path.join(process.env.APPDATA || "", "Rooster-X");

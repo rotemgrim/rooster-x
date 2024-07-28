@@ -2,7 +2,7 @@ import {Menu, Tray, nativeImage} from "electron";
 import AppController from "../controllers/AppController";
 import WindowManager from "../services/WindowManager";
 import MenuItemConstructorOptions = Electron.MenuItemConstructorOptions;
-import MixPanelService from "../services/MixPanelService";
+// import MixPanelService from "../services/MixPanelService";
 import {icon} from "../../common/static";
 
 let tray: Tray;
@@ -20,7 +20,7 @@ export default class TrayBuilder {
         {
             label: "Quit",
             click: () => {
-                MixPanelService.track("Quit", "AppIcon Menu");
+                // MixPanelService.track("Quit", "AppIcon Menu");
                 AppController.quit();
             },
         },
