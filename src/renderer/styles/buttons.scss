@@ -18,8 +18,8 @@
   content: "";
   width: 0;
   height: 0;
-  border-bottom: ($posterWidth / 3) solid transparent;
-  border-left: ($posterWidth / 3) solid transparent;
+  border-bottom: calc($posterWidth / 3) solid transparent;
+  border-left: calc($posterWidth / 3) solid transparent;
   z-index: 1;
   transition: all 0.5s;
   cursor: pointer;
@@ -48,7 +48,7 @@
   }
 
   &:hover {
-    border-bottom: ($posterWidth / 3) solid #8b7638;
+    border-bottom: calc($posterWidth / 3) solid #8b7638;
     &:after {
       opacity: 1;
     }
@@ -57,7 +57,7 @@
 
 .poster {
   &:hover .watch-btn {
-    border-bottom: ($posterWidth / 3) solid #8b7638;
+    border-bottom: calc($posterWidth / 3) solid #8b7638;
     &:after {
       opacity: 1;
     }
@@ -85,7 +85,7 @@
   }
 
   .watch-btn {
-    border-bottom: ($posterWidth / 3) solid #8b7638;
+    border-bottom: calc($posterWidth / 3) solid #8b7638;
     &:after {
       opacity: 1;
     }

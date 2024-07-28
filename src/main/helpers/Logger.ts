@@ -31,7 +31,7 @@ const prettyPrint = (data) => {
 };
 
 // Define your custom format with printf.
-const myFormat = format.printf((info) => {
+const myFormat = format.printf((info: any) => {
     const data: any = info.message;
     if (data && data.length > 1 && typeof data[0] === "string") {
         return `${info.timestamp} | ${info.level}: ${data[0]} -> ${prettyPrint(data[1])}`;
