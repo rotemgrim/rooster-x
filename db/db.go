@@ -1,20 +1,28 @@
 package db
 
 import (
-	"github.com/ncruces/go-sqlite3"
+	"database/sql"
 	_ "github.com/ncruces/go-sqlite3/embed"
 	"log"
+	"reflect"
 )
 
 const filename = "db.sqlite" // ":memory:"
 
+//var MediaRepo MediaRepo
+
+var DB *sql.DB
+
 func Init() {
-	db, err := sqlite3.Open(filename)
+	DB, err := sql.Open("sqlite3", filename)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	createTablesIfNotExist(db)
+	createTablesIfNotExist(DB)
+
+	// initiate Media repository
+	//MediaRepo = new MediaRepo{db: db}
 
 	//err = db.Exec(`INSERT INTO users (id, name) VALUES (0, 'go'), (1, 'zig'), (2, 'whatever')`)
 	//if err != nil {
@@ -43,4 +51,15 @@ func Init() {
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
+}
+
+func scanStruct(rows *sql.Rows, dest interface{}) error {
+	v := reflect.ValueOf(dest).Elem()
+	values := make([]interface{}, v.NumField())
+
+	for i := 0; i < v.NumField(); i++ {
+		values[i] = v.Field(i).Addr().Interface()
+	}
+
+	return rows.Scan(values...)
 }

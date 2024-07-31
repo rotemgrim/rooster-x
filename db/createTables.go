@@ -1,11 +1,11 @@
 package db
 
 import (
-	"github.com/ncruces/go-sqlite3"
+	"database/sql"
 	"log"
 )
 
-func createTablesIfNotExist(db *sqlite3.Conn) {
+func createTablesIfNotExist(db *sql.DB) {
 	createAbsMetaDataTable(db)
 	createMetaDataTable(db)
 	createAliasTable(db)
@@ -18,8 +18,8 @@ func createTablesIfNotExist(db *sqlite3.Conn) {
 	createUserMetaDataTable(db)
 }
 
-func createAbsMetaDataTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS AbsMetaData (
+func createAbsMetaDataTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS AbsMetaData (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title VARCHAR(255) COLLATE NOCASE,
 		imdbId VARCHAR(40) UNIQUE,
@@ -46,8 +46,8 @@ func createAbsMetaDataTable(db *sqlite3.Conn) {
 	}
 }
 
-func createMetaDataTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS MetaData (
+func createMetaDataTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS MetaData (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title VARCHAR(255) COLLATE NOCASE,
 		imdbId VARCHAR(40) UNIQUE,
@@ -77,8 +77,8 @@ func createMetaDataTable(db *sqlite3.Conn) {
 	}
 }
 
-func createAliasTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS Alias (
+func createAliasTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Alias (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		alias VARCHAR(255) COLLATE NOCASE UNIQUE,
 		realTitle VARCHAR(255) COLLATE NOCASE,
@@ -90,8 +90,8 @@ func createAliasTable(db *sqlite3.Conn) {
 	}
 }
 
-func createEpisodeTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS Episode (
+func createEpisodeTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Episode (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title VARCHAR(255) COLLATE NOCASE,
     imdbId VARCHAR(40) UNIQUE,
@@ -121,8 +121,8 @@ func createEpisodeTable(db *sqlite3.Conn) {
 	}
 }
 
-func createGenreTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS Genre (
+func createGenreTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Genre (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		type VARCHAR(255) UNIQUE
 	)`)
@@ -131,8 +131,8 @@ func createGenreTable(db *sqlite3.Conn) {
 	}
 }
 
-func createMediaFileTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS MediaFile (
+func createMediaFileTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS MediaFile (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		raw TEXT,
 		path TEXT COLLATE NOCASE UNIQUE,
@@ -161,8 +161,8 @@ func createMediaFileTable(db *sqlite3.Conn) {
 	}
 }
 
-func createTorrentFileTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS TorrentFile (
+func createTorrentFileTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS TorrentFile (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		raw TEXT,
 		title TEXT,
@@ -191,8 +191,8 @@ func createTorrentFileTable(db *sqlite3.Conn) {
 	}
 }
 
-func createUserTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS User (
+func createUserTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS User (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		firstName VARCHAR(255),
 		lastName VARCHAR(255),
@@ -206,8 +206,8 @@ func createUserTable(db *sqlite3.Conn) {
 	}
 }
 
-func createUserEpisodeTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS UserEpisode (
+func createUserEpisodeTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS UserEpisode (
 		userId INTEGER,
 		episodeId INTEGER,
 		isWatched BOOLEAN,
@@ -220,8 +220,8 @@ func createUserEpisodeTable(db *sqlite3.Conn) {
 	}
 }
 
-func createUserMetaDataTable(db *sqlite3.Conn) {
-	err := db.Exec(`CREATE TABLE IF NOT EXISTS UserMetaData (
+func createUserMetaDataTable(db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS UserMetaData (
 		userId INTEGER,
 		metaDataId INTEGER,
 		isWatched BOOLEAN,

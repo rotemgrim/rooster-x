@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"go-poc/db"
 	"go-poc/scheduler"
+	"go-poc/walker"
 )
 
 func main() {
@@ -11,10 +11,8 @@ func main() {
 	db.Init()
 	scheduler.Init()
 
-	scheduler.Schedule("12 20 * * *", func() {
-		// Your custom logic here
-		fmt.Println("Running the scheduled task at 20:00!")
-	})
+	go walker.FullSweep()
+	// scheduler.Schedule("10 21 * * *", walker.FullSweep)
 
 	select {}
 }
