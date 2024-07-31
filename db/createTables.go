@@ -1,0 +1,235 @@
+package db
+
+import (
+	"github.com/ncruces/go-sqlite3"
+	"log"
+)
+
+func createTablesIfNotExist(db *sqlite3.Conn) {
+	createAbsMetaDataTable(db)
+	createMetaDataTable(db)
+	createAliasTable(db)
+	createGenreTable(db)
+	createEpisodeTable(db)
+	createMediaFileTable(db)
+	createTorrentFileTable(db)
+	createUserTable(db)
+	createUserEpisodeTable(db)
+	createUserMetaDataTable(db)
+}
+
+func createAbsMetaDataTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS AbsMetaData (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title VARCHAR(255) COLLATE NOCASE,
+		imdbId VARCHAR(40) UNIQUE,
+		genres TEXT,
+		languages TEXT,
+		country TEXT,
+		votes INTEGER,
+		series BOOLEAN,
+		rating REAL,
+		runtime INTEGER,
+		"year" INTEGER,
+		poster TEXT,
+		metascore TEXT,
+		plot TEXT,
+		director VARCHAR,
+		writer VARCHAR,
+		actors TEXT,
+		released VARCHAR(255),
+		released_unix INTEGER,
+		trailer TEXT
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createMetaDataTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS MetaData (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title VARCHAR(255) COLLATE NOCASE,
+		imdbId VARCHAR(40) UNIQUE,
+		genres TEXT,
+		languages TEXT,
+		country TEXT,
+		votes INTEGER,
+		series BOOLEAN,
+		rating REAL,
+		runtime INTEGER,
+		year INTEGER,
+		poster TEXT,
+		metascore TEXT,
+		plot TEXT,
+		director VARCHAR,
+		writer VARCHAR,
+		actors TEXT,
+		released VARCHAR(255),
+		released_unix INTEGER,
+		trailer TEXT,
+		type VARCHAR(40),
+		name VARCHAR(255),
+		status VARCHAR(10) DEFAULT 'not-scanned'
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createAliasTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS Alias (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		alias VARCHAR(255) COLLATE NOCASE UNIQUE,
+		realTitle VARCHAR(255) COLLATE NOCASE,
+		metaDataId INTEGER,
+		FOREIGN KEY (metaDataId) REFERENCES MetaData(id)
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createEpisodeTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS Episode (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title VARCHAR(255) COLLATE NOCASE,
+    imdbId VARCHAR(40) UNIQUE,
+    genres TEXT,
+    languages TEXT,
+    country TEXT,
+    votes INTEGER,
+    series BOOLEAN,
+    rating REAL,
+    runtime INTEGER,
+    year INTEGER,
+    poster TEXT,
+    metascore TEXT,
+    plot TEXT,
+    director VARCHAR,
+    writer VARCHAR,
+    actors TEXT,
+    released VARCHAR(255),
+    released_unix INTEGER,
+    trailer TEXT,
+    season INTEGER,
+    episode INTEGER,
+    imdbSeriesId VARCHAR(255)
+)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createGenreTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS Genre (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		type VARCHAR(255) UNIQUE
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createMediaFileTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS MediaFile (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		raw TEXT,
+		path TEXT COLLATE NOCASE UNIQUE,
+		hash VARCHAR(40),
+		metaDataId INTEGER,
+		episodeId INTEGER,
+		year INTEGER,
+		resolution VARCHAR(40),
+		quality VARCHAR(40),
+		codec VARCHAR(40),
+		audio VARCHAR(40),
+		"group" VARCHAR(40),
+		region VARCHAR(40),
+		language VARCHAR(40),
+		extended BOOLEAN DEFAULT 0,
+		hardcoded BOOLEAN DEFAULT 0,
+		proper BOOLEAN DEFAULT 0,
+		repack BOOLEAN DEFAULT 0,
+		wideScreen BOOLEAN DEFAULT 0,
+		downloadedAt DATETIME,
+		FOREIGN KEY (metaDataId) REFERENCES MetaData(id),
+		FOREIGN KEY (episodeId) REFERENCES Episode(id)
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createTorrentFileTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS TorrentFile (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		raw TEXT,
+		title TEXT,
+		magnet TEXT COLLATE NOCASE UNIQUE,
+		metaDataId INTEGER,
+		episodeId INTEGER,
+		year INTEGER,
+		resolution VARCHAR(40),
+		quality VARCHAR(40),
+		codec VARCHAR(40),
+		audio VARCHAR(40),
+		"group" VARCHAR(40),
+		region VARCHAR(40),
+		language VARCHAR(40),
+		extended BOOLEAN DEFAULT 0,
+		hardcoded BOOLEAN DEFAULT 0,
+		proper BOOLEAN DEFAULT 0,
+		repack BOOLEAN DEFAULT 0,
+		wideScreen BOOLEAN DEFAULT 0,
+		uploadedAt INTEGER,
+		FOREIGN KEY (metaDataId) REFERENCES MetaData(id),
+  		FOREIGN KEY (episodeId) REFERENCES Episode(id)
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createUserTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS User (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		firstName VARCHAR(255),
+		lastName VARCHAR(255),
+		password TEXT,
+		isAdmin BOOLEAN
+	);
+	INSERT INTO User (firstName, lastName, password, isAdmin) VALUES ('admin', 'admin', 'admin', 1);
+	`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createUserEpisodeTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS UserEpisode (
+		userId INTEGER,
+		episodeId INTEGER,
+		isWatched BOOLEAN,
+		FOREIGN KEY (userId) REFERENCES User(id),
+		FOREIGN KEY (episodeId) REFERENCES Episode(id),
+		PRIMARY KEY (userId, episodeId)
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createUserMetaDataTable(db *sqlite3.Conn) {
+	err := db.Exec(`CREATE TABLE IF NOT EXISTS UserMetaData (
+		userId INTEGER,
+		metaDataId INTEGER,
+		isWatched BOOLEAN,
+		FOREIGN KEY (userId) REFERENCES User(id),
+		FOREIGN KEY (metaDataId) REFERENCES MetaData(id),
+		PRIMARY KEY (userId, metaDataId)
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
