@@ -19,7 +19,7 @@ func createTablesIfNotExist(db *sql.DB) {
 }
 
 func createAbsMetaDataTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS AbsMetaData (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS absMetaData (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title VARCHAR(255) COLLATE NOCASE,
 		imdbId VARCHAR(40) UNIQUE,
@@ -47,7 +47,7 @@ func createAbsMetaDataTable(db *sql.DB) {
 }
 
 func createMetaDataTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS MetaData (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS metaData (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title VARCHAR(255) COLLATE NOCASE,
 		imdbId VARCHAR(40) UNIQUE,
@@ -78,12 +78,12 @@ func createMetaDataTable(db *sql.DB) {
 }
 
 func createAliasTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Alias (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS alias (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		alias VARCHAR(255) COLLATE NOCASE UNIQUE,
 		realTitle VARCHAR(255) COLLATE NOCASE,
 		metaDataId INTEGER,
-		FOREIGN KEY (metaDataId) REFERENCES MetaData(id)
+		FOREIGN KEY (metaDataId) REFERENCES metaData(id)
 	)`)
 	if err != nil {
 		log.Fatal(err)
@@ -91,7 +91,7 @@ func createAliasTable(db *sql.DB) {
 }
 
 func createEpisodeTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Episode (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS episode (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title VARCHAR(255) COLLATE NOCASE,
     imdbId VARCHAR(40) UNIQUE,
@@ -122,7 +122,7 @@ func createEpisodeTable(db *sql.DB) {
 }
 
 func createGenreTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS Genre (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS genre (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		type VARCHAR(255) UNIQUE
 	)`)
@@ -132,7 +132,7 @@ func createGenreTable(db *sql.DB) {
 }
 
 func createMediaFileTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS MediaFile (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS mediaFile (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		raw TEXT,
 		path TEXT COLLATE NOCASE UNIQUE,
@@ -153,8 +153,8 @@ func createMediaFileTable(db *sql.DB) {
 		repack BOOLEAN DEFAULT 0,
 		wideScreen BOOLEAN DEFAULT 0,
 		downloadedAt DATETIME,
-		FOREIGN KEY (metaDataId) REFERENCES MetaData(id),
-		FOREIGN KEY (episodeId) REFERENCES Episode(id)
+		FOREIGN KEY (metaDataId) REFERENCES metaData(id),
+		FOREIGN KEY (episodeId) REFERENCES episode(id)
 	)`)
 	if err != nil {
 		log.Fatal(err)
@@ -162,7 +162,7 @@ func createMediaFileTable(db *sql.DB) {
 }
 
 func createTorrentFileTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS TorrentFile (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS torrentFile (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		raw TEXT,
 		title TEXT,
@@ -183,8 +183,8 @@ func createTorrentFileTable(db *sql.DB) {
 		repack BOOLEAN DEFAULT 0,
 		wideScreen BOOLEAN DEFAULT 0,
 		uploadedAt INTEGER,
-		FOREIGN KEY (metaDataId) REFERENCES MetaData(id),
-  		FOREIGN KEY (episodeId) REFERENCES Episode(id)
+		FOREIGN KEY (metaDataId) REFERENCES metaData(id),
+  		FOREIGN KEY (episodeId) REFERENCES episode(id)
 	)`)
 	if err != nil {
 		log.Fatal(err)
@@ -192,14 +192,14 @@ func createTorrentFileTable(db *sql.DB) {
 }
 
 func createUserTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS User (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS user (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		firstName VARCHAR(255),
 		lastName VARCHAR(255),
 		password TEXT,
 		isAdmin BOOLEAN
 	);
-	INSERT INTO User (firstName, lastName, password, isAdmin) VALUES ('admin', 'admin', 'admin', 1);
+	INSERT INTO user (firstName, lastName, password, isAdmin) VALUES ('admin', 'admin', 'admin', 1);
 	`)
 	if err != nil {
 		log.Fatal(err)
@@ -207,12 +207,12 @@ func createUserTable(db *sql.DB) {
 }
 
 func createUserEpisodeTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS UserEpisode (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS userEpisode (
 		userId INTEGER,
 		episodeId INTEGER,
 		isWatched BOOLEAN,
-		FOREIGN KEY (userId) REFERENCES User(id),
-		FOREIGN KEY (episodeId) REFERENCES Episode(id),
+		FOREIGN KEY (userId) REFERENCES user(id),
+		FOREIGN KEY (episodeId) REFERENCES episode(id),
 		PRIMARY KEY (userId, episodeId)
 	)`)
 	if err != nil {
@@ -221,12 +221,12 @@ func createUserEpisodeTable(db *sql.DB) {
 }
 
 func createUserMetaDataTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS UserMetaData (
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS userMetaData (
 		userId INTEGER,
 		metaDataId INTEGER,
 		isWatched BOOLEAN,
-		FOREIGN KEY (userId) REFERENCES User(id),
-		FOREIGN KEY (metaDataId) REFERENCES MetaData(id),
+		FOREIGN KEY (userId) REFERENCES user(id),
+		FOREIGN KEY (metaDataId) REFERENCES metaData(id),
 		PRIMARY KEY (userId, metaDataId)
 	)`)
 	if err != nil {

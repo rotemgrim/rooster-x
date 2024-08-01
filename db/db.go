@@ -1,10 +1,14 @@
 package db
 
 import (
+	"context"
 	"database/sql"
-	_ "github.com/ncruces/go-sqlite3/embed"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"go-poc/models"
 	"log"
+	_ "modernc.org/sqlite"
 	"reflect"
+	"time"
 )
 
 const filename = "db.sqlite" // ":memory:"
@@ -12,14 +16,25 @@ const filename = "db.sqlite" // ":memory:"
 //var MediaRepo MediaRepo
 
 var DB *sql.DB
+var CTX context.Context
 
 func Init() {
-	DB, err := sql.Open("sqlite3", filename)
+	DB, err := sql.Open("sqlite", filename)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	createTablesIfNotExist(DB)
+
+	// Create a context with a timeout
+	CTX, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	boil.SetDB(DB)
+
+	users := models.Users().AllGP(CTX)
+	for _, t := range users {
+		log.Println(t)
+	}
 
 	// initiate Media repository
 	//MediaRepo = new MediaRepo{db: db}
