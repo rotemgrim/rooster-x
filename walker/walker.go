@@ -19,26 +19,51 @@ var includeExtensions = []string{"mkv", "avi", "3g2", "3gp", "aaf", "asf", "avch
 	"mpv", "mxf", "nsv", "ogg", "ogv", "qt", "rm", "rmvb", "roq", "svi",
 	"vob", "webm", "wmv"}
 
-func FullSweep() ([]*ptn.TorrentInfo, error) {
+type FileEntry struct {
+	m *ptn.TorrentInfo
+	s os.FileInfo
+}
+
+func FullSweep() {
 
 	if checkIfSweepIsRunning() {
-		return nil, nil
+		return
 	}
 	defer os.Remove("sweep.lock")
 
 	fmt.Println("Starting full sweep")
 
-	videos, err := getTorrents(dir)
+	entries, err := getTorrents(dir)
 	if err != nil {
 		fmt.Println("Error getting torrents")
-		return nil, err
+		return
 	}
 
-	return videos, nil
+	fmt.Println("Number of entries END: ", len(entries))
+	// get all movies from metadata
+	//movies := m.MetaData(m.MetaDatumWhere.Type.EQ(`movie`)).AllGP(db.CTX)
+	//
+	//// get all tv shows from metadata
+	//tvShows := m.MetaData(qm.Where(`type=?`, `series`)).AllGP(db.CTX)
+	//
+	//// get all episodes from episodes
+	//episodes := m.Episodes().AllGP(db.CTX)
+	//
+	//// get all files from files
+	//files := m.MediaFiles(qm.Select("id", "hash", "path")).AllGP(db.CTX)
+	//
+	//for _, entry := range entries {
+	//	fullPath := entry.s.Name()
+	//
+	//	// add genres to db
+	//	for _, genre := range entry.m.Genres {
+	//		m.Genres(m.GenreWhere.Name.EQ(genre)).InsertGP(db.CTX, db.DB, m.GenreColumns.Name)
+	//	}
+	//}
 }
 
-func getTorrents(dir string) ([]*ptn.TorrentInfo, error) {
-	var result []*ptn.TorrentInfo
+func getTorrents(dir string) ([]FileEntry, error) {
+	var result []FileEntry
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -78,7 +103,8 @@ func getTorrents(dir string) ([]*ptn.TorrentInfo, error) {
 			// print the number of torrents to console without adding a newline
 			fmt.Printf("\rNumber of torrents found: %d", len(result))
 
-			result = append(result, tor)
+			entry := FileEntry{m: tor, s: info}
+			result = append(result, entry)
 		}
 
 		return nil
