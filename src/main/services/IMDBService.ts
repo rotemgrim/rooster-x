@@ -15,15 +15,21 @@ export default class IMDBService {
 
     public static search(opt: IGetOptions): Promise<IOmdbSearchResult> {
         console.log("get query", opt);
-        let url = `http://www.omdbapi.com/?apikey=${IMDBService.apiKey}`;
-        if (opt.title) {url += `&s=${opt.title}`; }
-        if (opt.type) {url += `&type=${opt.type}`; }// movie, series, episode
-        if (opt.year) {url += `&y=${opt.year}`; }
-        if (opt.episode) {url += `&Episode=${opt.episode}`; }
-        if (opt.season) {url += `&Season=${opt.season}`; }
-        if (opt.plot) {url += `&plot=${opt.plot}`; }
-        else {url += `&plot=full`; }
-        console.log("omdb url", url);
+        let url = `https://api.themoviedb.org/3/`;
+        switch (opt.type) {
+            case "movie": url += "movie/"; break;
+            case "series": url += "tv/"; break;
+            // case "episode": url += "tv/57532/season/1/episode/2?language=en-US' \\\n"; break;
+        }
+
+        url += `?query=${opt.title}`;
+        url += `&include_adult=false`;
+        url += `&language=en-US`;
+        if (opt.year) { url += `&year=${opt.year}`; }
+
+        url += `&api_key=${IMDBService.apiKey}`;
+
+        console.log("tmdb url", url);
         return IMDBService.sendQuery("get", url);
     }
 

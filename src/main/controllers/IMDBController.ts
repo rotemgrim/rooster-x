@@ -111,7 +111,7 @@ export default class IMDBController {
     public static searchMetaDataFromInternet(payload):
     Promise<any> {
         return new Promise((resolve, reject) => {
-            IMDBService.setApiKey(AppGlobal.getConfig().omdbApiKey);
+            IMDBService.setApiKey(AppGlobal.getConfig().tmdbApiKey);
             IMDBService.search(payload).then(res => {
                 const answerArr: IOmdbSearchEntity[] = [];
                 if (res.Response === "True" && res.Search.length > 0)  {
@@ -126,7 +126,7 @@ export default class IMDBController {
 
     public static getMetaDataFromInternet(payload: IGetOptions): Promise<IOmdbEntity> {
         return new Promise((resolve, reject) => {
-            IMDBService.setApiKey(AppGlobal.getConfig().omdbApiKey);
+            IMDBService.setApiKey(AppGlobal.getConfig().tmdbApiKey);
             IMDBService.get(payload).then(resolve).catch(reject);
         });
     }
@@ -146,7 +146,7 @@ export default class IMDBController {
                 if (metaData.imdbId) {
                     payload = Object.assign(payload, {imdbId: metaData.imdbId});
                 }
-                IMDBService.setApiKey(AppGlobal.getConfig().omdbApiKey);
+                IMDBService.setApiKey(AppGlobal.getConfig().tmdbApiKey);
                 IMDBService.get(payload).then(resolve).catch(reject);
             }
         });

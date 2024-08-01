@@ -1,6 +1,6 @@
 
 import {LitElement, html, customElement, property} from "lit-element";
-import {TorrentFile} from "../../entity/TorrentFile";
+import {type TorrentFile} from "../../entity/TorrentFile";
 import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";
 

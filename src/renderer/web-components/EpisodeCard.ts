@@ -1,13 +1,13 @@
 
 import {LitElement, html, customElement, property} from "lit-element";
 import {IpcService} from "../services/ipc.service";
-import {MediaFile} from "../../entity/MediaFile";
+import {type MediaFile} from "../../entity/MediaFile";
 import {VideoDetails} from "./VideoDetails";
 import "./MediaFileCard";
 import "./TorrentFileCard";
 import {IEpisodeExtended} from "../../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
-import {TorrentFile} from "../../entity/TorrentFile";
+import {type TorrentFile} from "../../entity/TorrentFile";
 
 @customElement("episode-card")
 export class EpisodeCard extends LitElement {

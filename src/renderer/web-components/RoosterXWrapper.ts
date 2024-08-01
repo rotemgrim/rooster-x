@@ -4,7 +4,7 @@ import "./RoosterX";
 import "./SelectDataBase";
 import "./UserLogin";
 import {IConfig} from "../../common/models/IConfig";
-import {User} from "../../entity/User";
+import {type User} from "../../entity/User";
 
 @customElement("rooster-x-wrapper")
 export class RoosterXWrapper extends LitElement {

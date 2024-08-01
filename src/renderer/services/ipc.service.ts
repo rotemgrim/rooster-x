@@ -2,9 +2,9 @@ import {RendererPromiseIpc} from "../../common/lib/ipcPromise/RendererPromiseIpc
 import {ipcRenderer} from "electron";
 import {IConfig} from "../../common/models/IConfig";
 import {URL} from "url";
-import {User} from "../../entity/User";
-import {MetaData} from "../../entity/MetaData";
-import {Episode} from "../../entity/Episode";
+import {type User} from "../../entity/User";
+import {type MetaData} from "../../entity/MetaData";
+import {type Episode} from "../../entity/Episode";
 
 const promiseIpc = new RendererPromiseIpc({ maxTimeoutMs: 120000 });
 

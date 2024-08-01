@@ -82,6 +82,7 @@ export async function uploadDbFile(): Promise<any> {
 export async function copyDbFile(): Promise<any> {
     WindowManager.getMainWindow().send("sweep-update", {status: "Downloading Media From DataBase...", count: ""});
     const config = AppGlobal.getConfig();
+    console.log("config", config);
     if (config.dbPath) {
         let dbPath: string = config.dbPath;
         const dbp = path.join(dbPath, "database.sqlite");

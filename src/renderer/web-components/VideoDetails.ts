@@ -1,7 +1,6 @@
 
 import {LitElement, html, customElement, property} from "lit-element";
 import {IpcService} from "../services/ipc.service";
-import {MetaData} from "../../entity/MetaData";
 import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
@@ -9,8 +8,9 @@ import "./TorrentFileCard";
 import "./DidWatched";
 import {IEpisodeExtended, IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
-import {Episode} from "../../entity/Episode";
-import {MediaFile} from "../../entity/MediaFile";
+import {type MetaData} from "../../entity/MetaData";
+import {type Episode} from "../../entity/Episode";
+import {type MediaFile} from "../../entity/MediaFile";
 import * as _ from "lodash";
 import {IOmdbSearchEntity} from "../../main/services/IMDBService";
 

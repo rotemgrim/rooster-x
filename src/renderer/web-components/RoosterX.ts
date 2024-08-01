@@ -5,17 +5,17 @@ import "./TopBar";
 import "./VideoCard";
 import "./FiltersPage";
 import "./SettingsPage";
-import {MetaData} from "../../entity/MetaData";
+import {type MetaData} from "../../entity/MetaData";
 import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
-import {User} from "../../entity/User";
+import {type User} from "../../entity/User";
 import {IConfig} from "../../common/models/IConfig";
 import {RoosterXWrapper} from "./RoosterXWrapper";
 import {List} from "linqts";
 import * as _ from "lodash";
-import {MediaFile} from "../../entity/MediaFile";
+import {type MediaFile} from "../../entity/MediaFile";
 import {isStringContains} from "../../main/helpers/Utils";
 import {ipcRenderer} from "electron";
-import {TorrentFile} from "../../entity/TorrentFile";
+import {type TorrentFile} from "../../entity/TorrentFile";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {

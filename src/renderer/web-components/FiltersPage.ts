@@ -3,7 +3,7 @@ import {css, LitElement, html, customElement, property} from "lit-element";
 import {RoosterX} from "./RoosterX";
 import "./multiselect.html";
 import {IpcService} from "../services/ipc.service";
-import {Genre} from "../../entity/Genre";
+import {type Genre} from "../../entity/Genre";
 
 @customElement("filters-page")
 export class FiltersPage extends LitElement {

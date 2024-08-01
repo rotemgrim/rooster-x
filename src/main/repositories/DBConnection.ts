@@ -1,4 +1,4 @@
-import {createConnection} from "typeorm";
+import {createConnection, DataSource} from "typeorm";
 import {User} from "../../entity/User";
 import {MediaFile} from "../../entity/MediaFile";
 import {MetaData} from "../../entity/MetaData";
@@ -21,13 +21,14 @@ export default class DBConnection {
             const config = AppGlobal.getConfig();
             if (config.dbPath) {
                 const localDb = path.join(app.getPath("appData"), "rooster-x", "db.sqlite");
+                console.log("localDb", localDb);
                 if (!fs.existsSync(localDb)) {
                     await copyDbFile();
                 }
-                await createConnection({
-                    name: "reading",
-                    type: "sqlite",
-                    database: localDb,
+                const readingDB = new DataSource({
+                    // name: "reading",
+                    type: "sqljs", // "sqlite",
+                    location: localDb,
                     entities: [
                         Alias,
                         User,
@@ -40,7 +41,8 @@ export default class DBConnection {
                         TorrentFile,
                     ],
                     synchronize: false,
-                }).then(() => {
+                });
+                await readingDB.initialize().then(() => {
                     console.info("db connection made");
                     resolve();
                 }).catch(e => {

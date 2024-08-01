@@ -6,7 +6,7 @@ export interface IConfig {
     keepWindowsAlive?: boolean;
     proxySettings?: IProxySettingsPayload;
     dbPath?: string;
-    omdbApiKey?: string;
+    tmdbApiKey?: string;
     userId?: number;
     isAdmin?: boolean;
 }

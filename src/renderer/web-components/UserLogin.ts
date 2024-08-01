@@ -2,7 +2,7 @@
 import {LitElement, html, customElement, property} from "lit-element";
 import {IpcService} from "../services/ipc.service";
 import {RoosterXWrapper} from "./RoosterXWrapper";
-import {User} from "../../entity/User";
+import {type User} from "../../entity/User";
 import AppGlobal from "../../main/helpers/AppGlobal";
 
 @customElement("user-login")
@@ -70,7 +70,7 @@ export class UserLogin extends LitElement {
     }
 
     public createAdmin() {
-        const user = new User();
+        const user = {} as User;
         user.firstName = this.firstName;
         user.lastName = this.lastName;
         user.password = this.password;

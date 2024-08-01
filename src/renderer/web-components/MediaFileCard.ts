@@ -1,6 +1,6 @@
 
 import {LitElement, html, customElement, property} from "lit-element";
-import {MediaFile} from "../../entity/MediaFile";
+import {type MediaFile} from "../../entity/MediaFile";
 import {shell} from "electron";
 import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";

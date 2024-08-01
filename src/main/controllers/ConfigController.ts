@@ -96,7 +96,7 @@ export default class ConfigController {
                     serverUrl: new URL(tmpData.serverUrl),
                     keepWindowsAlive: tmpData.keepWindowsAlive !== undefined ? tmpData.keepWindowsAlive : true,
                     dbPath: tmpData.dbPath !== undefined ? tmpData.dbPath : "",
-                    omdbApiKey: tmpData.omdbApiKey !== undefined ? tmpData.omdbApiKey : "",
+                    tmdbApiKey: tmpData.tmdbApiKey !== undefined ? tmpData.tmdbApiKey : "",
                     userId: tmpData.userId !== undefined ? tmpData.userId : 0,
                     isAdmin: tmpData.isAdmin !== undefined ? tmpData.isAdmin : false,
                 };
@@ -114,7 +114,7 @@ export default class ConfigController {
                 serverUrl: new URL("http://127.0.0.1"),
                 keepWindowsAlive: true,
                 dbPath: "",
-                omdbApiKey: "",
+                tmdbApiKey: "",
                 userId: 0,
                 isAdmin: false,
             };

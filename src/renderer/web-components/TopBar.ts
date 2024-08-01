@@ -1,5 +1,5 @@
 
-import {css, LitElement, html, customElement, property} from "lit-element";
+import {LitElement, html, customElement, property} from "lit-element";
 import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";
 import * as score from "string-score";

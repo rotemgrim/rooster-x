@@ -1,7 +1,5 @@
 
-import {css, LitElement, html, customElement, property} from "lit-element";
-import {IpcService} from "../services/ipc.service";
-import {MetaData} from "../../entity/MetaData";
+import {LitElement, html, customElement, property} from "lit-element";
 import "./VideoDetails";
 import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
