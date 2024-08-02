@@ -1,8 +1,17 @@
 package walker
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	ptn "github.com/middelink/go-parse-torrent-name"
+	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"go-poc/db"
+	m "go-poc/models"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -33,7 +42,7 @@ func FullSweep() {
 
 	fmt.Println("Starting full sweep")
 
-	entries, err := getTorrents(dir)
+	entries, err := getMediaFilesFromDisk(dir)
 	if err != nil {
 		fmt.Println("Error getting torrents")
 		return
@@ -50,20 +59,41 @@ func FullSweep() {
 	//episodes := m.Episodes().AllGP(db.CTX)
 	//
 	//// get all files from files
-	//files := m.MediaFiles(qm.Select("id", "hash", "path")).AllGP(db.CTX)
-	//
-	//for _, entry := range entries {
-	//	fullPath := entry.s.Name()
-	//
-	//	// add genres to db
-	//	for _, genre := range entry.m.Genres {
-	//		m.Genres(m.GenreWhere.Name.EQ(genre)).InsertGP(db.CTX, db.DB, m.GenreColumns.Name)
-	//	}
-	//}
+	files := m.MediaFiles(qm.Select("id", "hash", "path")).AllGP(db.CTX)
+
+	for _, entry := range entries {
+		fullPath := entry.Raw.String
+
+		// add genres to db
+		//for _, genre := range entry.m.Genres {
+		//	m.Genres(m.GenreWhere.Name.EQ(genre)).InsertGP(db.CTX, db.DB, m.GenreColumns.Name)
+		//}
+
+		// skip if path exist
+		if fileExists(fullPath, files) {
+			continue
+		}
+
+		ctx := context.Background()
+		err := entry.InsertG(ctx, boil.Infer())
+		if err != nil {
+			fmt.Println("Error inserting file", err)
+		}
+	}
+	fmt.Println("done adding files to db")
 }
 
-func getTorrents(dir string) ([]FileEntry, error) {
-	var result []FileEntry
+func fileExists(path string, files m.MediaFileSlice) bool {
+	for _, file := range files {
+		if file.Path.String == path {
+			return true
+		}
+	}
+	return false
+}
+
+func getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
+	var result []m.MediaFile
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -103,8 +133,36 @@ func getTorrents(dir string) ([]FileEntry, error) {
 			// print the number of torrents to console without adding a newline
 			fmt.Printf("\rNumber of torrents found: %d", len(result))
 
-			entry := FileEntry{m: tor, s: info}
-			result = append(result, entry)
+			// calculate checksum
+			//hash, err := hashFile(path)
+			//if err != nil {
+			//	return nil
+			//}
+
+			mf := m.MediaFile{
+				Raw:  null.StringFrom(path),
+				Path: null.StringFrom(strings.ToLower(path)),
+				//Hash: null.StringFrom(hash),
+				Size: null.Int64From(info.Size()),
+				//MetaDataId:   null.Int64{},
+				//EpisodeId:    null.Int64{},
+
+				Year:         null.Int64From(int64(tor.Year)),
+				Resolution:   null.StringFrom(tor.Resolution),
+				Quality:      null.StringFrom(tor.Quality),
+				Codec:        null.StringFrom(tor.Codec),
+				Audio:        null.StringFrom(tor.Audio),
+				Group:        null.StringFrom(tor.Group),
+				Region:       null.StringFrom(tor.Region),
+				Language:     null.StringFrom(tor.Language),
+				Extended:     null.BoolFrom(tor.Extended),
+				Hardcoded:    null.BoolFrom(tor.Hardcoded),
+				Proper:       null.BoolFrom(tor.Proper),
+				Repack:       null.BoolFrom(tor.Repack),
+				WideScreen:   null.BoolFrom(tor.Widescreen),
+				DownloadedAt: null.TimeFrom(info.ModTime()),
+			}
+			result = append(result, mf)
 		}
 
 		return nil
@@ -117,6 +175,22 @@ func getTorrents(dir string) ([]FileEntry, error) {
 	// print the number of torrents found
 	fmt.Println("\rNumber of torrents found: ", len(result))
 	return result, nil
+}
+
+func hashFile(path string) (string, error) {
+	// open the file
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Println("Error opening file")
+		return "", err
+	}
+	defer file.Close()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+	// return the hash
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func checkIfSweepIsRunning() bool {

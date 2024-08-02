@@ -179,7 +179,7 @@ func (w whereHelpernull_Int64) IsNotNull() qm.QueryMod { return qmhelper.WhereIs
 
 type whereHelpernull_String struct{ field string }
 
-func (w whereHelpernull_String) EQ(x string) qm.QueryMod {
+func (w whereHelpernull_String) EQ(x null.String) qm.QueryMod {
 	return qmhelper.WhereNullEQ(w.field, false, x)
 }
 func (w whereHelpernull_String) NEQ(x null.String) qm.QueryMod {

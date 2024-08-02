@@ -28,6 +28,7 @@ type MediaFile struct {
 	Raw          null.String `boil:"raw" json:"raw,omitempty" toml:"raw" yaml:"raw,omitempty"`
 	Path         null.String `boil:"path" json:"path,omitempty" toml:"path" yaml:"path,omitempty"`
 	Hash         null.String `boil:"hash" json:"hash,omitempty" toml:"hash" yaml:"hash,omitempty"`
+	Size         null.Int64  `boil:"size" json:"size,omitempty" toml:"size" yaml:"size,omitempty"`
 	MetaDataId   null.Int64  `boil:"metaDataId" json:"metaDataId,omitempty" toml:"metaDataId" yaml:"metaDataId,omitempty"`
 	EpisodeId    null.Int64  `boil:"episodeId" json:"episodeId,omitempty" toml:"episodeId" yaml:"episodeId,omitempty"`
 	Year         null.Int64  `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
@@ -54,6 +55,7 @@ var MediaFileColumns = struct {
 	Raw          string
 	Path         string
 	Hash         string
+	Size         string
 	MetaDataId   string
 	EpisodeId    string
 	Year         string
@@ -75,6 +77,7 @@ var MediaFileColumns = struct {
 	Raw:          "raw",
 	Path:         "path",
 	Hash:         "hash",
+	Size:         "size",
 	MetaDataId:   "metaDataId",
 	EpisodeId:    "episodeId",
 	Year:         "year",
@@ -98,6 +101,7 @@ var MediaFileTableColumns = struct {
 	Raw          string
 	Path         string
 	Hash         string
+	Size         string
 	MetaDataId   string
 	EpisodeId    string
 	Year         string
@@ -119,6 +123,7 @@ var MediaFileTableColumns = struct {
 	Raw:          "mediaFile.raw",
 	Path:         "mediaFile.path",
 	Hash:         "mediaFile.hash",
+	Size:         "mediaFile.size",
 	MetaDataId:   "mediaFile.metaDataId",
 	EpisodeId:    "mediaFile.episodeId",
 	Year:         "mediaFile.year",
@@ -168,6 +173,7 @@ var MediaFileWhere = struct {
 	Raw          whereHelpernull_String
 	Path         whereHelpernull_String
 	Hash         whereHelpernull_String
+	Size         whereHelpernull_Int64
 	MetaDataId   whereHelpernull_Int64
 	EpisodeId    whereHelpernull_Int64
 	Year         whereHelpernull_Int64
@@ -189,6 +195,7 @@ var MediaFileWhere = struct {
 	Raw:          whereHelpernull_String{field: "\"mediaFile\".\"raw\""},
 	Path:         whereHelpernull_String{field: "\"mediaFile\".\"path\""},
 	Hash:         whereHelpernull_String{field: "\"mediaFile\".\"hash\""},
+	Size:         whereHelpernull_Int64{field: "\"mediaFile\".\"size\""},
 	MetaDataId:   whereHelpernull_Int64{field: "\"mediaFile\".\"metaDataId\""},
 	EpisodeId:    whereHelpernull_Int64{field: "\"mediaFile\".\"episodeId\""},
 	Year:         whereHelpernull_Int64{field: "\"mediaFile\".\"year\""},
@@ -245,9 +252,9 @@ func (r *mediaFileR) GetMetaDataIdMetaDatum() *MetaDatum {
 type mediaFileL struct{}
 
 var (
-	mediaFileAllColumns            = []string{"id", "raw", "path", "hash", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "downloadedAt"}
+	mediaFileAllColumns            = []string{"id", "raw", "path", "hash", "size", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "downloadedAt"}
 	mediaFileColumnsWithoutDefault = []string{}
-	mediaFileColumnsWithDefault    = []string{"id", "raw", "path", "hash", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "downloadedAt"}
+	mediaFileColumnsWithDefault    = []string{"id", "raw", "path", "hash", "size", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "downloadedAt"}
 	mediaFilePrimaryKeyColumns     = []string{"id"}
 	mediaFileGeneratedColumns      = []string{"id"}
 )

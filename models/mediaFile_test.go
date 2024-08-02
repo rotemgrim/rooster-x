@@ -908,7 +908,7 @@ func testMediaFilesSelect(t *testing.T) {
 }
 
 var (
-	mediaFileDBTypes = map[string]string{`ID`: `INTEGER`, `Raw`: `TEXT`, `Path`: `TEXT`, `Hash`: `VARCHAR(40)`, `MetaDataId`: `INTEGER`, `EpisodeId`: `INTEGER`, `Year`: `INTEGER`, `Resolution`: `VARCHAR(40)`, `Quality`: `VARCHAR(40)`, `Codec`: `VARCHAR(40)`, `Audio`: `VARCHAR(40)`, `Group`: `VARCHAR(40)`, `Region`: `VARCHAR(40)`, `Language`: `VARCHAR(40)`, `Extended`: `BOOLEAN`, `Hardcoded`: `BOOLEAN`, `Proper`: `BOOLEAN`, `Repack`: `BOOLEAN`, `WideScreen`: `BOOLEAN`, `DownloadedAt`: `DATETIME`}
+	mediaFileDBTypes = map[string]string{`ID`: `INTEGER`, `Raw`: `TEXT`, `Path`: `TEXT`, `Hash`: `VARCHAR(40)`, `Size`: `INTEGER`, `MetaDataId`: `INTEGER`, `EpisodeId`: `INTEGER`, `Year`: `INTEGER`, `Resolution`: `VARCHAR(40)`, `Quality`: `VARCHAR(40)`, `Codec`: `VARCHAR(40)`, `Audio`: `VARCHAR(40)`, `Group`: `VARCHAR(40)`, `Region`: `VARCHAR(40)`, `Language`: `VARCHAR(40)`, `Extended`: `BOOLEAN`, `Hardcoded`: `BOOLEAN`, `Proper`: `BOOLEAN`, `Repack`: `BOOLEAN`, `WideScreen`: `BOOLEAN`, `DownloadedAt`: `DATETIME`}
 	_                = bytes.MinRead
 )
 

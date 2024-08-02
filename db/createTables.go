@@ -137,6 +137,7 @@ func createMediaFileTable(db *sql.DB) {
 		raw TEXT,
 		path TEXT COLLATE NOCASE UNIQUE,
 		hash VARCHAR(40),
+		size INTEGER,
 		metaDataId INTEGER,
 		episodeId INTEGER,
 		year INTEGER,
