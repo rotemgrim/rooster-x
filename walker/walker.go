@@ -132,6 +132,7 @@ func getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 
 			// print the number of torrents to console without adding a newline
 			fmt.Printf("\rNumber of torrents found: %d", len(result))
+			//server.BroadcastMessage("Number of torrents found: " + string(len(result)))
 
 			// calculate checksum
 			//hash, err := hashFile(path)

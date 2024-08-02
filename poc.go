@@ -1,9 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"go-poc/db"
 	"go-poc/scheduler"
-	"go-poc/walker"
+	"go-poc/server"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,7 +15,11 @@ func main() {
 	db.Init()
 	scheduler.Init()
 
-	go walker.FullSweep()
+	// start the web server
+	go server.StartWebServer()
+	fmt.Println("Server started")
+
+	//go walker.FullSweep()
 	// scheduler.Schedule("10 21 * * *", walker.FullSweep)
 
 	// create a channel to listen for signals
