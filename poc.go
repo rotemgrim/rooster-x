@@ -21,15 +21,19 @@ func main() {
 	// initialize the database
 	db.Init()
 
+	schedulerInstance := scheduler.NewScheduler()
+	ServerInstance := server.NewServer("static")
+	WalkerInstance := walker.NewWalker("B:\\downloads\\complete", ServerInstance)
+	//WalkerInstance := walker.NewWalker("C:\\Users\\rotem\\Downloads", ServerInstance)
+
 	// create a new app
 	app := &App{
-		Scheduler: scheduler.NewScheduler(),
-		Server:    server.NewServer("static"),
-		Walker:    walker.NewWalker("C:\\Users\\rotem\\Downloads"),
-		//Walker:    walker.NewWalker("B:\\downloads\\complete"),
+		Scheduler: schedulerInstance,
+		Server:    ServerInstance,
+		Walker:    WalkerInstance,
 	}
 
-	//go app.Server.Start()
+	app.Server.Start(WalkerInstance)
 	go app.Walker.FullSweep()
 	//app.Scheduler.Schedule("10 21 * * *", app.Walker.FullSweep)
 
@@ -41,6 +45,7 @@ func main() {
 	select {
 	case _ = <-sigChan:
 		// handle the signal and exit
+		os.Remove("sweep.lock")
 		println("Exiting")
 		os.Exit(0)
 	}

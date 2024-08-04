@@ -2,8 +2,6 @@ package walker
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	ptn "github.com/middelink/go-parse-torrent-name"
 	"github.com/volatiletech/null/v8"
@@ -11,7 +9,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/db"
 	m "go-poc/models"
-	"io"
+	"go-poc/server"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -35,11 +33,13 @@ type FileEntry struct {
 
 type Walker struct {
 	walkDir string
+	server  *server.Server
 }
 
-func NewWalker(walkDir string) *Walker {
+func NewWalker(walkDir string, server *server.Server) *Walker {
 	return &Walker{
 		walkDir: walkDir,
+		server:  server,
 	}
 }
 
@@ -52,7 +52,7 @@ func (w *Walker) FullSweep() {
 
 	fmt.Println("Starting full sweep")
 
-	entries, err := getMediaFilesFromDisk(w.walkDir)
+	entries, err := w.getMediaFilesFromDisk(w.walkDir)
 	if err != nil {
 		fmt.Println("Error getting torrents")
 		return
@@ -70,7 +70,8 @@ func (w *Walker) FullSweep() {
 	//
 	//// get all files from files
 	files := m.MediaFiles(qm.Select("id", "hash", "path")).AllGP(db.CTX)
-
+	skippedFiles := 0
+	addedFiles := 0
 	for _, entry := range entries {
 		fullPath := entry.Raw.String
 
@@ -87,10 +88,13 @@ func (w *Walker) FullSweep() {
 		ctx := context.Background()
 		err := entry.InsertG(ctx, boil.Infer())
 		if err != nil {
-			fmt.Println("Error inserting file", err)
+			skippedFiles++
+		} else {
+			addedFiles++
 		}
+		fmt.Printf("\rskipped files: %d, added: %d", skippedFiles, addedFiles)
 	}
-	fmt.Println("done adding files to db")
+	fmt.Println("\ndone adding files to db")
 }
 
 func fileExists(path string, files m.MediaFileSlice) bool {
@@ -102,7 +106,7 @@ func fileExists(path string, files m.MediaFileSlice) bool {
 	return false
 }
 
-func getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
+func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 	var result []m.MediaFile
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -142,7 +146,7 @@ func getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 
 			// print the number of torrents to console without adding a newline
 			fmt.Printf("\rNumber of torrents found: %d", len(result))
-			//server.BroadcastMessage("Number of torrents found: " + string(len(result)))
+			w.server.BroadcastMessage(fmt.Sprintf("Number of torrents found: %d", len(result)))
 
 			// calculate checksum
 			//hash, err := hashFile(path)
@@ -186,22 +190,6 @@ func getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 	// print the number of torrents found
 	fmt.Println("\rNumber of torrents found: ", len(result))
 	return result, nil
-}
-
-func hashFile(path string) (string, error) {
-	// open the file
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Println("Error opening file")
-		return "", err
-	}
-	defer file.Close()
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
-	}
-	// return the hash
-	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func checkIfSweepIsRunning() bool {

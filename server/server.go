@@ -9,10 +9,15 @@ import (
 	"time"
 )
 
+type Sweeper interface {
+	FullSweep()
+}
+
 type Server struct {
 	staticDir string
 	clients   map[*websocket.Conn]bool
 	mutex     *sync.Mutex
+	walker    Sweeper
 }
 
 func NewServer(staticDir string) *Server {
@@ -20,12 +25,17 @@ func NewServer(staticDir string) *Server {
 		staticDir: staticDir,
 		clients:   make(map[*websocket.Conn]bool),
 		mutex:     &sync.Mutex{},
+		walker:    nil,
 	}
 }
 
-func (s *Server) Start() {
-	http.Handle("/", http.FileServer(http.Dir(s.staticDir)))
-	http.HandleFunc("/ws", s.wsHandler)
+func (s *Server) Start(walker Sweeper) {
+	s.walker = walker
+
+	go func() {
+		http.Handle("/", http.FileServer(http.Dir(s.staticDir)))
+		http.HandleFunc("/ws", s.wsHandler)
+	}()
 
 	go func() {
 		for {
@@ -74,7 +84,7 @@ func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Received: %s", message)
 
 		if string(message) == "sweep" {
-			//go walker.FullSweep()
+			s.walker.FullSweep()
 			continue
 		}
 
@@ -113,7 +123,6 @@ var upgrader = websocket.Upgrader{
 func (s Server) BroadcastMessage(message string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	log.Println("Broadcasting message to num of clients: ", len(s.clients))
 	for client := range s.clients {
 		err := client.WriteMessage(websocket.TextMessage, []byte(message))
 		if err != nil {
