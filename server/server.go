@@ -3,22 +3,35 @@ package server
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
-	"go-poc/walker"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 )
 
-func StartWebServer() {
-	http.Handle("/", http.FileServer(http.Dir("static")))
-	http.HandleFunc("/ws", wsHandler)
+type Server struct {
+	staticDir string
+	clients   map[*websocket.Conn]bool
+	mutex     *sync.Mutex
+}
+
+func NewServer(staticDir string) *Server {
+	return &Server{
+		staticDir: staticDir,
+		clients:   make(map[*websocket.Conn]bool),
+		mutex:     &sync.Mutex{},
+	}
+}
+
+func (s *Server) Start() {
+	http.Handle("/", http.FileServer(http.Dir(s.staticDir)))
+	http.HandleFunc("/ws", s.wsHandler)
 
 	go func() {
 		for {
 			fmt.Println("broadcasting to all clients")
 			// Example: broadcast a message every 9 seconds
-			BroadcastMessage("Hello, clients!")
+			s.BroadcastMessage("Hello, clients!")
 			time.Sleep(9 * time.Second)
 		}
 	}()
@@ -29,21 +42,7 @@ func StartWebServer() {
 	}
 }
 
-// Define the upgrader
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-// Store active WebSocket connections
-var clients = make(map[*websocket.Conn]bool)
-var mutex = &sync.Mutex{}
-
-// WebSocket handler
-func wsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Error upgrading to websocket:", err)
@@ -52,18 +51,18 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	// Add the new connection to the clients map
-	mutex.Lock()
-	clients[conn] = true
-	fmt.Println("Adding new client to clients map", len(clients))
-	mutex.Unlock()
+	s.mutex.Lock()
+	s.clients[conn] = true
+	fmt.Println("Adding new client to clients map", len(s.clients))
+	s.mutex.Unlock()
 
 	for {
 
 		conn.SetCloseHandler(func(code int, text string) error {
 			log.Println("Connection closed:", code, text)
-			mutex.Lock()
-			delete(clients, conn)
-			mutex.Unlock()
+			s.mutex.Lock()
+			delete(s.clients, conn)
+			s.mutex.Unlock()
 			return nil
 		})
 
@@ -75,7 +74,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Received: %s", message)
 
 		if string(message) == "sweep" {
-			go walker.FullSweep()
+			//go walker.FullSweep()
 			continue
 		}
 
@@ -95,23 +94,32 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove the connection from the clients map when done
-	mutex.Lock()
-	delete(clients, conn)
-	fmt.Println("Removing client from clients map", len(clients))
-	mutex.Unlock()
+	s.mutex.Lock()
+	delete(s.clients, conn)
+	fmt.Println("Removing client from clients map", len(s.clients))
+	s.mutex.Unlock()
 }
 
-// Function to broadcast messages to all clients
-func BroadcastMessage(message string) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	log.Println("Broadcasting message to num of clients: ", len(clients))
-	for client := range clients {
+// Define the upgrader
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+// BroadcastMessage Function to broadcast messages to all clients
+func (s Server) BroadcastMessage(message string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	log.Println("Broadcasting message to num of clients: ", len(s.clients))
+	for client := range s.clients {
 		err := client.WriteMessage(websocket.TextMessage, []byte(message))
 		if err != nil {
 			log.Println("Error writing message:", err)
 			client.Close()
-			delete(clients, client)
+			delete(s.clients, client)
 		}
 	}
 }

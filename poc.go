@@ -1,26 +1,37 @@
 package main
 
 import (
-	"fmt"
 	"go-poc/db"
 	"go-poc/scheduler"
 	"go-poc/server"
+	"go-poc/walker"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
+type App struct {
+	Scheduler *scheduler.Scheduler
+	Server    *server.Server
+	Walker    *walker.Walker
+}
+
 func main() {
+
 	// initialize the database
 	db.Init()
-	scheduler.Init()
 
-	// start the web server
-	go server.StartWebServer()
-	fmt.Println("Server started")
+	// create a new app
+	app := &App{
+		Scheduler: scheduler.NewScheduler(),
+		Server:    server.NewServer("static"),
+		Walker:    walker.NewWalker("C:\\Users\\rotem\\Downloads"),
+		//Walker:    walker.NewWalker("B:\\downloads\\complete"),
+	}
 
-	//go walker.FullSweep()
-	// scheduler.Schedule("10 21 * * *", walker.FullSweep)
+	//go app.Server.Start()
+	go app.Walker.FullSweep()
+	//app.Scheduler.Schedule("10 21 * * *", app.Walker.FullSweep)
 
 	// create a channel to listen for signals
 	sigChan := make(chan os.Signal, 1)

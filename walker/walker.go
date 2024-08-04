@@ -33,7 +33,17 @@ type FileEntry struct {
 	s os.FileInfo
 }
 
-func FullSweep() {
+type Walker struct {
+	walkDir string
+}
+
+func NewWalker(walkDir string) *Walker {
+	return &Walker{
+		walkDir: walkDir,
+	}
+}
+
+func (w *Walker) FullSweep() {
 
 	if checkIfSweepIsRunning() {
 		return
@@ -42,7 +52,7 @@ func FullSweep() {
 
 	fmt.Println("Starting full sweep")
 
-	entries, err := getMediaFilesFromDisk(dir)
+	entries, err := getMediaFilesFromDisk(w.walkDir)
 	if err != nil {
 		fmt.Println("Error getting torrents")
 		return
@@ -169,7 +179,7 @@ func getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 		return nil
 	})
 	if err != nil {
-		fmt.Printf("Error walking the path")
+		fmt.Printf("Error walking the path %q: %v\n", dir, err)
 		return nil, err
 	}
 
