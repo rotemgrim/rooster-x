@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 )
 
 type Sweeper interface {
@@ -37,14 +36,14 @@ func (s *Server) Start(walker Sweeper) {
 		http.HandleFunc("/ws", s.wsHandler)
 	}()
 
-	go func() {
-		for {
-			fmt.Println("broadcasting to all clients")
-			// Example: broadcast a message every 9 seconds
-			s.BroadcastMessage("Hello, clients!")
-			time.Sleep(9 * time.Second)
-		}
-	}()
+	//go func() {
+	//	for {
+	//		fmt.Println("broadcasting to all clients")
+	//		// Example: broadcast a message every 9 seconds
+	//		s.BroadcastMessage("Hello, clients!")
+	//		time.Sleep(9 * time.Second)
+	//	}
+	//}()
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

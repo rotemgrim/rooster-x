@@ -155,7 +155,7 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 			//}
 
 			mf := m.MediaFile{
-				Raw:  null.StringFrom(path),
+				Raw:  null.StringFrom(info.Name()),
 				Path: null.StringFrom(strings.ToLower(path)),
 				//Hash: null.StringFrom(hash),
 				Size: null.Int64From(info.Size()),
@@ -177,6 +177,41 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 				WideScreen:   null.BoolFrom(tor.Widescreen),
 				DownloadedAt: null.TimeFrom(info.ModTime()),
 			}
+
+			// get the meta data
+			//getMetaData()
+			//
+			//if !mf.MetaDataId.Valid {
+			//	mf.
+			//}
+			//
+			//if (tor.Episode.episode && e.mEntry.season !== undefined) {
+			//	file.metaData = await this.getMetaData(seriesArr, e, "series");
+			//	const episode = await Container.get(MediaRepository).getEpisode(file.metaData, e.mEntry);
+			//	episodesArr.push(episode);
+			//	file.episode = episode;
+			//} else {
+			//	file.metaData = await this.getMetaData(moviesArr, e, "movie");
+			//}
+			//
+			//if (!file.metaData.status) {
+			//	file.metaData.status = await file.metaData.status;
+			//}
+			//// console.log("file.metaData.status2", file.metaData.status);
+			//if (file && file.metaData && file.metaData.status === "not-scanned") {
+			//	await IMDBController.getMetaDataFromInternetByMediaFile(file)
+			//	.then(async (res) => {
+			//		file = res;
+			//		file.metaData.status = "omdb";
+			//		resolve(file);
+			//	}).catch(async () => {
+			//		file.metaData.status = "failed";
+			//		resolve(file);
+			//	});
+			//} else {
+			//	resolve(file);
+			//}
+
 			result = append(result, mf)
 		}
 
@@ -227,4 +262,42 @@ func countSetProperties(entry *ptn.TorrentInfo) int {
 		}
 	}
 	return count
+}
+
+type MediaType string
+
+const (
+	Movie  MediaType = "movie"
+	Series MediaType = "series"
+)
+
+func getMetaData(title string, mf *m.MediaFile, tor *ptn.TorrentInfo) {
+	var t MediaType
+	if tor.Episode > 0 && tor.Year > 0 {
+		t = Series
+	} else {
+		t = Movie
+	}
+
+	// get the meta data
+	md := m.MetaData(qm.Where(`type=?`, t), qm.Where(`title=?`, title)).OneGP(db.CTX)
+	if md != nil {
+		mf.MetaDataId = md.ID
+		if t == Series {
+			mf.EpisodeId = m.Episodes(
+				qm.Where(`season=?`, tor.Season),
+				qm.Where(`episode=?`, tor.Episode),
+			).OneGP(db.CTX).ID
+		}
+	} else {
+		// create a new meta data
+		md = &m.MetaDatum{
+			Title:  null.StringFrom(tor.Title),
+			Type:   null.StringFrom(string(t)),
+			Status: null.StringFrom("not-scanned"),
+		}
+		// get the meta data from the internet
+		//md = getMetaDataFromInternetByMediaFile(md)
+		md.InsertGP(db.CTX, boil.Infer())
+	}
 }
