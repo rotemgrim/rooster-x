@@ -125,7 +125,7 @@ func (s Server) BroadcastMessage(message string) {
 	for client := range s.clients {
 		err := client.WriteMessage(websocket.TextMessage, []byte(message))
 		if err != nil {
-			log.Println("Error writing message:", err)
+			//log.Println("Error writing message:", err)
 			client.Close()
 			delete(s.clients, client)
 		}

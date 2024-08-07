@@ -69,11 +69,15 @@ func (w *Walker) FullSweep() {
 	//episodes := m.Episodes().AllGP(db.CTX)
 	//
 	//// get all files from files
-	files := m.MediaFiles(qm.Select("id", "hash", "path")).AllGP(db.CTX)
+	files, err := m.MediaFiles(qm.Select("id", "hash", "path")).AllG(context.Background())
+	if err != nil {
+		files = []*m.MediaFile{}
+	}
+
 	skippedFiles := 0
 	addedFiles := 0
 	for _, entry := range entries {
-		fullPath := entry.Raw.String
+		fullPath := entry.Path.String
 
 		// add genres to db
 		//for _, genre := range entry.m.Genres {
@@ -94,7 +98,7 @@ func (w *Walker) FullSweep() {
 		}
 		fmt.Printf("\rskipped files: %d, added: %d", skippedFiles, addedFiles)
 	}
-	fmt.Println("\ndone adding files to db")
+	fmt.Printf("\ndone adding files to db %d \n", addedFiles)
 }
 
 func fileExists(path string, files m.MediaFileSlice) bool {
@@ -145,8 +149,9 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 			// fmt.Println("Torrent name: ", string(torJson))
 
 			// print the number of torrents to console without adding a newline
-			fmt.Printf("\rNumber of torrents found: %d", len(result))
-			w.server.BroadcastMessage(fmt.Sprintf("Number of torrents found: %d", len(result)))
+			//fmt.Printf("\rNumber of torrents found: %d", len(result))
+			str := fmt.Sprintf("Number of torrents found: %d", len(result))
+			w.server.BroadcastMessage(str)
 
 			// calculate checksum
 			//hash, err := hashFile(path)
@@ -179,38 +184,7 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 			}
 
 			// get the meta data
-			//getMetaData()
-			//
-			//if !mf.MetaDataId.Valid {
-			//	mf.
-			//}
-			//
-			//if (tor.Episode.episode && e.mEntry.season !== undefined) {
-			//	file.metaData = await this.getMetaData(seriesArr, e, "series");
-			//	const episode = await Container.get(MediaRepository).getEpisode(file.metaData, e.mEntry);
-			//	episodesArr.push(episode);
-			//	file.episode = episode;
-			//} else {
-			//	file.metaData = await this.getMetaData(moviesArr, e, "movie");
-			//}
-			//
-			//if (!file.metaData.status) {
-			//	file.metaData.status = await file.metaData.status;
-			//}
-			//// console.log("file.metaData.status2", file.metaData.status);
-			//if (file && file.metaData && file.metaData.status === "not-scanned") {
-			//	await IMDBController.getMetaDataFromInternetByMediaFile(file)
-			//	.then(async (res) => {
-			//		file = res;
-			//		file.metaData.status = "omdb";
-			//		resolve(file);
-			//	}).catch(async () => {
-			//		file.metaData.status = "failed";
-			//		resolve(file);
-			//	});
-			//} else {
-			//	resolve(file);
-			//}
+			getMetaData(&mf, tor)
 
 			result = append(result, mf)
 		}
@@ -271,26 +245,20 @@ const (
 	Series MediaType = "series"
 )
 
-func getMetaData(title string, mf *m.MediaFile, tor *ptn.TorrentInfo) {
+func getMetaData(mf *m.MediaFile, tor *ptn.TorrentInfo) {
 	var t MediaType
-	if tor.Episode > 0 && tor.Year > 0 {
+	if tor.Episode > 0 && tor.Season > 0 {
 		t = Series
 	} else {
 		t = Movie
 	}
 
 	// get the meta data
-	md := m.MetaData(qm.Where(`type=?`, t), qm.Where(`title=?`, title)).OneGP(db.CTX)
-	if md != nil {
-		mf.MetaDataId = md.ID
-		if t == Series {
-			mf.EpisodeId = m.Episodes(
-				qm.Where(`season=?`, tor.Season),
-				qm.Where(`episode=?`, tor.Episode),
-			).OneGP(db.CTX).ID
-		}
-	} else {
-		// create a new meta data
+	//md := m.MetaData(qm.Where(`type=?`, t), qm.Where(`title=?`, tor.Title)).OneGP(context.Background())
+
+	md, err := m.MetaData().OneG(context.Background())
+	if err != nil {
+		// create a new metadata
 		md = &m.MetaDatum{
 			Title:  null.StringFrom(tor.Title),
 			Type:   null.StringFrom(string(t)),
@@ -298,6 +266,17 @@ func getMetaData(title string, mf *m.MediaFile, tor *ptn.TorrentInfo) {
 		}
 		// get the meta data from the internet
 		//md = getMetaDataFromInternetByMediaFile(md)
-		md.InsertGP(db.CTX, boil.Infer())
+		md.InsertGP(context.Background(), boil.Infer())
+	} else {
+		mf.MetaDataId = md.ID
+		if t == Series {
+			episode, err := m.Episodes(
+				qm.Where(`season=?`, tor.Season),
+				qm.Where(`episode=?`, tor.Episode),
+			).OneG(db.CTX)
+			if err != nil && episode != nil {
+				mf.EpisodeId = episode.ID
+			}
+		}
 	}
 }
