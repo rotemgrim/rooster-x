@@ -195,7 +195,7 @@ func createTorrentFileTable(db *sql.DB) {
 func createUserTable(db *sql.DB) {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS user (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		firstName VARCHAR(255),
+		firstName VARCHAR(255) UNIQUE COLLATE NOCASE,
 		lastName VARCHAR(255),
 		password TEXT,
 		isAdmin BOOLEAN
@@ -203,7 +203,7 @@ func createUserTable(db *sql.DB) {
 	INSERT INTO user (firstName, lastName, password, isAdmin) VALUES ('admin', 'admin', 'admin', 1);
 	`)
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)
 	}
 }
 

@@ -2,7 +2,10 @@ package walker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	tmdb "github.com/cyruzin/golang-tmdb"
+	"github.com/friendsofgo/errors"
 	ptn "github.com/middelink/go-parse-torrent-name"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -10,10 +13,13 @@ import (
 	"go-poc/db"
 	m "go-poc/models"
 	"go-poc/server"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -52,13 +58,203 @@ func (w *Walker) FullSweep() {
 
 	fmt.Println("Starting full sweep")
 
+	// read from file system
 	entries, err := w.getMediaFilesFromDisk(w.walkDir)
 	if err != nil {
 		fmt.Println("Error getting torrents")
 		return
 	}
 
-	fmt.Println("Number of entries END: ", len(entries))
+	// insert into db (not duplicates)
+	w.insertMediaFilesToDB(entries)
+
+	// get all missing metadata for files and query TMDB
+	filesWithoutMetaData, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).AllG(context.Background())
+	if err != nil {
+		fmt.Println("no files without metadata found, skipping")
+		return
+	}
+
+	tmdbClient, err := tmdb.Init("REMOVED_TMDB_API_KEY")
+	if err != nil {
+		fmt.Println("Error initializing tmdb client")
+		return
+	}
+	for _, file := range filesWithoutMetaData {
+		tor, err := ptn.Parse(file.Raw.String)
+		if handleMetaDataGettingErr(*file, err) {
+			continue
+		}
+
+		// get metadata from internet
+		var newMd = &m.MetaDatum{}
+		if tor.Episode > 0 && tor.Season > 0 {
+			//options["season_number"] = fmt.Sprintf("%d", tor.Season)
+			//options["episode_number"] = fmt.Sprintf("%d", tor.Episode)
+			tmdbMetaData, err := tmdbClient.GetSearchTVShow(tor.Title, nil)
+			if handleMetaDataGettingErr(*file, err) {
+				continue
+			}
+
+			detailsOptions := map[string]string{
+				"append_to_response": "external_ids,genres",
+			}
+			tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbMetaData.Results[0].ID), detailsOptions)
+			newMd.Title = null.StringFrom(tmdbDetails.Name)
+			newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
+			newMd.Type = null.StringFrom("series")
+			newMd.Status = null.StringFrom("scanned")
+			var genresArr []string
+			for _, genre := range tmdbDetails.Genres {
+				genresArr = append(genresArr, genre.Name)
+			}
+			newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
+			newMd.ImdbId = null.StringFrom(tmdbDetails.TVExternalIDs.IMDbID)
+			newMd.Series = null.BoolFrom(true)
+
+			year, _ := strconv.ParseInt(strings.Split(tmdbDetails.FirstAirDate, "-")[0], 10, 64)
+			newMd.Year = null.Int64From(year)
+			newMd.Plot = null.StringFrom(tmdbDetails.Overview)
+			//newMd.TmdbId = null.Int64From(tmdbDetails.ID)
+			// save the metadata to the db
+			newMd.InsertGP(context.Background(), boil.Infer())
+			file.MetaDataId = newMd.ID
+			_, _ = file.UpdateG(context.Background(), boil.Infer())
+		} else {
+			tmdbMetaData, err := tmdbClient.GetSearchMovies(tor.Title, nil)
+			if handleMetaDataGettingErr(*file, err) {
+				continue
+			}
+			newMd.Title = null.StringFrom(tmdbMetaData.Results[0].Title)
+			newMd.Poster = null.StringFrom(tmdbMetaData.Results[0].PosterPath)
+			newMd.Type = null.StringFrom("movie")
+		}
+
+	}
+
+}
+
+type TMDBSearchResult struct {
+	Page         int64 `json:"page"`
+	TotalResults int64 `json:"total_results"`
+	TotalPages   int64 `json:"total_pages"`
+	*TMDBMetaData
+}
+type TMDBMetaData struct {
+	Results []struct {
+		OriginalName     string   `json:"original_name"`
+		ID               int64    `json:"id"`
+		Name             string   `json:"name"`
+		VoteCount        int64    `json:"vote_count"`
+		VoteAverage      float32  `json:"vote_average"`
+		PosterPath       string   `json:"poster_path"`
+		FirstAirDate     string   `json:"first_air_date"`
+		Popularity       float32  `json:"popularity"`
+		GenreIDs         []int64  `json:"genre_ids"`
+		OriginalLanguage string   `json:"original_language"`
+		BackdropPath     string   `json:"backdrop_path"`
+		Overview         string   `json:"overview"`
+		OriginCountry    []string `json:"origin_country"`
+	} `json:"results"`
+}
+
+func GetSearchTVShow(
+	query string,
+	urlOptions map[string]string,
+) (*TMDBSearchResult, error) {
+	options := fmtOptions(urlOptions)
+	// https://api.themoviedb.org/3/search/tv?api_key=REMOVED_TMDB_API_KEY&query=Snowpiercer&language=en-US&append_to_response=external_ids
+	tmdbURL := fmt.Sprintf(
+		"%s%s?api_key=%s&query=%s%s",
+		"https://api.themoviedb.org/3/",
+		"search/tv",
+		"REMOVED_TMDB_API_KEY",
+		url.QueryEscape(query),
+		options,
+	)
+	searchTVShows := TMDBSearchResult{}
+	if err := get(tmdbURL, &searchTVShows); err != nil {
+		return nil, err
+	}
+	return &searchTVShows, nil
+}
+
+func get(url string, data interface{}) error {
+	if url == "" {
+		return errors.New("url field is empty")
+	}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("could not fetch the url: %s", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req = req.WithContext(ctx)
+	req.Header.Add("content-type", "application/json;charset=utf-8")
+	//req.Header.Add("Authorization", "Bearer "+c.bearerToken)
+	for {
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+		if res.StatusCode == http.StatusTooManyRequests {
+			//time.Sleep(retryDuration(res))
+			//continue
+			return nil
+		}
+		if res.StatusCode == http.StatusNoContent {
+			return nil
+		}
+		if res.StatusCode != http.StatusOK {
+			return nil
+		}
+		if err = json.NewDecoder(res.Body).Decode(data); err != nil {
+			return fmt.Errorf("could not decode the data: %s", err)
+		}
+		break
+	}
+	return nil
+}
+
+func fmtOptions(
+	urlOptions map[string]string,
+) string {
+	options := ""
+	if len(urlOptions) > 0 {
+		for key, value := range urlOptions {
+			options += fmt.Sprintf(
+				"&%s=%s",
+				key,
+				url.QueryEscape(value),
+			)
+		}
+	}
+	return options
+}
+
+func handleMetaDataGettingErr(file m.MediaFile, err error) bool {
+	if err != nil {
+		fmt.Println("Error getting metadata from tmdb")
+		// update file row in db
+		file.MetaDataId = null.Int64From(0)
+		_, _ = file.UpdateG(context.Background(), boil.Infer())
+		return true
+	} else {
+		return false
+	}
+}
+
+func fileExists(path string, files m.MediaFileSlice) bool {
+	for _, file := range files {
+		if file.Path.String == path {
+			return true
+		}
+	}
+	return false
+}
+
+func (w *Walker) insertMediaFilesToDB(entries []m.MediaFile) {
 	// get all movies from metadata
 	//movies := m.MetaData(m.MetaDatumWhere.Type.EQ(`movie`)).AllGP(db.CTX)
 	//
@@ -68,7 +264,10 @@ func (w *Walker) FullSweep() {
 	//// get all episodes from episodes
 	//episodes := m.Episodes().AllGP(db.CTX)
 	//
-	//// get all files from files
+
+	fmt.Println("start adding files to db")
+
+	// get all files from files
 	files, err := m.MediaFiles(qm.Select("id", "hash", "path")).AllG(context.Background())
 	if err != nil {
 		files = []*m.MediaFile{}
@@ -99,15 +298,6 @@ func (w *Walker) FullSweep() {
 		fmt.Printf("\rskipped files: %d, added: %d", skippedFiles, addedFiles)
 	}
 	fmt.Printf("\ndone adding files to db %d \n", addedFiles)
-}
-
-func fileExists(path string, files m.MediaFileSlice) bool {
-	for _, file := range files {
-		if file.Path.String == path {
-			return true
-		}
-	}
-	return false
 }
 
 func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
