@@ -27,6 +27,7 @@ type AbsMetaDatum struct {
 	ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
 	Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
 	ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
+	TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
 	Genres       null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
 	Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
 	Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
@@ -53,6 +54,7 @@ var AbsMetaDatumColumns = struct {
 	ID           string
 	Title        string
 	ImdbId       string
+	TMDBID       string
 	Genres       string
 	Languages    string
 	Country      string
@@ -74,6 +76,7 @@ var AbsMetaDatumColumns = struct {
 	ID:           "id",
 	Title:        "title",
 	ImdbId:       "imdbId",
+	TMDBID:       "tmdbId",
 	Genres:       "genres",
 	Languages:    "languages",
 	Country:      "country",
@@ -97,6 +100,7 @@ var AbsMetaDatumTableColumns = struct {
 	ID           string
 	Title        string
 	ImdbId       string
+	TMDBID       string
 	Genres       string
 	Languages    string
 	Country      string
@@ -118,6 +122,7 @@ var AbsMetaDatumTableColumns = struct {
 	ID:           "absMetaData.id",
 	Title:        "absMetaData.title",
 	ImdbId:       "absMetaData.imdbId",
+	TMDBID:       "absMetaData.tmdbId",
 	Genres:       "absMetaData.genres",
 	Languages:    "absMetaData.languages",
 	Country:      "absMetaData.country",
@@ -287,6 +292,7 @@ var AbsMetaDatumWhere = struct {
 	ID           whereHelpernull_Int64
 	Title        whereHelpernull_String
 	ImdbId       whereHelpernull_String
+	TMDBID       whereHelpernull_Int64
 	Genres       whereHelpernull_String
 	Languages    whereHelpernull_String
 	Country      whereHelpernull_String
@@ -308,6 +314,7 @@ var AbsMetaDatumWhere = struct {
 	ID:           whereHelpernull_Int64{field: "\"absMetaData\".\"id\""},
 	Title:        whereHelpernull_String{field: "\"absMetaData\".\"title\""},
 	ImdbId:       whereHelpernull_String{field: "\"absMetaData\".\"imdbId\""},
+	TMDBID:       whereHelpernull_Int64{field: "\"absMetaData\".\"tmdbId\""},
 	Genres:       whereHelpernull_String{field: "\"absMetaData\".\"genres\""},
 	Languages:    whereHelpernull_String{field: "\"absMetaData\".\"languages\""},
 	Country:      whereHelpernull_String{field: "\"absMetaData\".\"country\""},
@@ -344,9 +351,9 @@ func (*absMetaDatumR) NewStruct() *absMetaDatumR {
 type absMetaDatumL struct{}
 
 var (
-	absMetaDatumAllColumns            = []string{"id", "title", "imdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer"}
+	absMetaDatumAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer"}
 	absMetaDatumColumnsWithoutDefault = []string{}
-	absMetaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer"}
+	absMetaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer"}
 	absMetaDatumPrimaryKeyColumns     = []string{"id"}
 	absMetaDatumGeneratedColumns      = []string{"id"}
 )

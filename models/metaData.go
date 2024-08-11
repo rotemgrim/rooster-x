@@ -27,6 +27,7 @@ type MetaDatum struct {
 	ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
 	Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
 	ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
+	TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
 	Genres       null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
 	Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
 	Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
@@ -56,6 +57,7 @@ var MetaDatumColumns = struct {
 	ID           string
 	Title        string
 	ImdbId       string
+	TMDBID       string
 	Genres       string
 	Languages    string
 	Country      string
@@ -80,6 +82,7 @@ var MetaDatumColumns = struct {
 	ID:           "id",
 	Title:        "title",
 	ImdbId:       "imdbId",
+	TMDBID:       "tmdbId",
 	Genres:       "genres",
 	Languages:    "languages",
 	Country:      "country",
@@ -106,6 +109,7 @@ var MetaDatumTableColumns = struct {
 	ID           string
 	Title        string
 	ImdbId       string
+	TMDBID       string
 	Genres       string
 	Languages    string
 	Country      string
@@ -130,6 +134,7 @@ var MetaDatumTableColumns = struct {
 	ID:           "metaData.id",
 	Title:        "metaData.title",
 	ImdbId:       "metaData.imdbId",
+	TMDBID:       "metaData.tmdbId",
 	Genres:       "metaData.genres",
 	Languages:    "metaData.languages",
 	Country:      "metaData.country",
@@ -158,6 +163,7 @@ var MetaDatumWhere = struct {
 	ID           whereHelpernull_Int64
 	Title        whereHelpernull_String
 	ImdbId       whereHelpernull_String
+	TMDBID       whereHelpernull_Int64
 	Genres       whereHelpernull_String
 	Languages    whereHelpernull_String
 	Country      whereHelpernull_String
@@ -182,6 +188,7 @@ var MetaDatumWhere = struct {
 	ID:           whereHelpernull_Int64{field: "\"metaData\".\"id\""},
 	Title:        whereHelpernull_String{field: "\"metaData\".\"title\""},
 	ImdbId:       whereHelpernull_String{field: "\"metaData\".\"imdbId\""},
+	TMDBID:       whereHelpernull_Int64{field: "\"metaData\".\"tmdbId\""},
 	Genres:       whereHelpernull_String{field: "\"metaData\".\"genres\""},
 	Languages:    whereHelpernull_String{field: "\"metaData\".\"languages\""},
 	Country:      whereHelpernull_String{field: "\"metaData\".\"country\""},
@@ -262,9 +269,9 @@ func (r *metaDatumR) GetMetaDataIdUserMetaData() UserMetaDatumSlice {
 type metaDatumL struct{}
 
 var (
-	metaDatumAllColumns            = []string{"id", "title", "imdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name", "status"}
+	metaDatumAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name", "status"}
 	metaDatumColumnsWithoutDefault = []string{}
-	metaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name", "status"}
+	metaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name", "status"}
 	metaDatumPrimaryKeyColumns     = []string{"id"}
 	metaDatumGeneratedColumns      = []string{"id"}
 )

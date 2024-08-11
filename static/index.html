@@ -10,32 +10,42 @@
 <button id="pingButton">Send Ping</button>
 <button id="sweepButton">Sweep</button>
 <script>
-    // Connect to the WebSocket server
-    const socket = new WebSocket('ws://localhost:8080/ws');
+    let socket = null;
+    function connectToWs() {
+        // Connect to the WebSocket server
+        socket = new WebSocket('ws://localhost:8080/ws');
 
-    // Connection opened
-    socket.addEventListener('open', function (event) {
-        console.log('Connected to WebSocket server');
-    });
+        // Connection opened
+        socket.addEventListener('open', function (event) {
+            console.log('Connected to WebSocket server');
+        });
 
-    // Connection closed
-    socket.addEventListener('close', function (event) {
-        console.log('Disconnected from WebSocket server');
-    });
+        // Connection closed
+        socket.addEventListener('close', function (event) {
+            console.log('Disconnected from WebSocket server, reconnecting in 3 second');
+            setTimeout(connectToWs, 3000);
+        });
 
-    // Listen for messages
-    socket.addEventListener('message', function (event) {
-        console.log('Message from server:', event.data);
-    });
+        // Listen for messages
+        socket.addEventListener('message', function (event) {
+            console.log('Message from server:', event.data);
+        });
+    }
+
+    connectToWs();
 
     // Send a ping message when the button is clicked
-    document.getElementById('pingButton').addEventListener('click', function () {
-        socket.send('ping');
-        console.log('Sent: ping');
+    document.getElementById('pingButton').addEventListener('click', () => {
+        if (socket) {
+            socket && socket.send('ping');
+            console.log('Sent: ping');
+        }
     });
-    document.getElementById('sweepButton').addEventListener('click', function () {
-        socket.send('sweep');
-        console.log('Sent: sweep');
+    document.getElementById('sweepButton').addEventListener('click', () => {
+        if (socket) {
+            socket.send('sweep');
+            console.log('Sent: sweep');
+        }
     });
 </script>
 </body>

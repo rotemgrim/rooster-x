@@ -95,11 +95,11 @@ func (w *Walker) FullSweep() {
 			if handleMetaDataGettingErr(*file, err) {
 				continue
 			}
-
 			detailsOptions := map[string]string{
-				"append_to_response": "external_ids,genres",
+				"append_to_response": "external_ids,genres,episodes",
 			}
 			tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbMetaData.Results[0].ID), detailsOptions)
+
 			newMd.Title = null.StringFrom(tmdbDetails.Name)
 			newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
 			newMd.Type = null.StringFrom("series")
@@ -110,28 +110,52 @@ func (w *Walker) FullSweep() {
 			}
 			newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
 			newMd.ImdbId = null.StringFrom(tmdbDetails.TVExternalIDs.IMDbID)
+			newMd.TMDBID = null.Int64From(tmdbDetails.ID)
 			newMd.Series = null.BoolFrom(true)
 
 			year, _ := strconv.ParseInt(strings.Split(tmdbDetails.FirstAirDate, "-")[0], 10, 64)
 			newMd.Year = null.Int64From(year)
 			newMd.Plot = null.StringFrom(tmdbDetails.Overview)
-			//newMd.TmdbId = null.Int64From(tmdbDetails.ID)
+
 			// save the metadata to the db
 			newMd.InsertGP(context.Background(), boil.Infer())
 			file.MetaDataId = newMd.ID
 			_, _ = file.UpdateG(context.Background(), boil.Infer())
 		} else {
-			tmdbMetaData, err := tmdbClient.GetSearchMovies(tor.Title, nil)
+
+			metaData, err := tmdbClient.GetSearchMovies(tor.Title, nil)
 			if handleMetaDataGettingErr(*file, err) {
 				continue
 			}
-			newMd.Title = null.StringFrom(tmdbMetaData.Results[0].Title)
-			newMd.Poster = null.StringFrom(tmdbMetaData.Results[0].PosterPath)
+			detailsOptions := map[string]string{
+				"append_to_response": "external_ids,genres",
+			}
+			tmdbDetails, err := tmdbClient.GetMovieDetails(int(metaData.Results[0].ID), detailsOptions)
+
+			newMd.Title = null.StringFrom(tmdbDetails.Title)
+			newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
 			newMd.Type = null.StringFrom("movie")
+			newMd.Status = null.StringFrom("scanned")
+			var genresArr []string
+			for _, genre := range tmdbDetails.Genres {
+				genresArr = append(genresArr, genre.Name)
+			}
+			newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
+			newMd.ImdbId = null.StringFrom(tmdbDetails.IMDbID)
+			newMd.TMDBID = null.Int64From(tmdbDetails.ID)
+			newMd.Series = null.BoolFrom(false)
+			year, _ := strconv.ParseInt(strings.Split(tmdbDetails.ReleaseDate, "-")[0], 10, 64)
+			newMd.Year = null.Int64From(year)
+			newMd.Plot = null.StringFrom(tmdbDetails.Overview)
+			newMd.Released = null.StringFrom(tmdbDetails.ReleaseDates.MovieReleaseDatesResults.Results[0].ReleaseDates[0].ReleaseDate)
+			newMd.Runtime = null.Int64From(int64(tmdbDetails.Runtime))
+
+			// save the metadata to the db
+			newMd.InsertGP(context.Background(), boil.Infer())
+			file.MetaDataId = newMd.ID
+			_, _ = file.UpdateG(context.Background(), boil.Infer())
 		}
-
 	}
-
 }
 
 type TMDBSearchResult struct {
@@ -374,7 +398,7 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 			}
 
 			// get the meta data
-			getMetaData(&mf, tor)
+			//getMetaData(&mf, tor)
 
 			result = append(result, mf)
 		}

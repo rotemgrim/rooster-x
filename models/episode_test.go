@@ -1552,7 +1552,7 @@ func testEpisodesSelect(t *testing.T) {
 }
 
 var (
-	episodeDBTypes = map[string]string{`ID`: `INTEGER`, `Title`: `VARCHAR(255)`, `ImdbId`: `VARCHAR(40)`, `Genres`: `TEXT`, `Languages`: `TEXT`, `Country`: `TEXT`, `Votes`: `INTEGER`, `Series`: `BOOLEAN`, `Rating`: `REAL`, `Runtime`: `INTEGER`, `Year`: `INTEGER`, `Poster`: `TEXT`, `Metascore`: `TEXT`, `Plot`: `TEXT`, `Director`: `VARCHAR`, `Writer`: `VARCHAR`, `Actors`: `TEXT`, `Released`: `VARCHAR(255)`, `ReleasedUnix`: `INTEGER`, `Trailer`: `TEXT`, `Season`: `INTEGER`, `Episode`: `INTEGER`, `ImdbSeriesId`: `VARCHAR(255)`}
+	episodeDBTypes = map[string]string{`ID`: `INTEGER`, `Title`: `VARCHAR(255)`, `ImdbId`: `VARCHAR(40)`, `TMDBID`: `INTEGER`, `Genres`: `TEXT`, `Languages`: `TEXT`, `Country`: `TEXT`, `Votes`: `INTEGER`, `Series`: `BOOLEAN`, `Rating`: `REAL`, `Runtime`: `INTEGER`, `Year`: `INTEGER`, `Poster`: `TEXT`, `Metascore`: `TEXT`, `Plot`: `TEXT`, `Director`: `VARCHAR`, `Writer`: `VARCHAR`, `Actors`: `TEXT`, `Released`: `VARCHAR(255)`, `ReleasedUnix`: `INTEGER`, `Trailer`: `TEXT`, `Season`: `INTEGER`, `Episode`: `INTEGER`, `ImdbSeriesId`: `VARCHAR(255)`}
 	_              = bytes.MinRead
 )
 
