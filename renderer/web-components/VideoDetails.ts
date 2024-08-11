@@ -1,0 +1,391 @@
+
+import {LitElement, html, customElement, property} from "lit-element";
+import {IpcService} from "../services/ipc.service";
+import {VideoCard} from "./VideoCard";
+import "./EpisodeCard";
+import "./MediaFileCard";
+import "./TorrentFileCard";
+import "./DidWatched";
+import {IEpisodeExtended, IMetaDataExtended} from "../../common/models/IMetaDataExtended";
+import {RoosterX} from "./RoosterX";
+import {type MetaData} from "../../entity/MetaData";
+import {type Episode} from "../../entity/Episode";
+import {type MediaFile} from "../../entity/MediaFile";
+import * as _ from "lodash";
+import {IOmdbSearchEntity} from "../../main/services/IMDBService";
+
+@customElement("video-details")
+export class VideoDetails extends LitElement {
+
+    @property() public rooster: RoosterX;
+    @property() public video: IMetaDataExtended;
+    @property() public card: VideoCard;
+    @property() public _episodes: IEpisodeExtended[];
+    @property() public _searchResults: IOmdbSearchEntity[] = [];
+    @property() public searchTitle: string;
+    @property() public isLoading: boolean = false;
+
+    public playTimer: any;
+    @property() public didYouWatched: null | MetaData | Episode = null;
+
+    private mainDetailsEl: HTMLElement;
+
+    public createRenderRoot() {
+        return this;
+    }
+
+    constructor() {
+        super();
+    }
+
+    set searchResults(results) {
+        this._searchResults = results;
+        this.requestUpdate();
+    }
+
+    public static getRuntime(vid: MetaData) {
+        let min = vid.runtime; // in minutes
+        if (min === 0 || !min) {
+            return "";
+        }
+
+        const hr = parseInt((min / 60).toString(), 10);
+        min = min - (hr * 60);
+        const hMin =  min + "min ";
+        const hHour = hr + "h ";
+        let humanTime = "";
+        if (hr > 0) {
+            humanTime += hHour;
+        }
+        if (min > 0) {
+            humanTime += hMin;
+        }
+        if (humanTime) {
+            return html`${humanTime} ${VideoDetails.getSep()}`;
+        }
+        return html``;
+    }
+
+    public static getYear(vid: MetaData) {
+        if (vid.year) {
+            return html`${vid.year} ${VideoDetails.getSep()}`;
+        } else if (vid.released) {
+            const tmp = (vid.released.toString()).split("-");
+            if (tmp.length > 0) {
+                return html`${tmp[0]} ${VideoDetails.getSep()}`;
+            }
+        }
+        return html``;
+    }
+
+    public close() {
+        clearTimeout(this.playTimer);
+        this.playTimer = null;
+        this.card.isShowDetails = false;
+        document.body.style.overflow = "auto";
+        RoosterX.setFocusToVideos();
+        this.requestUpdate();
+    }
+
+    protected firstUpdated(): void {
+        this.reloadVideo();
+        console.log("firstUpdateed");
+    }
+
+    public async connectedCallback() {
+        super.connectedCallback();
+        await this.updateComplete;
+        this.mainDetailsEl = document.querySelector(".main-details") as HTMLElement;
+        this.mainDetailsEl.focus();
+        this.mainDetailsEl.addEventListener("blur", this.setMainDetailsFocus);
+    }
+
+    public disconnectedCallback() {
+        this.mainDetailsEl.removeEventListener("blur", this.setMainDetailsFocus);
+        super.disconnectedCallback();
+    }
+
+    private setMainDetailsFocus(event) {
+        setTimeout(() => {
+            if (!event.relatedTarget || !event.relatedTarget.closest(".main-details")) {
+                console.debug("set focus to main details div", event);
+                const tmp = document.querySelector(".main-details") as HTMLElement;
+                if (tmp) {
+                    tmp.focus();
+                }
+            } else {
+                console.debug("skip set focus", event);
+            }
+        });
+    }
+
+    public reloadVideo() {
+        this.searchTitle = this.video.title;
+        if (this.video.type === "series") {
+            // IpcService.dbQuery("Episode", {
+            //     where: {
+            //         metaDataId: this.video.id,
+            //     },
+            //     order: {
+            //         season: "ASC",
+            //         episode: "ASC",
+            //     },
+            //     cache: true,
+            IpcService.getEpisodes({metaDataId: this.video.id})
+                .then(res => {
+                    this.video.episodes = res;
+                    this.episodes = res;
+                    this.requestUpdate();
+            }).catch(console.log);
+        }
+    }
+
+    set episodes(episodes: Episode[]) {
+        const userId = this.rooster.user.id;
+        let newList: IEpisodeExtended[] = [...episodes];
+        for (const e of newList) {
+            // check if episode is watched
+            if (e.userEpisode.filter(x => x.isWatched && x.userId === userId).length > 0) {
+                e.isWatched = true;
+            }
+        }
+        newList = _.orderBy(newList, ["season", "episode"], ["desc", "desc"]);
+        this._episodes = newList;
+        console.log("episodes", this._episodes);
+        this.requestUpdate();
+    }
+
+    private formatNumber(num) {
+        if (num && typeof num === "number") {
+            return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+        } else {
+            return "N/A";
+        }
+    }
+
+    private setWatch(e) {
+        let isWatched;
+        if (e.target.hasAttribute("checked")) {
+            console.log("set unwatched");
+            isWatched = false;
+        } else {
+            console.log("set watched");
+            isWatched = true;
+        }
+        IpcService.setWatched({type: "MetaData", entityId: this.video.id, isWatched})
+            .then(() => {
+                this.video.isWatched = isWatched;
+                this.requestUpdate();
+            })
+            .catch(console.log);
+    }
+
+    public playMedia(e: CustomEvent) {
+        if (e && e.detail) {
+            this.isLoading = true;
+            setTimeout(() => {
+                this.isLoading = false;
+            }, 3000);
+            const mediaFile: MediaFile = e.detail;
+            IpcService.openExternal(mediaFile.path);
+            clearTimeout(this.playTimer);
+            this.playTimer = setTimeout(() => {
+                console.log("did you watched? " + mediaFile.raw, mediaFile);
+                // this.didYouWatched = null;
+                IpcService.getMetaDataByFileId({id: mediaFile.id})
+                    .then((metaData: MetaData|Episode) => {
+                        if (metaData) {
+                            console.log("metaData", metaData);
+                            this.didYouWatched = metaData;
+                            this.requestUpdate();
+                        }
+                    }).catch(console.log);
+            }, 3000); // this is 5 min
+        }
+    }
+
+    public openImdbLink() {
+        IpcService.openExternal(`https://www.imdb.com/title/${this.video.imdbId}/`);
+    }
+
+    public trailerSearch() {
+        IpcService.openExternal(
+            `https://www.youtube.com/results?search_query=${this.video.title}+trailer+${this.video.year}`);
+    }
+
+    public subsSearch() {
+        if (this.video.type === "series") {
+            const eps = _.filter(this._episodes, (o => o.mediaFiles.length > 0));
+            const episodeMax = _.maxBy(eps, ["season", "episode"]);
+            IpcService.openExternal(
+                `https://www.google.com/search?q=site:subscene.com`
+                + `+Subtitles+for+${this.video.title}`
+                + `+${VideoDetails.getSeriesStringFromEpisode(episodeMax)}`);
+        } else {
+            IpcService.openExternal(
+                `https://www.google.com/search?q=site:subscene.com`
+                + `+Subtitles+for+${this.video.title}+${this.video.year}`);
+        }
+    }
+
+    public static getSeriesStringFromEpisode(ep: IEpisodeExtended|undefined, add: number = 0) {
+        let se = "";
+        if (ep && ep.season && ep.episode) {
+            se = "+S" + ep.season.toString().padStart(2, "0") +
+                "E" + (ep.episode + add).toString().padStart(2, "0");
+        }
+        return se;
+    }
+
+    public torrentSearch() {
+        let sLink = "https://1337x.to/sort-category-search/";
+        const title = this.video.title.replace(" ", "+");
+        if (this.video.type === "series") {
+            // get latest episode
+            const eps = _.filter(this._episodes, (o => o.mediaFiles.length > 0));
+            const episodeMax = _.maxBy(eps, ["season", "episode"]);
+            const se = VideoDetails.getSeriesStringFromEpisode(episodeMax, 1);
+            sLink += `${title}${se}/TV/seeders/desc/1/`;
+        } else { // movie
+            sLink += `${title}/Movies/seeders/desc/1/`;
+        }
+        IpcService.openExternal(sLink);
+    }
+
+    private searchKeyPress(e) {
+        if (e.target.value && e.key === "Enter") {
+            this.reSearch();
+        }
+    }
+
+    public reSearch() {
+        this.isLoading = true;
+        IpcService.reSearch(this.searchTitle)
+            .then(res => {
+                this.searchResults = res;
+                console.log("reSearch results", res);
+                this.isLoading = false;
+            })
+            .catch(e => {
+                console.log("reSearch failed", e);
+                this.isLoading = false;
+            });
+    }
+
+    private onSelectSearchOption(m: IOmdbSearchEntity) {
+        this.isLoading = true;
+        IpcService.updateMetaDataById(m.imdbID, this.video.id)
+            .then(res => {
+                console.log(res);
+                this.video = Object.assign(this.video, res);
+                this.isLoading = false;
+                this.requestUpdate();
+            })
+            .catch(e => {
+                console.log(e);
+                this.isLoading = false;
+            });
+    }
+
+    private static getSep() {
+        return html`<span class="separator">|</span>`;
+    }
+
+    public render() {
+        return html`<did-watched .rooster=${this.rooster} .videoDetails=${this}
+                .didYouWatched=${this.didYouWatched}></did-watched>
+        <div class="video-details">
+            <div class="aside">
+                <div class="close" @click="${this.close}">
+                    <i class="material-icons">arrow_back</i> BACK
+                </div>
+                ${this.isLoading ? html`<div class="isLoading">
+                    <i class="material-icons rotate-center">sync</i>
+                </div>` : ``}
+                <div class="poster ${this.video.isWatched ? "watched" : ""}">
+                    <div class="filter"></div>
+                    <div class="watch-btn" @click=${this.setWatch}
+                        ?checked=${this.video.isWatched}
+                        title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
+                    ${this.video.poster ?
+                        html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
+                        html`<div class="img-missing"><span>${this.video.title}</span></div>`}
+
+                </div>
+                <div class="score">
+                    <span class="rating">${this.video.rating}</span>
+                    <span class="votes">${this.formatNumber(this.video.votes)} <small>/ votes</small></span>
+                </div>
+                ${this.video.imdbId ?
+                    html`<div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
+                <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
+                <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
+                <div class="subs" @click=${this.subsSearch}>Subs</div>
+            </div>
+            <div class="main-details" tabindex="0">
+                <h1>${this.video.name}</h1>
+                <p>${this.video.plot}</p>
+                <div class="small-details">
+                    <div class="genres">${this.video.genres}</div> ${VideoDetails.getSep()}
+                    <div>
+                        ${VideoDetails.getRuntime(this.video)}
+                        ${VideoDetails.getYear(this.video)}
+                        ${this.video.languages}
+                    </div>
+                </div>
+                ${this.video.type === "series" && this._episodes
+                    && this._episodes.length > 0 ?
+                    html`<div class="episodes">
+                        ${this._episodes.map(ep => {
+                            return html`<episode-card
+                                @playMedia=${this.playMedia}
+                                .episode=${ep}
+                                .videoDetails=${this}>
+                            </episode-card>`;
+                        })}
+                    </div>` : ""}
+                ${this.video.type === "movie" && this.video.mediaFiles
+                    && this.video.mediaFiles.length > 0 ?
+                    html`<div class="media-files">
+                        ${this.video.mediaFiles.map(mf => {
+                            return html`<media-file-card
+                                @playMedia=${this.playMedia}
+                                .mediaFile=${mf}>
+                            </media-file-card>`;
+                        })}
+                    </div>` : ""}
+                ${this.video.type === "movie" && this.video.torrentFiles
+                    && this.video.torrentFiles.length > 0 ?
+                    html`<div class="media-files">
+                        ${this.video.torrentFiles.map(mf => {
+                            return html`<torrent-file-card
+                                .torrentFile=${mf}>
+                            </torrent-file-card>`;
+                        })}
+                    </div>` : ""}
+                <br><br>
+                <p>Actors: <small>${this.video.actors}</small></p>
+                <br><br>
+                <p>Made in ${this.video.country}</p>
+                <br><br>
+                <p>Released at ${this.video.released}</p>
+                ${this.rooster.user.isAdmin ? html`<br><br>
+                <input type="text" style="font-size: 26px;"
+                    @input=${(e) => this.searchTitle = e.target.value}
+                    @keypress=${this.searchKeyPress}
+                    value="${this.video.title}" />
+                <button @click="${this.reSearch}" style="font-size: 26px; cursor: pointer;">
+                    Research video in internet database
+                </button>` : ""}
+                ${this.rooster.user.isAdmin ?
+                    this._searchResults.map(m =>
+                        html`<div class="searchResultDiv" @click=${() => this.onSelectSearchOption(m)}>
+                        <div class="title">${m.Title} | ${m.Year} | ${m.Type}</div>
+                        <div class="poster">
+                            <img src="${m.Poster}" alt="${m.Title}">
+                        </div>
+                    </div>`) : ""}
+            </div>
+        </div>`;
+    }
+}

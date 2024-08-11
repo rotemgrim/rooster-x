@@ -1,0 +1,39 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "target": "es2017",
+        "moduleResolution": "node",
+        "pretty": true,
+        "newLine": "LF",
+        "allowSyntheticDefaultImports": true,
+        "strict": true,
+        "sourceMap": true,
+        "skipLibCheck": true,
+        "allowJs": true,
+        "jsx": "preserve",
+
+
+        "noImplicitAny": false,
+
+
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "lib": ["es5", "es6", "dom"],
+        "module": "commonjs",
+        "importHelpers": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "stripInternal": true,
+        "strictNullChecks": true,
+        "downlevelIteration": true,
+        "strictPropertyInitialization": false,
+
+        "noUnusedParameters": false,
+        "noUnusedLocals": false
+    },
+    "exclude": [
+      "node_modules",
+      "src/main"
+    ]
+}

@@ -1,8 +1,10 @@
 package server
 
 import (
+	"embed"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"io/fs"
 	"log"
 	"net/http"
 	"sync"
@@ -19,6 +21,13 @@ type Server struct {
 	walker    Sweeper
 }
 
+//go:embed static
+var static embed.FS
+
+func Assets() (fs.FS, error) {
+	return fs.Sub(static, "static")
+}
+
 func NewServer(staticDir string) *Server {
 	return &Server{
 		staticDir: staticDir,
@@ -32,7 +41,10 @@ func (s *Server) Start(walker Sweeper) {
 	s.walker = walker
 
 	go func() {
-		http.Handle("/", http.FileServer(http.Dir(s.staticDir)))
+		// Use the file system to serve static files
+		assets, _ := Assets()
+		assetsFS := http.FileServer(http.FS(assets))
+		http.Handle("/", http.StripPrefix("/", assetsFS))
 		http.HandleFunc("/ws", s.wsHandler)
 	}()
 
