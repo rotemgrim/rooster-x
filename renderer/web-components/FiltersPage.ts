@@ -1,9 +1,10 @@
 
-import {css, LitElement, html, customElement, property} from "lit-element";
+import {LitElement, html} from "lit";
+import {customElement, property} from "lit/decorators.js";
 import {RoosterX} from "./RoosterX";
-import "./multiselect.html";
+// import "./multiselect.html";
 import {IpcService} from "../services/ipc.service";
-import {type Genre} from "../../entity/Genre";
+import {type Genre} from "../entity/Genre";
 
 @customElement("filters-page")
 export class FiltersPage extends LitElement {

@@ -1,3 +1,14 @@
+to run in watch mode:
+```bash
+# install air
+go install github.com/air-verse/air@latest
+
+# run air
+air
+```
+
+
+
 make sure you have sqlboiler installed:
 ```bash
 go install github.com/volatiletech/sqlboiler/v4@latest

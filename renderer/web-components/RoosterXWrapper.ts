@@ -1,10 +1,11 @@
-import {LitElement, html, customElement, property} from "lit-element";
+import {LitElement, html} from "lit";
+import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import "./RoosterX";
 import "./SelectDataBase";
 import "./UserLogin";
-import {IConfig} from "../../common/models/IConfig";
-import {type User} from "../../entity/User";
+import {IConfig} from "../common/models/IConfig";
+import {type User} from "../entity/User";
 
 @customElement("rooster-x-wrapper")
 export class RoosterXWrapper extends LitElement {
@@ -24,7 +25,9 @@ export class RoosterXWrapper extends LitElement {
     }
 
     public checkStatus() {
+        console.log("checking status");
         IpcService.getConfig().then(config => {
+            console.log("config", config);
             this.config = config;
             if (config.dbPath) {
                 this.hasDbPath = true;
@@ -56,9 +59,12 @@ export class RoosterXWrapper extends LitElement {
     }
 
     public render() {
-        if (!this.hasDbPath) {
-            return html`<select-database .wrapper=${this}></select-database>`;
-        } else if (!this.isLoggedIn) {
+        // if (!this.hasDbPath) {
+        //     return html`<select-database .wrapper=${this}></select-database>`;
+        // } else if (!this.isLoggedIn) {
+        //     return html`<user-login .wrapper=${this}></user-login>`;
+        // }
+        if (!this.isLoggedIn) {
             return html`<user-login .wrapper=${this}></user-login>`;
         }
         return html`<rooster-x .user=${this.user} .config=${this.config} .wrapper=${this}></rooster-x>`;

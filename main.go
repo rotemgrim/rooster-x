@@ -34,7 +34,7 @@ func main() {
 	}
 
 	go app.Server.Start(WalkerInstance)
-	go app.Walker.FullSweep()
+	//go app.Walker.FullSweep()
 	//app.Scheduler.Schedule("10 21 * * *", app.Walker.FullSweep)
 
 	// create a channel to listen for signals

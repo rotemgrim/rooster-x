@@ -1,9 +1,9 @@
 
-import {LitElement, html, customElement, property} from "lit-element";
+import {LitElement, html} from "lit";
+import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import {RoosterXWrapper} from "./RoosterXWrapper";
-import {type User} from "../../entity/User";
-import AppGlobal from "../../main/helpers/AppGlobal";
+import {type User} from "../entity/User";
 
 @customElement("user-login")
 export class UserLogin extends LitElement {

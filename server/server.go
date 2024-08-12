@@ -39,7 +39,7 @@ func NewServer(staticDir string) *Server {
 
 func (s *Server) Start(walker Sweeper) {
 	s.walker = walker
-
+	s.SetRoutes()
 	go func() {
 		// Use the file system to serve static files
 		assets, _ := Assets()
@@ -78,7 +78,6 @@ func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	s.mutex.Unlock()
 
 	for {
-
 		conn.SetCloseHandler(func(code int, text string) error {
 			log.Println("Connection closed:", code, text)
 			s.mutex.Lock()
@@ -86,32 +85,12 @@ func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 			s.mutex.Unlock()
 			return nil
 		})
-
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("Error reading message:", err)
 			break
 		}
-		log.Printf("Received: %s", message)
-
-		if string(message) == "sweep" {
-			s.walker.FullSweep()
-			continue
-		}
-
-		if string(message) == "ping" {
-			log.Println("Received ping message")
-			if err := conn.WriteMessage(messageType, []byte("pong")); err != nil {
-				log.Println("Error writing message:", err)
-				break
-			}
-			continue
-		}
-
-		if err := conn.WriteMessage(messageType, message); err != nil {
-			log.Println("Error writing message:", err)
-			break
-		}
+		s.RouteMessage(messageType, message, conn)
 	}
 
 	// Remove the connection from the clients map when done

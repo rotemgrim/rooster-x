@@ -1,10 +1,7 @@
 
-import {LitElement, html, customElement, property} from "lit-element";
-import {type MediaFile} from "../../entity/MediaFile";
-import {shell} from "electron";
-import {RoosterX} from "./RoosterX";
-import {IpcService} from "../services/ipc.service";
-import * as path from "path";
+import {LitElement, html} from "lit";
+import {customElement, property} from "lit/decorators.js";
+import {type MediaFile} from "../entity/MediaFile";
 
 @customElement("media-file-card")
 export class MediaFileCard extends LitElement {
@@ -29,7 +26,8 @@ export class MediaFileCard extends LitElement {
 
     private showInFolder() {
         // IpcService.openExternal(path.dirname(this.mediaFile.path));
-        shell.showItemInFolder(this.mediaFile.path);
+        // shell.showItemInFolder(this.mediaFile.path);
+        console.log("show in folder", this.mediaFile.path);
     }
 
     public render() {

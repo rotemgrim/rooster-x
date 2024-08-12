@@ -1,21 +1,33 @@
 
-import {LitElement, html, customElement, property} from "lit-element";
+import {LitElement, html} from "lit";
+import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import "./TopBar";
 import "./VideoCard";
 import "./FiltersPage";
 import "./SettingsPage";
-import {type MetaData} from "../../entity/MetaData";
-import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
-import {type User} from "../../entity/User";
-import {IConfig} from "../../common/models/IConfig";
+import {type MetaData} from "../entity/MetaData";
+import {IMetaDataExtended} from "../common/models/IMetaDataExtended";
+import {type User} from "../entity/User";
+import {IConfig} from "../common/models/IConfig";
 import {RoosterXWrapper} from "./RoosterXWrapper";
 import {List} from "linqts";
 import * as _ from "lodash";
-import {type MediaFile} from "../../entity/MediaFile";
-import {isStringContains} from "../../main/helpers/Utils";
-import {ipcRenderer} from "electron";
-import {type TorrentFile} from "../../entity/TorrentFile";
+import {type MediaFile} from "../entity/MediaFile";
+import {type TorrentFile} from "../entity/TorrentFile";
+
+
+export function isStringContains(str, items) {
+    if (str) {
+        str = str.toLowerCase();
+        for (const item of items) {
+            if (str.includes(item)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
@@ -65,15 +77,18 @@ export class RoosterX extends LitElement {
             }
         });
 
-        ipcRenderer.on("sweep-update", (e, data) => {
-            // console.log("sweep-update", data);
-            this.sweepStatus = data.status;
-            this.sweepCount = data.count;
-        });
+        console.log("RoosterX sweep-update");
+        console.log("RoosterX refresh-media");
 
-        ipcRenderer.on("refresh-media", (e, data) => {
-            IpcService.getAllMedia().then(media => this.media = media);
-        });
+        // ipcRenderer.on("sweep-update", (e, data) => {
+        //     // console.log("sweep-update", data);
+        //     this.sweepStatus = data.status;
+        //     this.sweepCount = data.count;
+        // });
+        //
+        // ipcRenderer.on("refresh-media", (e, data) => {
+        //     IpcService.getAllMedia().then(media => this.media = media);
+        // });
     }
 
     set sweepStatus(value) {

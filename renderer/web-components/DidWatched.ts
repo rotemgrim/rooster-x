@@ -1,8 +1,9 @@
 
-import {LitElement, html, customElement, property} from "lit-element";
-import {type MediaFile} from "../../entity/MediaFile";
-import {type MetaData} from "../../entity/MetaData";
-import {type Episode} from "../../entity/Episode";
+import {LitElement, html} from "lit";
+import {customElement, property} from "lit/decorators.js";
+import {type MediaFile} from "../entity/MediaFile";
+import {type MetaData} from "../entity/MetaData";
+import {type Episode} from "../entity/Episode";
 import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";
 import {VideoDetails} from "./VideoDetails";

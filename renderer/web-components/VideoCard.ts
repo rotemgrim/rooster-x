@@ -1,7 +1,8 @@
 
-import {LitElement, html, customElement, property} from "lit-element";
+import {LitElement, html} from "lit";
+import {customElement, property} from "lit/decorators.js";
 import "./VideoDetails";
-import {IMetaDataExtended} from "../../common/models/IMetaDataExtended";
+import {IMetaDataExtended} from "../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
 
 @customElement("video-card")

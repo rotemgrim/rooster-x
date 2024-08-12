@@ -1,12 +1,12 @@
-import {RendererPromiseIpc} from "../../common/lib/ipcPromise/RendererPromiseIpc";
-import {ipcRenderer} from "electron";
-import {IConfig} from "../../common/models/IConfig";
-import {URL} from "url";
-import {type User} from "../../entity/User";
-import {type MetaData} from "../../entity/MetaData";
-import {type Episode} from "../../entity/Episode";
+import {RendererPromiseIpc} from "../common/lib/ipcPromise/RendererPromiseIpc";
+import {IConfig} from "../common/models/IConfig";
+// import {URL} from "url";
+import {type User} from "../entity/User";
+import {type MetaData} from "../entity/MetaData";
+import {type Episode} from "../entity/Episode";
 
 const promiseIpc = new RendererPromiseIpc({ maxTimeoutMs: 120000 });
+const ipcRenderer = promiseIpc.IpcRenderer();
 
 export class IpcService {
 
@@ -32,11 +32,11 @@ export class IpcService {
     }
 
     public static setIcon(status: "idle" | "alert" | "syncing") {
-        ipcRenderer.send("set-icon", status);
+        ipcRenderer.send("set-icon", {status});
     }
 
     public static changeWindowHeight(height: number) {
-        ipcRenderer.send("change-win-height", height + 50);
+        ipcRenderer.send("change-win-height", {height: height + 50});
     }
 
     public static getConfig(): Promise<IConfig> {
@@ -51,17 +51,18 @@ export class IpcService {
                         config.proxySettings = tmpConfig.proxySettings;
                     }
                     resolve(config);
-                }).catch(reject);
+                }).catch(e => {
+                    console.log("error getting config", e);
+                });
         });
     }
 
     public static saveConfig(config: IConfig) {
-        console.log("sending config", config);
         return promiseIpc.send("save-config", config);
     }
 
     public static openExternal(url: string) {
-        ipcRenderer.send("open-external", url);
+        ipcRenderer.send("open-external", {url});
     }
 
     public static openAppData() {
@@ -98,7 +99,7 @@ export class IpcService {
 
     public static getUser(id: number): Promise<any> {
         return new Promise((resolve, reject) => {
-            promiseIpc.send("get-user", id).then(resolve).catch(reject);
+            promiseIpc.send("get-user", {id}).then(resolve).catch(reject);
         });
     }
 
