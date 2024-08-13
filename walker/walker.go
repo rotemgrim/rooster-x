@@ -96,7 +96,7 @@ func (w *Walker) FullSweep() {
 				continue
 			}
 			detailsOptions := map[string]string{
-				"append_to_response": "external_ids,genres,episodes",
+				"append_to_response": "external_ids,genres,episodes,credits",
 			}
 			tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbMetaData.Results[0].ID), detailsOptions)
 
@@ -116,9 +116,19 @@ func (w *Walker) FullSweep() {
 			year, _ := strconv.ParseInt(strings.Split(tmdbDetails.FirstAirDate, "-")[0], 10, 64)
 			newMd.Year = null.Int64From(year)
 			newMd.Plot = null.StringFrom(tmdbDetails.Overview)
+			newMd.Director = null.StringFrom(tmdbDetails.CreatedBy[0].Name)
+
+			var actors []string
+			for _, actor := range tmdbDetails.Credits.Cast {
+				actors = append(actors, actor.Name)
+			}
+			newMd.Actors = null.StringFrom(strings.Join(actors, ","))
 
 			// save the metadata to the db
-			newMd.InsertGP(context.Background(), boil.Infer())
+			err = newMd.InsertG(context.Background(), boil.Infer())
+			if err != nil {
+				continue
+			}
 			file.MetaDataId = newMd.ID
 			_, _ = file.UpdateG(context.Background(), boil.Infer())
 		} else {
@@ -128,7 +138,7 @@ func (w *Walker) FullSweep() {
 				continue
 			}
 			detailsOptions := map[string]string{
-				"append_to_response": "external_ids,genres",
+				"append_to_response": "external_ids,genres,credits,release_dates",
 			}
 			tmdbDetails, err := tmdbClient.GetMovieDetails(int(metaData.Results[0].ID), detailsOptions)
 
@@ -147,8 +157,14 @@ func (w *Walker) FullSweep() {
 			year, _ := strconv.ParseInt(strings.Split(tmdbDetails.ReleaseDate, "-")[0], 10, 64)
 			newMd.Year = null.Int64From(year)
 			newMd.Plot = null.StringFrom(tmdbDetails.Overview)
-			newMd.Released = null.StringFrom(tmdbDetails.ReleaseDates.MovieReleaseDatesResults.Results[0].ReleaseDates[0].ReleaseDate)
+			//newMd.Released = null.StringFrom(tmdbDetails.ReleaseDates.MovieReleaseDatesResults.Results[0].ReleaseDates[0].ReleaseDate)
 			newMd.Runtime = null.Int64From(int64(tmdbDetails.Runtime))
+			//newMd.Director = null.StringFrom(tmdbDetails.d)
+			var actors []string
+			for _, actor := range tmdbDetails.Credits.Cast {
+				actors = append(actors, actor.Name)
+			}
+			newMd.Actors = null.StringFrom(strings.Join(actors, ","))
 
 			// save the metadata to the db
 			newMd.InsertGP(context.Background(), boil.Infer())

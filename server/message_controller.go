@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/models"
 	"log"
 )
@@ -44,11 +46,27 @@ func (s *Server) SaveConfig(c *websocket.Conn, request PayloadRequest) {
 }
 
 func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
-	media, err := models.MetaData().AllG(context.Background())
+	println("media1")
+
+	type MediaFileAndMetaData struct {
+		models.MediaFile `boil:",bind"`
+		models.MetaDatum `boil:",bind"`
+	}
+
+	//media, err := models.MediaFiles(qm.Load(models.MetaDatumRels.MetaDataIdMediaFiles)).AllG(context.Background())
+	var media []MediaFileAndMetaData
+	err := models.NewQuery(
+		qm.Select("mf.*, md.*"),
+		qm.From("mediaFile as mf"),
+		qm.InnerJoin("metaData as md on mf.metaDataId = md.id"),
+	).BindG(context.Background(), &media)
+	spew.Dump(media)
 	if err != nil {
 		transmitPromiseReject(c, data, "could not get media")
 		return
 	}
+	spew.Dump(media)
+	println("media2", media)
 	transmitPromiseResponse(c, data, media)
 }
 

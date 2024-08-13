@@ -127,6 +127,7 @@ export class RoosterX extends LitElement {
             this._filteredMedia = this.filterTorrents(this._filteredMedia);
         } else {
             if (data) {
+                console.log("prepareMedia", data);
                 this._filteredMedia = this.prepareMedia(data);
             } else {
                 this._filteredMedia = this.prepareMedia(this._media);
@@ -143,10 +144,11 @@ export class RoosterX extends LitElement {
         const newList: IMetaDataExtended[] = [...metaDataList];
         for (const me of newList) {
 
+            me.poster = me.poster ? `https://image.tmdb.org/t/p/original${me.poster}` : "";
             // check if media is watched
-            if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
-                me.isWatched = true;
-            }
+            // if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
+            //     me.isWatched = true;
+            // }
 
             // get latest max date downloaded / changed
             const latestMediaFile: MediaFile | undefined = _.maxBy(me.mediaFiles, (o) => {
@@ -165,9 +167,9 @@ export class RoosterX extends LitElement {
         for (const me of newList) {
 
             // check if media is watched
-            if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
-                me.isWatched = true;
-            }
+            // if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
+            //     me.isWatched = true;
+            // }
 
             // get latest max date downloaded / changed
             const latestMediaFile: TorrentFile | undefined = _.maxBy(me.torrentFiles, (o) => {
@@ -188,14 +190,14 @@ export class RoosterX extends LitElement {
         }
 
         // filter media entries that dont have any files
-        if (this._filterConfig.noMediaWithoutFiles) {
-            list = list.filter((m) => m.mediaFiles.length > 0);
-        }
+        // if (this._filterConfig.noMediaWithoutFiles) {
+        //     list = list.filter((m) => m.mediaFiles.length > 0);
+        // }
 
         // filter media entries that font have meta data from imdb
-        if (this._filterConfig.noMediaWithoutMetaData) {
-            list = list.filter((m) => m.status !== "failed");
-        }
+        // if (this._filterConfig.noMediaWithoutMetaData) {
+        //     list = list.filter((m) => m.status !== "failed");
+        // }
 
         // filter media by genres
         console.log("noMediaWithoutGenres", this._filterConfig.noMediaWithoutGenres);

@@ -92,6 +92,10 @@ video-details {
       width: $posterWidth;
       max-width: $posterWidth;
       position: relative;
+      img {
+          max-width: $posterWidth;
+          height: auto;
+          }
     }
     .rating {
       font-size: 10em;
