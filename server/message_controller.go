@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -66,8 +67,65 @@ func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
 		return
 	}
 	spew.Dump(media)
-	println("media2", media)
+	if media == nil {
+		media = []MediaFileAndMetaData{}
+	}
 	transmitPromiseResponse(c, data, media)
+}
+
+func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
+	println("episodes")
+	//spew.Dump(req)
+	//spew.Dump(req.Data)
+	//spew.Dump(req.Data.([]byte))
+	//type payload struct {
+	//	MetaDataId int `json:"metaDataId"`
+	//}
+	//var p = &payload{}
+	//err := json.Unmarshal(req.Data.([]byte), p)
+	//if err != nil {
+	//	transmitPromiseReject(c, req, "could not get episodes")
+	//	return
+	//}
+	p := req.Data.(map[string]interface{})["metaDataId"]
+	spew.Dump(p)
+	episodes, err := models.Episodes(
+		qm.Where("metaDataId = ?", p),
+		//qm.Load("EpisodeIdMediaFiles"),
+		//qm.Load("MetaDataIdMetaDatum"),
+		qm.Load(models.EpisodeRels.MetaDataIdMetaDatum),
+		qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes, qm.Where("userId = ?", 1)),
+		qm.Load(models.EpisodeRels.EpisodeIdMediaFiles),
+	).AllG(context.Background())
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get episodes 2 %s", err))
+		return
+	}
+	type oneResult struct {
+		episode  *models.Episode
+		metaData *models.MetaDatum
+	}
+	var result = []map[string]interface{}(nil)
+	for _, e := range episodes {
+		result = append(result, map[string]interface{}{
+			"episode":     e,
+			"metaData":    e.R.MetaDataIdMetaDatum,
+			"userEpisode": e.R.EpisodeIdUserEpisodes,
+			"mediaFiles":  e.R.EpisodeIdMediaFiles,
+		})
+	}
+	//spew.Dump(result)
+	//type result struct {
+	//	Episodes models.EpisodeSlice       `json:"episodes"`
+	//	MetaData *models.MetaDatum         `json:"metaData"`
+	//	UserMeta models.UserMetaDatumSlice `json:"userMetaDatum"`
+	//}
+	//var r = result{
+	//	Episodes: episodes,
+	//	MetaData: episodes[0].R.MetaDataIdMetaDatum,
+	//	UserMeta: episodes[0].R.MetaDataIdMetaDatum.R.MetaDataIdUserMetaData,
+	//}
+	transmitPromiseResponse(c, req, result)
 }
 
 func (s *Server) RouteNotFound(c *websocket.Conn, data PayloadRequest) {

@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -86,91 +85,50 @@ func (w *Walker) FullSweep() {
 			continue
 		}
 
-		// get metadata from internet
-		var newMd = &m.MetaDatum{}
-		if tor.Episode > 0 && tor.Season > 0 {
-			//options["season_number"] = fmt.Sprintf("%d", tor.Season)
-			//options["episode_number"] = fmt.Sprintf("%d", tor.Episode)
-			tmdbMetaData, err := tmdbClient.GetSearchTVShow(tor.Title, nil)
+		// try getting metadata from DB
+		var md = &m.MetaDatum{}
+		if file.MetaDataId.Valid && !file.MetaDataId.IsZero() {
+			md, err = m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).OneG(context.Background())
 			if handleMetaDataGettingErr(*file, err) {
 				continue
 			}
-			detailsOptions := map[string]string{
-				"append_to_response": "external_ids,genres,episodes,credits",
+			if md != nil {
 			}
-			tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbMetaData.Results[0].ID), detailsOptions)
-
-			newMd.Title = null.StringFrom(tmdbDetails.Name)
-			newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
-			newMd.Type = null.StringFrom("series")
-			newMd.Status = null.StringFrom("scanned")
-			var genresArr []string
-			for _, genre := range tmdbDetails.Genres {
-				genresArr = append(genresArr, genre.Name)
+		} else {
+			newMd, err := GetMediaFromTMDB(tmdbClient, *tor)
+			if handleMetaDataGettingErr(*file, err) {
+				continue
 			}
-			newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
-			newMd.ImdbId = null.StringFrom(tmdbDetails.TVExternalIDs.IMDbID)
-			newMd.TMDBID = null.Int64From(tmdbDetails.ID)
-			newMd.Series = null.BoolFrom(true)
-
-			year, _ := strconv.ParseInt(strings.Split(tmdbDetails.FirstAirDate, "-")[0], 10, 64)
-			newMd.Year = null.Int64From(year)
-			newMd.Plot = null.StringFrom(tmdbDetails.Overview)
-			newMd.Director = null.StringFrom(tmdbDetails.CreatedBy[0].Name)
-
-			var actors []string
-			for _, actor := range tmdbDetails.Credits.Cast {
-				actors = append(actors, actor.Name)
-			}
-			newMd.Actors = null.StringFrom(strings.Join(actors, ","))
 
 			// save the metadata to the db
 			err = newMd.InsertG(context.Background(), boil.Infer())
-			if err != nil {
-				continue
-			}
-			file.MetaDataId = newMd.ID
-			_, _ = file.UpdateG(context.Background(), boil.Infer())
-		} else {
-
-			metaData, err := tmdbClient.GetSearchMovies(tor.Title, nil)
 			if handleMetaDataGettingErr(*file, err) {
 				continue
 			}
-			detailsOptions := map[string]string{
-				"append_to_response": "external_ids,genres,credits,release_dates",
-			}
-			tmdbDetails, err := tmdbClient.GetMovieDetails(int(metaData.Results[0].ID), detailsOptions)
-
-			newMd.Title = null.StringFrom(tmdbDetails.Title)
-			newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
-			newMd.Type = null.StringFrom("movie")
-			newMd.Status = null.StringFrom("scanned")
-			var genresArr []string
-			for _, genre := range tmdbDetails.Genres {
-				genresArr = append(genresArr, genre.Name)
-			}
-			newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
-			newMd.ImdbId = null.StringFrom(tmdbDetails.IMDbID)
-			newMd.TMDBID = null.Int64From(tmdbDetails.ID)
-			newMd.Series = null.BoolFrom(false)
-			year, _ := strconv.ParseInt(strings.Split(tmdbDetails.ReleaseDate, "-")[0], 10, 64)
-			newMd.Year = null.Int64From(year)
-			newMd.Plot = null.StringFrom(tmdbDetails.Overview)
-			//newMd.Released = null.StringFrom(tmdbDetails.ReleaseDates.MovieReleaseDatesResults.Results[0].ReleaseDates[0].ReleaseDate)
-			newMd.Runtime = null.Int64From(int64(tmdbDetails.Runtime))
-			//newMd.Director = null.StringFrom(tmdbDetails.d)
-			var actors []string
-			for _, actor := range tmdbDetails.Credits.Cast {
-				actors = append(actors, actor.Name)
-			}
-			newMd.Actors = null.StringFrom(strings.Join(actors, ","))
-
-			// save the metadata to the db
-			newMd.InsertGP(context.Background(), boil.Infer())
-			file.MetaDataId = newMd.ID
-			_, _ = file.UpdateG(context.Background(), boil.Infer())
+			md = newMd
 		}
+
+		// if it's a series get the episode
+		if md.Series.Valid && md.Series.Bool {
+
+			// try getting episode from DB
+			fmt.Println("Getting episode metadata")
+			epMd, err := GetEpisodeFromTMDB(tmdbClient, *tor, md)
+			if handleMetaDataGettingErr(*file, err) {
+				continue
+			}
+			// save the episode metadata to the db
+			fmt.Println("inserting episode to DB")
+			err = epMd.InsertG(context.Background(), boil.Infer())
+			if err != nil {
+				fmt.Println("Error inserting episode metadata %s", err)
+			}
+			file.EpisodeId = epMd.ID
+		}
+
+		// update file foreignKey in db row
+		file.MetaDataId = md.ID
+		_, _ = file.UpdateG(context.Background(), boil.Infer())
 	}
 }
 
@@ -196,27 +154,6 @@ type TMDBMetaData struct {
 		Overview         string   `json:"overview"`
 		OriginCountry    []string `json:"origin_country"`
 	} `json:"results"`
-}
-
-func GetSearchTVShow(
-	query string,
-	urlOptions map[string]string,
-) (*TMDBSearchResult, error) {
-	options := fmtOptions(urlOptions)
-	// https://api.themoviedb.org/3/search/tv?api_key=REMOVED_TMDB_API_KEY&query=Snowpiercer&language=en-US&append_to_response=external_ids
-	tmdbURL := fmt.Sprintf(
-		"%s%s?api_key=%s&query=%s%s",
-		"https://api.themoviedb.org/3/",
-		"search/tv",
-		"REMOVED_TMDB_API_KEY",
-		url.QueryEscape(query),
-		options,
-	)
-	searchTVShows := TMDBSearchResult{}
-	if err := get(tmdbURL, &searchTVShows); err != nil {
-		return nil, err
-	}
-	return &searchTVShows, nil
 }
 
 func get(url string, data interface{}) error {
@@ -271,18 +208,6 @@ func fmtOptions(
 		}
 	}
 	return options
-}
-
-func handleMetaDataGettingErr(file m.MediaFile, err error) bool {
-	if err != nil {
-		fmt.Println("Error getting metadata from tmdb")
-		// update file row in db
-		file.MetaDataId = null.Int64From(0)
-		_, _ = file.UpdateG(context.Background(), boil.Infer())
-		return true
-	} else {
-		return false
-	}
 }
 
 func fileExists(path string, files m.MediaFileSlice) bool {

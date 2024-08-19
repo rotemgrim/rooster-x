@@ -571,6 +571,83 @@ func testMetaDatumToManyMetaDataIdAliases(t *testing.T) {
 	}
 }
 
+func testMetaDatumToManyMetaDataIdEpisodes(t *testing.T) {
+	var err error
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a MetaDatum
+	var b, c Episode
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, metaDatumDBTypes, true, metaDatumColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize MetaDatum struct: %s", err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = randomize.Struct(seed, &b, episodeDBTypes, false, episodeColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, episodeDBTypes, false, episodeColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+
+	queries.Assign(&b.MetaDataId, a.ID)
+	queries.Assign(&c.MetaDataId, a.ID)
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := a.MetaDataIdEpisodes().All(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bFound, cFound := false, false
+	for _, v := range check {
+		if queries.Equal(v.MetaDataId, b.MetaDataId) {
+			bFound = true
+		}
+		if queries.Equal(v.MetaDataId, c.MetaDataId) {
+			cFound = true
+		}
+	}
+
+	if !bFound {
+		t.Error("expected to find b")
+	}
+	if !cFound {
+		t.Error("expected to find c")
+	}
+
+	slice := MetaDatumSlice{&a}
+	if err = a.L.LoadMetaDataIdEpisodes(ctx, tx, false, (*[]*MetaDatum)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.MetaDataIdEpisodes); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	a.R.MetaDataIdEpisodes = nil
+	if err = a.L.LoadMetaDataIdEpisodes(ctx, tx, true, &a, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.MetaDataIdEpisodes); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	if t.Failed() {
+		t.Logf("%#v", check)
+	}
+}
+
 func testMetaDatumToManyMetaDataIdMediaFiles(t *testing.T) {
 	var err error
 	ctx := context.Background()
@@ -1049,6 +1126,257 @@ func testMetaDatumToManyRemoveOpMetaDataIdAliases(t *testing.T) {
 		t.Error("relationship to d should have been preserved")
 	}
 	if a.R.MetaDataIdAliases[0] != &e {
+		t.Error("relationship to e should have been preserved")
+	}
+}
+
+func testMetaDatumToManyAddOpMetaDataIdEpisodes(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a MetaDatum
+	var b, c, d, e Episode
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*Episode{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, episodeDBTypes, false, strmangle.SetComplement(episodePrimaryKeyColumns, episodeColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreignersSplitByInsertion := [][]*Episode{
+		{&b, &c},
+		{&d, &e},
+	}
+
+	for i, x := range foreignersSplitByInsertion {
+		err = a.AddMetaDataIdEpisodes(ctx, tx, i != 0, x...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		first := x[0]
+		second := x[1]
+
+		if !queries.Equal(a.ID, first.MetaDataId) {
+			t.Error("foreign key was wrong value", a.ID, first.MetaDataId)
+		}
+		if !queries.Equal(a.ID, second.MetaDataId) {
+			t.Error("foreign key was wrong value", a.ID, second.MetaDataId)
+		}
+
+		if first.R.MetaDataIdMetaDatum != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+		if second.R.MetaDataIdMetaDatum != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+
+		if a.R.MetaDataIdEpisodes[i*2] != first {
+			t.Error("relationship struct slice not set to correct value")
+		}
+		if a.R.MetaDataIdEpisodes[i*2+1] != second {
+			t.Error("relationship struct slice not set to correct value")
+		}
+
+		count, err := a.MetaDataIdEpisodes().Count(ctx, tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64((i + 1) * 2); count != want {
+			t.Error("want", want, "got", count)
+		}
+	}
+}
+
+func testMetaDatumToManySetOpMetaDataIdEpisodes(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a MetaDatum
+	var b, c, d, e Episode
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*Episode{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, episodeDBTypes, false, strmangle.SetComplement(episodePrimaryKeyColumns, episodeColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err = a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.SetMetaDataIdEpisodes(ctx, tx, false, &b, &c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := a.MetaDataIdEpisodes().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	err = a.SetMetaDataIdEpisodes(ctx, tx, true, &d, &e)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = a.MetaDataIdEpisodes().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	if !queries.IsValuerNil(b.MetaDataId) {
+		t.Error("want b's foreign key value to be nil")
+	}
+	if !queries.IsValuerNil(c.MetaDataId) {
+		t.Error("want c's foreign key value to be nil")
+	}
+	if !queries.Equal(a.ID, d.MetaDataId) {
+		t.Error("foreign key was wrong value", a.ID, d.MetaDataId)
+	}
+	if !queries.Equal(a.ID, e.MetaDataId) {
+		t.Error("foreign key was wrong value", a.ID, e.MetaDataId)
+	}
+
+	if b.R.MetaDataIdMetaDatum != nil {
+		t.Error("relationship was not removed properly from the foreign struct")
+	}
+	if c.R.MetaDataIdMetaDatum != nil {
+		t.Error("relationship was not removed properly from the foreign struct")
+	}
+	if d.R.MetaDataIdMetaDatum != &a {
+		t.Error("relationship was not added properly to the foreign struct")
+	}
+	if e.R.MetaDataIdMetaDatum != &a {
+		t.Error("relationship was not added properly to the foreign struct")
+	}
+
+	if a.R.MetaDataIdEpisodes[0] != &d {
+		t.Error("relationship struct slice not set to correct value")
+	}
+	if a.R.MetaDataIdEpisodes[1] != &e {
+		t.Error("relationship struct slice not set to correct value")
+	}
+}
+
+func testMetaDatumToManyRemoveOpMetaDataIdEpisodes(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a MetaDatum
+	var b, c, d, e Episode
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*Episode{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, episodeDBTypes, false, strmangle.SetComplement(episodePrimaryKeyColumns, episodeColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.AddMetaDataIdEpisodes(ctx, tx, true, foreigners...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := a.MetaDataIdEpisodes().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 4 {
+		t.Error("count was wrong:", count)
+	}
+
+	err = a.RemoveMetaDataIdEpisodes(ctx, tx, foreigners[:2]...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = a.MetaDataIdEpisodes().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	if !queries.IsValuerNil(b.MetaDataId) {
+		t.Error("want b's foreign key value to be nil")
+	}
+	if !queries.IsValuerNil(c.MetaDataId) {
+		t.Error("want c's foreign key value to be nil")
+	}
+
+	if b.R.MetaDataIdMetaDatum != nil {
+		t.Error("relationship was not removed properly from the foreign struct")
+	}
+	if c.R.MetaDataIdMetaDatum != nil {
+		t.Error("relationship was not removed properly from the foreign struct")
+	}
+	if d.R.MetaDataIdMetaDatum != &a {
+		t.Error("relationship to a should have been preserved")
+	}
+	if e.R.MetaDataIdMetaDatum != &a {
+		t.Error("relationship to a should have been preserved")
+	}
+
+	if len(a.R.MetaDataIdEpisodes) != 2 {
+		t.Error("should have preserved two relationships")
+	}
+
+	// Removal doesn't do a stable deletion for performance so we have to flip the order
+	if a.R.MetaDataIdEpisodes[1] != &d {
+		t.Error("relationship to d should have been preserved")
+	}
+	if a.R.MetaDataIdEpisodes[0] != &e {
 		t.Error("relationship to e should have been preserved")
 	}
 }

@@ -16,6 +16,11 @@ export abstract class AbsMetaData {
     @Column({type: "varchar", length: 40, nullable: true})
     public imdbId?: string;
 
+    /** id of the movie on imdb */
+    @Index({unique: true})
+    @Column({type: "varchar", length: 40, nullable: true})
+    public tmdbId?: number;
+
     /** the genres that this movie belongs to */
     @Column({type: "text", nullable: true})
     public genres?: string;

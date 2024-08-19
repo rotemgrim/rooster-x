@@ -95,12 +95,10 @@ func createAliasTable(db *sql.DB) {
 func createEpisodeTable(db *sql.DB) {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS episode (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+	metaDataId INTEGER,
     title VARCHAR(255) COLLATE NOCASE,
     imdbId VARCHAR(40) UNIQUE,
     tmdbId INTEGER UNIQUE,
-    genres TEXT,
-    languages TEXT,
-    country TEXT,
     votes INTEGER,
     series BOOLEAN,
     rating REAL,
@@ -117,7 +115,9 @@ func createEpisodeTable(db *sql.DB) {
     trailer TEXT,
     season INTEGER,
     episode INTEGER,
-    imdbSeriesId VARCHAR(255)
+    imdbSeriesId VARCHAR(255),
+    tmdbSeriesId INTEGER,
+	FOREIGN KEY (metaDataId) REFERENCES metaData(id)
 )`)
 	if err != nil {
 		log.Fatal(err)

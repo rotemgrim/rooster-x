@@ -25,12 +25,10 @@ import (
 // Episode is an object representing the database table.
 type Episode struct {
 	ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+	MetaDataId   null.Int64   `boil:"metaDataId" json:"metaDataId,omitempty" toml:"metaDataId" yaml:"metaDataId,omitempty"`
 	Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
 	ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
 	TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
-	Genres       null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
-	Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
-	Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
 	Votes        null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
 	Series       null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
 	Rating       null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
@@ -48,6 +46,7 @@ type Episode struct {
 	Season       null.Int64   `boil:"season" json:"season,omitempty" toml:"season" yaml:"season,omitempty"`
 	Episode      null.Int64   `boil:"episode" json:"episode,omitempty" toml:"episode" yaml:"episode,omitempty"`
 	ImdbSeriesId null.String  `boil:"imdbSeriesId" json:"imdbSeriesId,omitempty" toml:"imdbSeriesId" yaml:"imdbSeriesId,omitempty"`
+	TmdbSeriesId null.Int64   `boil:"tmdbSeriesId" json:"tmdbSeriesId,omitempty" toml:"tmdbSeriesId" yaml:"tmdbSeriesId,omitempty"`
 
 	R *episodeR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L episodeL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -55,12 +54,10 @@ type Episode struct {
 
 var EpisodeColumns = struct {
 	ID           string
+	MetaDataId   string
 	Title        string
 	ImdbId       string
 	TMDBID       string
-	Genres       string
-	Languages    string
-	Country      string
 	Votes        string
 	Series       string
 	Rating       string
@@ -78,14 +75,13 @@ var EpisodeColumns = struct {
 	Season       string
 	Episode      string
 	ImdbSeriesId string
+	TmdbSeriesId string
 }{
 	ID:           "id",
+	MetaDataId:   "metaDataId",
 	Title:        "title",
 	ImdbId:       "imdbId",
 	TMDBID:       "tmdbId",
-	Genres:       "genres",
-	Languages:    "languages",
-	Country:      "country",
 	Votes:        "votes",
 	Series:       "series",
 	Rating:       "rating",
@@ -103,16 +99,15 @@ var EpisodeColumns = struct {
 	Season:       "season",
 	Episode:      "episode",
 	ImdbSeriesId: "imdbSeriesId",
+	TmdbSeriesId: "tmdbSeriesId",
 }
 
 var EpisodeTableColumns = struct {
 	ID           string
+	MetaDataId   string
 	Title        string
 	ImdbId       string
 	TMDBID       string
-	Genres       string
-	Languages    string
-	Country      string
 	Votes        string
 	Series       string
 	Rating       string
@@ -130,14 +125,13 @@ var EpisodeTableColumns = struct {
 	Season       string
 	Episode      string
 	ImdbSeriesId string
+	TmdbSeriesId string
 }{
 	ID:           "episode.id",
+	MetaDataId:   "episode.metaDataId",
 	Title:        "episode.title",
 	ImdbId:       "episode.imdbId",
 	TMDBID:       "episode.tmdbId",
-	Genres:       "episode.genres",
-	Languages:    "episode.languages",
-	Country:      "episode.country",
 	Votes:        "episode.votes",
 	Series:       "episode.series",
 	Rating:       "episode.rating",
@@ -155,18 +149,17 @@ var EpisodeTableColumns = struct {
 	Season:       "episode.season",
 	Episode:      "episode.episode",
 	ImdbSeriesId: "episode.imdbSeriesId",
+	TmdbSeriesId: "episode.tmdbSeriesId",
 }
 
 // Generated where
 
 var EpisodeWhere = struct {
 	ID           whereHelpernull_Int64
+	MetaDataId   whereHelpernull_Int64
 	Title        whereHelpernull_String
 	ImdbId       whereHelpernull_String
 	TMDBID       whereHelpernull_Int64
-	Genres       whereHelpernull_String
-	Languages    whereHelpernull_String
-	Country      whereHelpernull_String
 	Votes        whereHelpernull_Int64
 	Series       whereHelpernull_Bool
 	Rating       whereHelpernull_Float64
@@ -184,14 +177,13 @@ var EpisodeWhere = struct {
 	Season       whereHelpernull_Int64
 	Episode      whereHelpernull_Int64
 	ImdbSeriesId whereHelpernull_String
+	TmdbSeriesId whereHelpernull_Int64
 }{
 	ID:           whereHelpernull_Int64{field: "\"episode\".\"id\""},
+	MetaDataId:   whereHelpernull_Int64{field: "\"episode\".\"metaDataId\""},
 	Title:        whereHelpernull_String{field: "\"episode\".\"title\""},
 	ImdbId:       whereHelpernull_String{field: "\"episode\".\"imdbId\""},
 	TMDBID:       whereHelpernull_Int64{field: "\"episode\".\"tmdbId\""},
-	Genres:       whereHelpernull_String{field: "\"episode\".\"genres\""},
-	Languages:    whereHelpernull_String{field: "\"episode\".\"languages\""},
-	Country:      whereHelpernull_String{field: "\"episode\".\"country\""},
 	Votes:        whereHelpernull_Int64{field: "\"episode\".\"votes\""},
 	Series:       whereHelpernull_Bool{field: "\"episode\".\"series\""},
 	Rating:       whereHelpernull_Float64{field: "\"episode\".\"rating\""},
@@ -209,14 +201,17 @@ var EpisodeWhere = struct {
 	Season:       whereHelpernull_Int64{field: "\"episode\".\"season\""},
 	Episode:      whereHelpernull_Int64{field: "\"episode\".\"episode\""},
 	ImdbSeriesId: whereHelpernull_String{field: "\"episode\".\"imdbSeriesId\""},
+	TmdbSeriesId: whereHelpernull_Int64{field: "\"episode\".\"tmdbSeriesId\""},
 }
 
 // EpisodeRels is where relationship names are stored.
 var EpisodeRels = struct {
+	MetaDataIdMetaDatum   string
 	EpisodeIdMediaFiles   string
 	EpisodeIdTorrentFiles string
 	EpisodeIdUserEpisodes string
 }{
+	MetaDataIdMetaDatum:   "MetaDataIdMetaDatum",
 	EpisodeIdMediaFiles:   "EpisodeIdMediaFiles",
 	EpisodeIdTorrentFiles: "EpisodeIdTorrentFiles",
 	EpisodeIdUserEpisodes: "EpisodeIdUserEpisodes",
@@ -224,6 +219,7 @@ var EpisodeRels = struct {
 
 // episodeR is where relationships are stored.
 type episodeR struct {
+	MetaDataIdMetaDatum   *MetaDatum       `boil:"MetaDataIdMetaDatum" json:"MetaDataIdMetaDatum" toml:"MetaDataIdMetaDatum" yaml:"MetaDataIdMetaDatum"`
 	EpisodeIdMediaFiles   MediaFileSlice   `boil:"EpisodeIdMediaFiles" json:"EpisodeIdMediaFiles" toml:"EpisodeIdMediaFiles" yaml:"EpisodeIdMediaFiles"`
 	EpisodeIdTorrentFiles TorrentFileSlice `boil:"EpisodeIdTorrentFiles" json:"EpisodeIdTorrentFiles" toml:"EpisodeIdTorrentFiles" yaml:"EpisodeIdTorrentFiles"`
 	EpisodeIdUserEpisodes UserEpisodeSlice `boil:"EpisodeIdUserEpisodes" json:"EpisodeIdUserEpisodes" toml:"EpisodeIdUserEpisodes" yaml:"EpisodeIdUserEpisodes"`
@@ -232,6 +228,13 @@ type episodeR struct {
 // NewStruct creates a new relationship struct
 func (*episodeR) NewStruct() *episodeR {
 	return &episodeR{}
+}
+
+func (r *episodeR) GetMetaDataIdMetaDatum() *MetaDatum {
+	if r == nil {
+		return nil
+	}
+	return r.MetaDataIdMetaDatum
 }
 
 func (r *episodeR) GetEpisodeIdMediaFiles() MediaFileSlice {
@@ -259,9 +262,9 @@ func (r *episodeR) GetEpisodeIdUserEpisodes() UserEpisodeSlice {
 type episodeL struct{}
 
 var (
-	episodeAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "season", "episode", "imdbSeriesId"}
+	episodeAllColumns            = []string{"id", "metaDataId", "title", "imdbId", "tmdbId", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "season", "episode", "imdbSeriesId", "tmdbSeriesId"}
 	episodeColumnsWithoutDefault = []string{}
-	episodeColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "season", "episode", "imdbSeriesId"}
+	episodeColumnsWithDefault    = []string{"id", "metaDataId", "title", "imdbId", "tmdbId", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "season", "episode", "imdbSeriesId", "tmdbSeriesId"}
 	episodePrimaryKeyColumns     = []string{"id"}
 	episodeGeneratedColumns      = []string{"id"}
 )
@@ -671,6 +674,17 @@ func (q episodeQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bo
 	return count > 0, nil
 }
 
+// MetaDataIdMetaDatum pointed to by the foreign key.
+func (o *Episode) MetaDataIdMetaDatum(mods ...qm.QueryMod) metaDatumQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.MetaDataId),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return MetaData(queryMods...)
+}
+
 // EpisodeIdMediaFiles retrieves all the mediaFile's MediaFiles with an executor via episodeId column.
 func (o *Episode) EpisodeIdMediaFiles(mods ...qm.QueryMod) mediaFileQuery {
 	var queryMods []qm.QueryMod
@@ -711,6 +725,130 @@ func (o *Episode) EpisodeIdUserEpisodes(mods ...qm.QueryMod) userEpisodeQuery {
 	)
 
 	return UserEpisodes(queryMods...)
+}
+
+// LoadMetaDataIdMetaDatum allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (episodeL) LoadMetaDataIdMetaDatum(ctx context.Context, e boil.ContextExecutor, singular bool, maybeEpisode interface{}, mods queries.Applicator) error {
+	var slice []*Episode
+	var object *Episode
+
+	if singular {
+		var ok bool
+		object, ok = maybeEpisode.(*Episode)
+		if !ok {
+			object = new(Episode)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeEpisode)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeEpisode))
+			}
+		}
+	} else {
+		s, ok := maybeEpisode.(*[]*Episode)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeEpisode)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeEpisode))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &episodeR{}
+		}
+		if !queries.IsNil(object.MetaDataId) {
+			args[object.MetaDataId] = struct{}{}
+		}
+
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &episodeR{}
+			}
+
+			if !queries.IsNil(obj.MetaDataId) {
+				args[obj.MetaDataId] = struct{}{}
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`metaData`),
+		qm.WhereIn(`metaData.id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load MetaDatum")
+	}
+
+	var resultSlice []*MetaDatum
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice MetaDatum")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for metaData")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for metaData")
+	}
+
+	if len(metaDatumAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.MetaDataIdMetaDatum = foreign
+		if foreign.R == nil {
+			foreign.R = &metaDatumR{}
+		}
+		foreign.R.MetaDataIdEpisodes = append(foreign.R.MetaDataIdEpisodes, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.MetaDataId, foreign.ID) {
+				local.R.MetaDataIdMetaDatum = foreign
+				if foreign.R == nil {
+					foreign.R = &metaDatumR{}
+				}
+				foreign.R.MetaDataIdEpisodes = append(foreign.R.MetaDataIdEpisodes, local)
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadEpisodeIdMediaFiles allows an eager lookup of values, cached into the
@@ -1049,6 +1187,142 @@ func (episodeL) LoadEpisodeIdUserEpisodes(ctx context.Context, e boil.ContextExe
 		}
 	}
 
+	return nil
+}
+
+// SetMetaDataIdMetaDatumG of the episode to the related item.
+// Sets o.R.MetaDataIdMetaDatum to related.
+// Adds o to related.R.MetaDataIdEpisodes.
+// Uses the global database handle.
+func (o *Episode) SetMetaDataIdMetaDatumG(ctx context.Context, insert bool, related *MetaDatum) error {
+	return o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related)
+}
+
+// SetMetaDataIdMetaDatumP of the episode to the related item.
+// Sets o.R.MetaDataIdMetaDatum to related.
+// Adds o to related.R.MetaDataIdEpisodes.
+// Panics on error.
+func (o *Episode) SetMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *MetaDatum) {
+	if err := o.SetMetaDataIdMetaDatum(ctx, exec, insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetMetaDataIdMetaDatumGP of the episode to the related item.
+// Sets o.R.MetaDataIdMetaDatum to related.
+// Adds o to related.R.MetaDataIdEpisodes.
+// Uses the global database handle and panics on error.
+func (o *Episode) SetMetaDataIdMetaDatumGP(ctx context.Context, insert bool, related *MetaDatum) {
+	if err := o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetMetaDataIdMetaDatum of the episode to the related item.
+// Sets o.R.MetaDataIdMetaDatum to related.
+// Adds o to related.R.MetaDataIdEpisodes.
+func (o *Episode) SetMetaDataIdMetaDatum(ctx context.Context, exec boil.ContextExecutor, insert bool, related *MetaDatum) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"episode\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 0, []string{"metaDataId"}),
+		strmangle.WhereClause("\"", "\"", 0, episodePrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.MetaDataId, related.ID)
+	if o.R == nil {
+		o.R = &episodeR{
+			MetaDataIdMetaDatum: related,
+		}
+	} else {
+		o.R.MetaDataIdMetaDatum = related
+	}
+
+	if related.R == nil {
+		related.R = &metaDatumR{
+			MetaDataIdEpisodes: EpisodeSlice{o},
+		}
+	} else {
+		related.R.MetaDataIdEpisodes = append(related.R.MetaDataIdEpisodes, o)
+	}
+
+	return nil
+}
+
+// RemoveMetaDataIdMetaDatumG relationship.
+// Sets o.R.MetaDataIdMetaDatum to nil.
+// Removes o from all passed in related items' relationships struct.
+// Uses the global database handle.
+func (o *Episode) RemoveMetaDataIdMetaDatumG(ctx context.Context, related *MetaDatum) error {
+	return o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related)
+}
+
+// RemoveMetaDataIdMetaDatumP relationship.
+// Sets o.R.MetaDataIdMetaDatum to nil.
+// Removes o from all passed in related items' relationships struct.
+// Panics on error.
+func (o *Episode) RemoveMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, related *MetaDatum) {
+	if err := o.RemoveMetaDataIdMetaDatum(ctx, exec, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveMetaDataIdMetaDatumGP relationship.
+// Sets o.R.MetaDataIdMetaDatum to nil.
+// Removes o from all passed in related items' relationships struct.
+// Uses the global database handle and panics on error.
+func (o *Episode) RemoveMetaDataIdMetaDatumGP(ctx context.Context, related *MetaDatum) {
+	if err := o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveMetaDataIdMetaDatum relationship.
+// Sets o.R.MetaDataIdMetaDatum to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *Episode) RemoveMetaDataIdMetaDatum(ctx context.Context, exec boil.ContextExecutor, related *MetaDatum) error {
+	var err error
+
+	queries.SetScanner(&o.MetaDataId, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("metaDataId")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.MetaDataIdMetaDatum = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.MetaDataIdEpisodes {
+		if queries.Equal(o.MetaDataId, ri.MetaDataId) {
+			continue
+		}
+
+		ln := len(related.R.MetaDataIdEpisodes)
+		if ln > 1 && i < ln-1 {
+			related.R.MetaDataIdEpisodes[i] = related.R.MetaDataIdEpisodes[ln-1]
+		}
+		related.R.MetaDataIdEpisodes = related.R.MetaDataIdEpisodes[:ln-1]
+		break
+	}
 	return nil
 }
 

@@ -214,11 +214,13 @@ var MetaDatumWhere = struct {
 // MetaDatumRels is where relationship names are stored.
 var MetaDatumRels = struct {
 	MetaDataIdAliases      string
+	MetaDataIdEpisodes     string
 	MetaDataIdMediaFiles   string
 	MetaDataIdTorrentFiles string
 	MetaDataIdUserMetaData string
 }{
 	MetaDataIdAliases:      "MetaDataIdAliases",
+	MetaDataIdEpisodes:     "MetaDataIdEpisodes",
 	MetaDataIdMediaFiles:   "MetaDataIdMediaFiles",
 	MetaDataIdTorrentFiles: "MetaDataIdTorrentFiles",
 	MetaDataIdUserMetaData: "MetaDataIdUserMetaData",
@@ -227,6 +229,7 @@ var MetaDatumRels = struct {
 // metaDatumR is where relationships are stored.
 type metaDatumR struct {
 	MetaDataIdAliases      AliasSlice         `boil:"MetaDataIdAliases" json:"MetaDataIdAliases" toml:"MetaDataIdAliases" yaml:"MetaDataIdAliases"`
+	MetaDataIdEpisodes     EpisodeSlice       `boil:"MetaDataIdEpisodes" json:"MetaDataIdEpisodes" toml:"MetaDataIdEpisodes" yaml:"MetaDataIdEpisodes"`
 	MetaDataIdMediaFiles   MediaFileSlice     `boil:"MetaDataIdMediaFiles" json:"MetaDataIdMediaFiles" toml:"MetaDataIdMediaFiles" yaml:"MetaDataIdMediaFiles"`
 	MetaDataIdTorrentFiles TorrentFileSlice   `boil:"MetaDataIdTorrentFiles" json:"MetaDataIdTorrentFiles" toml:"MetaDataIdTorrentFiles" yaml:"MetaDataIdTorrentFiles"`
 	MetaDataIdUserMetaData UserMetaDatumSlice `boil:"MetaDataIdUserMetaData" json:"MetaDataIdUserMetaData" toml:"MetaDataIdUserMetaData" yaml:"MetaDataIdUserMetaData"`
@@ -242,6 +245,13 @@ func (r *metaDatumR) GetMetaDataIdAliases() AliasSlice {
 		return nil
 	}
 	return r.MetaDataIdAliases
+}
+
+func (r *metaDatumR) GetMetaDataIdEpisodes() EpisodeSlice {
+	if r == nil {
+		return nil
+	}
+	return r.MetaDataIdEpisodes
 }
 
 func (r *metaDatumR) GetMetaDataIdMediaFiles() MediaFileSlice {
@@ -695,6 +705,20 @@ func (o *MetaDatum) MetaDataIdAliases(mods ...qm.QueryMod) aliasQuery {
 	return Aliases(queryMods...)
 }
 
+// MetaDataIdEpisodes retrieves all the episode's Episodes with an executor via metaDataId column.
+func (o *MetaDatum) MetaDataIdEpisodes(mods ...qm.QueryMod) episodeQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"episode\".\"metaDataId\"=?", o.ID),
+	)
+
+	return Episodes(queryMods...)
+}
+
 // MetaDataIdMediaFiles retrieves all the mediaFile's MediaFiles with an executor via metaDataId column.
 func (o *MetaDatum) MetaDataIdMediaFiles(mods ...qm.QueryMod) mediaFileQuery {
 	var queryMods []qm.QueryMod
@@ -840,6 +864,119 @@ func (metaDatumL) LoadMetaDataIdAliases(ctx context.Context, e boil.ContextExecu
 				local.R.MetaDataIdAliases = append(local.R.MetaDataIdAliases, foreign)
 				if foreign.R == nil {
 					foreign.R = &aliasR{}
+				}
+				foreign.R.MetaDataIdMetaDatum = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadMetaDataIdEpisodes allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (metaDatumL) LoadMetaDataIdEpisodes(ctx context.Context, e boil.ContextExecutor, singular bool, maybeMetaDatum interface{}, mods queries.Applicator) error {
+	var slice []*MetaDatum
+	var object *MetaDatum
+
+	if singular {
+		var ok bool
+		object, ok = maybeMetaDatum.(*MetaDatum)
+		if !ok {
+			object = new(MetaDatum)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeMetaDatum)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeMetaDatum))
+			}
+		}
+	} else {
+		s, ok := maybeMetaDatum.(*[]*MetaDatum)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeMetaDatum)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeMetaDatum))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &metaDatumR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &metaDatumR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`episode`),
+		qm.WhereIn(`episode.metaDataId in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load episode")
+	}
+
+	var resultSlice []*Episode
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice episode")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on episode")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for episode")
+	}
+
+	if len(episodeAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.MetaDataIdEpisodes = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &episodeR{}
+			}
+			foreign.R.MetaDataIdMetaDatum = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.ID, foreign.MetaDataId) {
+				local.R.MetaDataIdEpisodes = append(local.R.MetaDataIdEpisodes, foreign)
+				if foreign.R == nil {
+					foreign.R = &episodeR{}
 				}
 				foreign.R.MetaDataIdMetaDatum = local
 				break
@@ -1405,6 +1542,229 @@ func (o *MetaDatum) RemoveMetaDataIdAliases(ctx context.Context, exec boil.Conte
 				o.R.MetaDataIdAliases[i] = o.R.MetaDataIdAliases[ln-1]
 			}
 			o.R.MetaDataIdAliases = o.R.MetaDataIdAliases[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddMetaDataIdEpisodesG adds the given related objects to the existing relationships
+// of the metaDatum, optionally inserting them as new records.
+// Appends related to o.R.MetaDataIdEpisodes.
+// Sets related.R.MetaDataIdMetaDatum appropriately.
+// Uses the global database handle.
+func (o *MetaDatum) AddMetaDataIdEpisodesG(ctx context.Context, insert bool, related ...*Episode) error {
+	return o.AddMetaDataIdEpisodes(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddMetaDataIdEpisodesP adds the given related objects to the existing relationships
+// of the metaDatum, optionally inserting them as new records.
+// Appends related to o.R.MetaDataIdEpisodes.
+// Sets related.R.MetaDataIdMetaDatum appropriately.
+// Panics on error.
+func (o *MetaDatum) AddMetaDataIdEpisodesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Episode) {
+	if err := o.AddMetaDataIdEpisodes(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMetaDataIdEpisodesGP adds the given related objects to the existing relationships
+// of the metaDatum, optionally inserting them as new records.
+// Appends related to o.R.MetaDataIdEpisodes.
+// Sets related.R.MetaDataIdMetaDatum appropriately.
+// Uses the global database handle and panics on error.
+func (o *MetaDatum) AddMetaDataIdEpisodesGP(ctx context.Context, insert bool, related ...*Episode) {
+	if err := o.AddMetaDataIdEpisodes(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMetaDataIdEpisodes adds the given related objects to the existing relationships
+// of the metaDatum, optionally inserting them as new records.
+// Appends related to o.R.MetaDataIdEpisodes.
+// Sets related.R.MetaDataIdMetaDatum appropriately.
+func (o *MetaDatum) AddMetaDataIdEpisodes(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Episode) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.MetaDataId, o.ID)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"episode\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 0, []string{"metaDataId"}),
+				strmangle.WhereClause("\"", "\"", 0, episodePrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.MetaDataId, o.ID)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &metaDatumR{
+			MetaDataIdEpisodes: related,
+		}
+	} else {
+		o.R.MetaDataIdEpisodes = append(o.R.MetaDataIdEpisodes, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &episodeR{
+				MetaDataIdMetaDatum: o,
+			}
+		} else {
+			rel.R.MetaDataIdMetaDatum = o
+		}
+	}
+	return nil
+}
+
+// SetMetaDataIdEpisodesG removes all previously related items of the
+// metaDatum replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
+// Replaces o.R.MetaDataIdEpisodes with related.
+// Sets related.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
+// Uses the global database handle.
+func (o *MetaDatum) SetMetaDataIdEpisodesG(ctx context.Context, insert bool, related ...*Episode) error {
+	return o.SetMetaDataIdEpisodes(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetMetaDataIdEpisodesP removes all previously related items of the
+// metaDatum replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
+// Replaces o.R.MetaDataIdEpisodes with related.
+// Sets related.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
+// Panics on error.
+func (o *MetaDatum) SetMetaDataIdEpisodesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Episode) {
+	if err := o.SetMetaDataIdEpisodes(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetMetaDataIdEpisodesGP removes all previously related items of the
+// metaDatum replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
+// Replaces o.R.MetaDataIdEpisodes with related.
+// Sets related.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
+// Uses the global database handle and panics on error.
+func (o *MetaDatum) SetMetaDataIdEpisodesGP(ctx context.Context, insert bool, related ...*Episode) {
+	if err := o.SetMetaDataIdEpisodes(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetMetaDataIdEpisodes removes all previously related items of the
+// metaDatum replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
+// Replaces o.R.MetaDataIdEpisodes with related.
+// Sets related.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
+func (o *MetaDatum) SetMetaDataIdEpisodes(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Episode) error {
+	query := "update \"episode\" set \"metaDataId\" = null where \"metaDataId\" = ?"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.MetaDataIdEpisodes {
+			queries.SetScanner(&rel.MetaDataId, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.MetaDataIdMetaDatum = nil
+		}
+		o.R.MetaDataIdEpisodes = nil
+	}
+
+	return o.AddMetaDataIdEpisodes(ctx, exec, insert, related...)
+}
+
+// RemoveMetaDataIdEpisodesG relationships from objects passed in.
+// Removes related items from R.MetaDataIdEpisodes (uses pointer comparison, removal does not keep order)
+// Sets related.R.MetaDataIdMetaDatum.
+// Uses the global database handle.
+func (o *MetaDatum) RemoveMetaDataIdEpisodesG(ctx context.Context, related ...*Episode) error {
+	return o.RemoveMetaDataIdEpisodes(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveMetaDataIdEpisodesP relationships from objects passed in.
+// Removes related items from R.MetaDataIdEpisodes (uses pointer comparison, removal does not keep order)
+// Sets related.R.MetaDataIdMetaDatum.
+// Panics on error.
+func (o *MetaDatum) RemoveMetaDataIdEpisodesP(ctx context.Context, exec boil.ContextExecutor, related ...*Episode) {
+	if err := o.RemoveMetaDataIdEpisodes(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveMetaDataIdEpisodesGP relationships from objects passed in.
+// Removes related items from R.MetaDataIdEpisodes (uses pointer comparison, removal does not keep order)
+// Sets related.R.MetaDataIdMetaDatum.
+// Uses the global database handle and panics on error.
+func (o *MetaDatum) RemoveMetaDataIdEpisodesGP(ctx context.Context, related ...*Episode) {
+	if err := o.RemoveMetaDataIdEpisodes(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveMetaDataIdEpisodes relationships from objects passed in.
+// Removes related items from R.MetaDataIdEpisodes (uses pointer comparison, removal does not keep order)
+// Sets related.R.MetaDataIdMetaDatum.
+func (o *MetaDatum) RemoveMetaDataIdEpisodes(ctx context.Context, exec boil.ContextExecutor, related ...*Episode) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.MetaDataId, nil)
+		if rel.R != nil {
+			rel.R.MetaDataIdMetaDatum = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("metaDataId")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.MetaDataIdEpisodes {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.MetaDataIdEpisodes)
+			if ln > 1 && i < ln-1 {
+				o.R.MetaDataIdEpisodes[i] = o.R.MetaDataIdEpisodes[ln-1]
+			}
+			o.R.MetaDataIdEpisodes = o.R.MetaDataIdEpisodes[:ln-1]
 			break
 		}
 	}

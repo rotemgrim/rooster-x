@@ -1478,6 +1478,176 @@ func testEpisodeToManyRemoveOpEpisodeIdUserEpisodes(t *testing.T) {
 	}
 }
 
+func testEpisodeToOneMetaDatumUsingMetaDataIdMetaDatum(t *testing.T) {
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var local Episode
+	var foreign MetaDatum
+
+	seed := randomize.NewSeed()
+	if err := randomize.Struct(seed, &local, episodeDBTypes, true, episodeColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Episode struct: %s", err)
+	}
+	if err := randomize.Struct(seed, &foreign, metaDatumDBTypes, true, metaDatumColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize MetaDatum struct: %s", err)
+	}
+
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	queries.Assign(&local.MetaDataId, foreign.ID)
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := local.MetaDataIdMetaDatum().One(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !queries.Equal(check.ID, foreign.ID) {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	}
+
+	ranAfterSelectHook := false
+	AddMetaDatumHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *MetaDatum) error {
+		ranAfterSelectHook = true
+		return nil
+	})
+
+	slice := EpisodeSlice{&local}
+	if err = local.L.LoadMetaDataIdMetaDatum(ctx, tx, false, (*[]*Episode)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.MetaDataIdMetaDatum == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	local.R.MetaDataIdMetaDatum = nil
+	if err = local.L.LoadMetaDataIdMetaDatum(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.MetaDataIdMetaDatum == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
+	}
+}
+
+func testEpisodeToOneSetOpMetaDatumUsingMetaDataIdMetaDatum(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Episode
+	var b, c MetaDatum
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, episodeDBTypes, false, strmangle.SetComplement(episodePrimaryKeyColumns, episodeColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*MetaDatum{&b, &c} {
+		err = a.SetMetaDataIdMetaDatum(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.MetaDataIdMetaDatum != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.MetaDataIdEpisodes[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if !queries.Equal(a.MetaDataId, x.ID) {
+			t.Error("foreign key was wrong value", a.MetaDataId)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.MetaDataId))
+		reflect.Indirect(reflect.ValueOf(&a.MetaDataId)).Set(zero)
+
+		if err = a.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if !queries.Equal(a.MetaDataId, x.ID) {
+			t.Error("foreign key was wrong value", a.MetaDataId, x.ID)
+		}
+	}
+}
+
+func testEpisodeToOneRemoveOpMetaDatumUsingMetaDataIdMetaDatum(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Episode
+	var b MetaDatum
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, episodeDBTypes, false, strmangle.SetComplement(episodePrimaryKeyColumns, episodeColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.SetMetaDataIdMetaDatum(ctx, tx, true, &b); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.RemoveMetaDataIdMetaDatum(ctx, tx, &b); err != nil {
+		t.Error("failed to remove relationship")
+	}
+
+	count, err := a.MetaDataIdMetaDatum().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Error("want no relationships remaining")
+	}
+
+	if a.R.MetaDataIdMetaDatum != nil {
+		t.Error("R struct entry should be nil")
+	}
+
+	if !queries.IsValuerNil(a.MetaDataId) {
+		t.Error("foreign key value should be nil")
+	}
+
+	if len(b.R.MetaDataIdEpisodes) != 0 {
+		t.Error("failed to remove a from b's relationships")
+	}
+}
+
 func testEpisodesReload(t *testing.T) {
 	t.Parallel()
 
@@ -1552,7 +1722,7 @@ func testEpisodesSelect(t *testing.T) {
 }
 
 var (
-	episodeDBTypes = map[string]string{`ID`: `INTEGER`, `Title`: `VARCHAR(255)`, `ImdbId`: `VARCHAR(40)`, `TMDBID`: `INTEGER`, `Genres`: `TEXT`, `Languages`: `TEXT`, `Country`: `TEXT`, `Votes`: `INTEGER`, `Series`: `BOOLEAN`, `Rating`: `REAL`, `Runtime`: `INTEGER`, `Year`: `INTEGER`, `Poster`: `TEXT`, `Metascore`: `TEXT`, `Plot`: `TEXT`, `Director`: `VARCHAR`, `Writer`: `VARCHAR`, `Actors`: `TEXT`, `Released`: `VARCHAR(255)`, `ReleasedUnix`: `INTEGER`, `Trailer`: `TEXT`, `Season`: `INTEGER`, `Episode`: `INTEGER`, `ImdbSeriesId`: `VARCHAR(255)`}
+	episodeDBTypes = map[string]string{`ID`: `INTEGER`, `MetaDataId`: `INTEGER`, `Title`: `VARCHAR(255)`, `ImdbId`: `VARCHAR(40)`, `TMDBID`: `INTEGER`, `Votes`: `INTEGER`, `Series`: `BOOLEAN`, `Rating`: `REAL`, `Runtime`: `INTEGER`, `Year`: `INTEGER`, `Poster`: `TEXT`, `Metascore`: `TEXT`, `Plot`: `TEXT`, `Director`: `VARCHAR`, `Writer`: `VARCHAR`, `Actors`: `TEXT`, `Released`: `VARCHAR(255)`, `ReleasedUnix`: `INTEGER`, `Trailer`: `TEXT`, `Season`: `INTEGER`, `Episode`: `INTEGER`, `ImdbSeriesId`: `VARCHAR(255)`, `TmdbSeriesId`: `INTEGER`}
 	_              = bytes.MinRead
 )
 

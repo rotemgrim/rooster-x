@@ -141,6 +141,7 @@ export class IpcService {
 
     public static getEpisodes(payload: {metaDataId: number}): Promise<any> {
         return new Promise((resolve, reject) => {
+            console.log("get episode payload", payload)
             promiseIpc.send("get-episodes", payload).then(resolve).catch(reject);
         });
     }

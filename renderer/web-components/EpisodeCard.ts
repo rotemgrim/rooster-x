@@ -1,5 +1,5 @@
 
-import {LitElement, html} from "lit";
+import {LitElement, html, PropertyValues} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import {type MediaFile} from "../entity/MediaFile";
@@ -14,6 +14,7 @@ import {type TorrentFile} from "../entity/TorrentFile";
 export class EpisodeCard extends LitElement {
 
     @property() public videoDetails: VideoDetails;
+    @property() public data: any;
     @property() public episode: IEpisodeExtended;
     @property() public isShowPlayOptions: boolean;
     @property() public isShowDownloadOptions: boolean;
@@ -26,6 +27,15 @@ export class EpisodeCard extends LitElement {
         super();
         this.isShowPlayOptions = false;
         this.isShowDownloadOptions = false;
+    }
+
+    protected firstUpdated(_changedProperties: PropertyValues) {
+        super.firstUpdated(_changedProperties);
+        this.episode = this.data.episode;
+        this.episode.mediaFiles = this.data.mediaFiles;
+        // this.episode.torrentFiles = this.data.torrentFiles;
+        // this.episode = Object.assign(this.episode, this.data.userEpisode);
+        console.log("EpisodeCard", this.episode);
     }
 
     public playEpisode() {
@@ -78,7 +88,7 @@ export class EpisodeCard extends LitElement {
 
     private getTitle() {
         let title = "";
-        if (this.episode.mediaFiles.length === 0) {
+        if (this.episode?.mediaFiles?.length === 0) {
             if (this.episode.torrentFiles.length === 0) {
                 title = "Missing file";
             } else if (this.episode.torrentFiles.length === 1) {
@@ -86,10 +96,10 @@ export class EpisodeCard extends LitElement {
             } else {
                 title = "click to see " + this.episode.torrentFiles.length + " torrents";
             }
-        } else if (this.episode.mediaFiles.length === 1) {
+        } else if (this.episode.mediaFiles?.length === 1) {
             title = this.episode.mediaFiles[0].raw;
         } else {
-            title = "Click to see " + this.episode.mediaFiles.length + " files";
+            title = "Click to see " + this.episode.mediaFiles?.length + " files";
         }
         return title;
     }
@@ -103,6 +113,9 @@ export class EpisodeCard extends LitElement {
     }
 
     public render() {
+        if (!this.episode) {
+            return html`<div>Missing episode</div>`;
+        }
         return html`<div class="episode ${this.episode.isWatched ? `watched` : ``}">
             <span class="title" alt="${this.getPlotTitle()}">
                 ${this.episode.season}.${this.episode.episode} - ${this.episode.title}

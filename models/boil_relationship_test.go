@@ -9,6 +9,7 @@ import "testing"
 // or deadlocks can occur.
 func TestToOne(t *testing.T) {
 	t.Run("AliasToMetaDatumUsingMetaDataIdMetaDatum", testAliasToOneMetaDatumUsingMetaDataIdMetaDatum)
+	t.Run("EpisodeToMetaDatumUsingMetaDataIdMetaDatum", testEpisodeToOneMetaDatumUsingMetaDataIdMetaDatum)
 	t.Run("MediaFileToEpisodeUsingEpisodeIdEpisode", testMediaFileToOneEpisodeUsingEpisodeIdEpisode)
 	t.Run("MediaFileToMetaDatumUsingMetaDataIdMetaDatum", testMediaFileToOneMetaDatumUsingMetaDataIdMetaDatum)
 	t.Run("TorrentFileToEpisodeUsingEpisodeIdEpisode", testTorrentFileToOneEpisodeUsingEpisodeIdEpisode)
@@ -30,6 +31,7 @@ func TestToMany(t *testing.T) {
 	t.Run("EpisodeToEpisodeIdTorrentFiles", testEpisodeToManyEpisodeIdTorrentFiles)
 	t.Run("EpisodeToEpisodeIdUserEpisodes", testEpisodeToManyEpisodeIdUserEpisodes)
 	t.Run("MetaDatumToMetaDataIdAliases", testMetaDatumToManyMetaDataIdAliases)
+	t.Run("MetaDatumToMetaDataIdEpisodes", testMetaDatumToManyMetaDataIdEpisodes)
 	t.Run("MetaDatumToMetaDataIdMediaFiles", testMetaDatumToManyMetaDataIdMediaFiles)
 	t.Run("MetaDatumToMetaDataIdTorrentFiles", testMetaDatumToManyMetaDataIdTorrentFiles)
 	t.Run("MetaDatumToMetaDataIdUserMetaData", testMetaDatumToManyMetaDataIdUserMetaData)
@@ -41,6 +43,7 @@ func TestToMany(t *testing.T) {
 // or deadlocks can occur.
 func TestToOneSet(t *testing.T) {
 	t.Run("AliasToMetaDatumUsingMetaDataIdAliases", testAliasToOneSetOpMetaDatumUsingMetaDataIdMetaDatum)
+	t.Run("EpisodeToMetaDatumUsingMetaDataIdEpisodes", testEpisodeToOneSetOpMetaDatumUsingMetaDataIdMetaDatum)
 	t.Run("MediaFileToEpisodeUsingEpisodeIdMediaFiles", testMediaFileToOneSetOpEpisodeUsingEpisodeIdEpisode)
 	t.Run("MediaFileToMetaDatumUsingMetaDataIdMediaFiles", testMediaFileToOneSetOpMetaDatumUsingMetaDataIdMetaDatum)
 	t.Run("TorrentFileToEpisodeUsingEpisodeIdTorrentFiles", testTorrentFileToOneSetOpEpisodeUsingEpisodeIdEpisode)
@@ -55,6 +58,7 @@ func TestToOneSet(t *testing.T) {
 // or deadlocks can occur.
 func TestToOneRemove(t *testing.T) {
 	t.Run("AliasToMetaDatumUsingMetaDataIdAliases", testAliasToOneRemoveOpMetaDatumUsingMetaDataIdMetaDatum)
+	t.Run("EpisodeToMetaDatumUsingMetaDataIdEpisodes", testEpisodeToOneRemoveOpMetaDatumUsingMetaDataIdMetaDatum)
 	t.Run("MediaFileToEpisodeUsingEpisodeIdMediaFiles", testMediaFileToOneRemoveOpEpisodeUsingEpisodeIdEpisode)
 	t.Run("MediaFileToMetaDatumUsingMetaDataIdMediaFiles", testMediaFileToOneRemoveOpMetaDatumUsingMetaDataIdMetaDatum)
 	t.Run("TorrentFileToEpisodeUsingEpisodeIdTorrentFiles", testTorrentFileToOneRemoveOpEpisodeUsingEpisodeIdEpisode)
@@ -80,6 +84,7 @@ func TestToManyAdd(t *testing.T) {
 	t.Run("EpisodeToEpisodeIdTorrentFiles", testEpisodeToManyAddOpEpisodeIdTorrentFiles)
 	t.Run("EpisodeToEpisodeIdUserEpisodes", testEpisodeToManyAddOpEpisodeIdUserEpisodes)
 	t.Run("MetaDatumToMetaDataIdAliases", testMetaDatumToManyAddOpMetaDataIdAliases)
+	t.Run("MetaDatumToMetaDataIdEpisodes", testMetaDatumToManyAddOpMetaDataIdEpisodes)
 	t.Run("MetaDatumToMetaDataIdMediaFiles", testMetaDatumToManyAddOpMetaDataIdMediaFiles)
 	t.Run("MetaDatumToMetaDataIdTorrentFiles", testMetaDatumToManyAddOpMetaDataIdTorrentFiles)
 	t.Run("MetaDatumToMetaDataIdUserMetaData", testMetaDatumToManyAddOpMetaDataIdUserMetaData)
@@ -94,6 +99,7 @@ func TestToManySet(t *testing.T) {
 	t.Run("EpisodeToEpisodeIdTorrentFiles", testEpisodeToManySetOpEpisodeIdTorrentFiles)
 	t.Run("EpisodeToEpisodeIdUserEpisodes", testEpisodeToManySetOpEpisodeIdUserEpisodes)
 	t.Run("MetaDatumToMetaDataIdAliases", testMetaDatumToManySetOpMetaDataIdAliases)
+	t.Run("MetaDatumToMetaDataIdEpisodes", testMetaDatumToManySetOpMetaDataIdEpisodes)
 	t.Run("MetaDatumToMetaDataIdMediaFiles", testMetaDatumToManySetOpMetaDataIdMediaFiles)
 	t.Run("MetaDatumToMetaDataIdTorrentFiles", testMetaDatumToManySetOpMetaDataIdTorrentFiles)
 	t.Run("MetaDatumToMetaDataIdUserMetaData", testMetaDatumToManySetOpMetaDataIdUserMetaData)
@@ -108,6 +114,7 @@ func TestToManyRemove(t *testing.T) {
 	t.Run("EpisodeToEpisodeIdTorrentFiles", testEpisodeToManyRemoveOpEpisodeIdTorrentFiles)
 	t.Run("EpisodeToEpisodeIdUserEpisodes", testEpisodeToManyRemoveOpEpisodeIdUserEpisodes)
 	t.Run("MetaDatumToMetaDataIdAliases", testMetaDatumToManyRemoveOpMetaDataIdAliases)
+	t.Run("MetaDatumToMetaDataIdEpisodes", testMetaDatumToManyRemoveOpMetaDataIdEpisodes)
 	t.Run("MetaDatumToMetaDataIdMediaFiles", testMetaDatumToManyRemoveOpMetaDataIdMediaFiles)
 	t.Run("MetaDatumToMetaDataIdTorrentFiles", testMetaDatumToManyRemoveOpMetaDataIdTorrentFiles)
 	t.Run("MetaDatumToMetaDataIdUserMetaData", testMetaDatumToManyRemoveOpMetaDataIdUserMetaData)
