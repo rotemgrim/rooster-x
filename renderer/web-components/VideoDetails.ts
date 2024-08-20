@@ -122,7 +122,13 @@ export class VideoDetails extends LitElement {
 
     public reloadVideo() {
         this.searchTitle = this.video.title;
-        if (this.video.type === "series") {
+        if (this.video.type === "movie") {
+            IpcService.getMediaFilesByMetaDataId({metaDataId: this.video.id})
+                .then(res => {
+                    this.video.mediaFiles = res;
+                    this.requestUpdate();
+                }).catch(console.log);
+        } else if (this.video.type === "series") {
             console.log("reloadVideo", this.video);
             // IpcService.dbQuery("Episode", {
             //     where: {
@@ -135,7 +141,7 @@ export class VideoDetails extends LitElement {
             //     cache: true,
 
             // @ts-ignore
-            IpcService.getEpisodes({metaDataId: this.video.metaDataId})
+            IpcService.getEpisodes({metaDataId: this.video.id})
                 .then(res => {
                     this.video.episodes = res;
                     this.episodes = res;
@@ -144,19 +150,19 @@ export class VideoDetails extends LitElement {
         }
     }
 
-    set episodes(episodes: any[]) {
+    set episodes(episodes: Episode[]) {
         const userId = this.rooster.user.id;
         let newList: IEpisodeExtended[] = [...episodes];
-        for (const e of newList) {
-            // check if episode is watched
-            if (e.userEpisode?.filter(x => x.isWatched && x.userId === 1).length > 0) {
-                // @ts-ignore
-                e.episode.isWatched = true;
-            } else {
-                // @ts-ignore
-                e.episode.isWatched = false;
-            }
-        }
+        // for (const e of newList) {
+        //     // check if episode is watched
+        //     if (e.userEpisode?.filter(x => x.isWatched && x.userId === 1).length > 0) {
+        //         // @ts-ignore
+        //         e.episode.isWatched = true;
+        //     } else {
+        //         // @ts-ignore
+        //         e.episode.isWatched = false;
+        //     }
+        // }
         newList = _.orderBy(newList, ["season", "episode"], ["desc", "desc"]);
         this._episodes = newList;
         console.log("episodes", this._episodes);
@@ -347,7 +353,7 @@ export class VideoDetails extends LitElement {
                         ${this._episodes.map(ep => {
                             return html`<episode-card
                                 @playMedia=${this.playMedia}
-                                .data=${ep}
+                                .episode=${ep}
                                 .videoDetails=${this}>
                             </episode-card>`;
                         })}

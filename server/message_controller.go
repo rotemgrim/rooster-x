@@ -47,52 +47,47 @@ func (s *Server) SaveConfig(c *websocket.Conn, request PayloadRequest) {
 }
 
 func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
-	println("media1")
-
-	type MediaFileAndMetaData struct {
-		models.MediaFile `boil:",bind"`
-		models.MetaDatum `boil:",bind"`
-	}
-
+	//type MediaFileAndMetaData struct {
+	//	models.MediaFile `boil:",bind"`
+	//	models.MetaDatum `boil:",bind"`
+	//}
 	//media, err := models.MediaFiles(qm.Load(models.MetaDatumRels.MetaDataIdMediaFiles)).AllG(context.Background())
-	var media []MediaFileAndMetaData
-	err := models.NewQuery(
-		qm.Select("mf.*, md.*"),
-		qm.From("mediaFile as mf"),
-		qm.InnerJoin("metaData as md on mf.metaDataId = md.id"),
-	).BindG(context.Background(), &media)
-	spew.Dump(media)
+	//var media []MediaFileAndMetaData
+	//err := models.NewQuery(
+	//	qm.Select("mf.*, md.*"),
+	//	qm.From("mediaFile as mf"),
+	//	qm.InnerJoin("metaData as md on mf.metaDataId = md.id"),
+	//).BindG(context.Background(), &media)
+	media, err := models.MetaData(
+		qm.Load(models.MetaDatumRels.MetaDataIdMediaFiles),
+		qm.Load(models.MetaDatumRels.MetaDataIdTorrentFiles),
+	).AllG(context.Background())
+	type Result struct {
+		*models.MetaDatum
+		//MediaFiles   []*models.MediaFile   `json:"mediaFiles"`
+		//TorrentFiles []*models.TorrentFile `json:"torrentFiles"`
+	}
 	if err != nil {
 		transmitPromiseReject(c, data, "could not get media")
 		return
 	}
-	spew.Dump(media)
-	if media == nil {
-		media = []MediaFileAndMetaData{}
+	//spew.Dump(media)
+	var result = []Result{}
+	for _, e := range media {
+		result = append(result, Result{
+			e,
+			//e.R.GetMetaDataIdMediaFiles(),
+			//e.R.GetMetaDataIdTorrentFiles(),
+		})
 	}
-	transmitPromiseResponse(c, data, media)
+	transmitPromiseResponse(c, data, result)
 }
 
 func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
-	println("episodes")
-	//spew.Dump(req)
-	//spew.Dump(req.Data)
-	//spew.Dump(req.Data.([]byte))
-	//type payload struct {
-	//	MetaDataId int `json:"metaDataId"`
-	//}
-	//var p = &payload{}
-	//err := json.Unmarshal(req.Data.([]byte), p)
-	//if err != nil {
-	//	transmitPromiseReject(c, req, "could not get episodes")
-	//	return
-	//}
 	p := req.Data.(map[string]interface{})["metaDataId"]
 	spew.Dump(p)
 	episodes, err := models.Episodes(
 		qm.Where("metaDataId = ?", p),
-		//qm.Load("EpisodeIdMediaFiles"),
-		//qm.Load("MetaDataIdMetaDatum"),
 		qm.Load(models.EpisodeRels.MetaDataIdMetaDatum),
 		qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes, qm.Where("userId = ?", 1)),
 		qm.Load(models.EpisodeRels.EpisodeIdMediaFiles),
@@ -101,31 +96,34 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not get episodes 2 %s", err))
 		return
 	}
-	type oneResult struct {
-		episode  *models.Episode
-		metaData *models.MetaDatum
+	type Result struct {
+		*models.Episode
+		MetaData    *models.MetaDatum   `json:"metaData"`
+		UserEpisode *models.UserEpisode `json:"userEpisode"`
+		MediaFiles  []*models.MediaFile `json:"mediaFiles"`
 	}
-	var result = []map[string]interface{}(nil)
+	var result = []Result{}
 	for _, e := range episodes {
-		result = append(result, map[string]interface{}{
-			"episode":     e,
-			"metaData":    e.R.MetaDataIdMetaDatum,
-			"userEpisode": e.R.EpisodeIdUserEpisodes,
-			"mediaFiles":  e.R.EpisodeIdMediaFiles,
+		result = append(result, Result{
+			e,
+			e.R.MetaDataIdMetaDatum,
+			e.R.EpisodeIdUserEpisodes[0],
+			e.R.EpisodeIdMediaFiles,
 		})
 	}
-	//spew.Dump(result)
-	//type result struct {
-	//	Episodes models.EpisodeSlice       `json:"episodes"`
-	//	MetaData *models.MetaDatum         `json:"metaData"`
-	//	UserMeta models.UserMetaDatumSlice `json:"userMetaDatum"`
-	//}
-	//var r = result{
-	//	Episodes: episodes,
-	//	MetaData: episodes[0].R.MetaDataIdMetaDatum,
-	//	UserMeta: episodes[0].R.MetaDataIdMetaDatum.R.MetaDataIdUserMetaData,
-	//}
 	transmitPromiseResponse(c, req, result)
+}
+
+func (s *Server) GetMediaFilesByMetaId(c *websocket.Conn, req PayloadRequest) {
+	p := req.Data.(map[string]interface{})["metaDataId"]
+	mediaFiles, err := models.MediaFiles(
+		qm.Where("metaDataId = ?", p),
+	).AllG(context.Background())
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get media files %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, mediaFiles)
 }
 
 func (s *Server) RouteNotFound(c *websocket.Conn, data PayloadRequest) {

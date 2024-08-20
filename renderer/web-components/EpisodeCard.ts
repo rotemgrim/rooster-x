@@ -14,7 +14,6 @@ import {type TorrentFile} from "../entity/TorrentFile";
 export class EpisodeCard extends LitElement {
 
     @property() public videoDetails: VideoDetails;
-    @property() public data: any;
     @property() public episode: IEpisodeExtended;
     @property() public isShowPlayOptions: boolean;
     @property() public isShowDownloadOptions: boolean;
@@ -27,15 +26,6 @@ export class EpisodeCard extends LitElement {
         super();
         this.isShowPlayOptions = false;
         this.isShowDownloadOptions = false;
-    }
-
-    protected firstUpdated(_changedProperties: PropertyValues) {
-        super.firstUpdated(_changedProperties);
-        this.episode = this.data.episode;
-        this.episode.mediaFiles = this.data.mediaFiles;
-        // this.episode.torrentFiles = this.data.torrentFiles;
-        // this.episode = Object.assign(this.episode, this.data.userEpisode);
-        console.log("EpisodeCard", this.episode);
     }
 
     public playEpisode() {
@@ -113,9 +103,6 @@ export class EpisodeCard extends LitElement {
     }
 
     public render() {
-        if (!this.episode) {
-            return html`<div>Missing episode</div>`;
-        }
         return html`<div class="episode ${this.episode.isWatched ? `watched` : ``}">
             <span class="title" alt="${this.getPlotTitle()}">
                 ${this.episode.season}.${this.episode.episode} - ${this.episode.title}

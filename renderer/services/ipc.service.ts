@@ -146,6 +146,13 @@ export class IpcService {
         });
     }
 
+    public static getMediaFilesByMetaDataId(payload: {metaDataId: number}): Promise<any> {
+        return new Promise((resolve, reject) => {
+            console.log("get mediaFiles payload", payload)
+            promiseIpc.send("get-media-files", payload).then(resolve).catch(reject);
+        });
+    }
+
     public static getMetaDataByFileId(payload: {id: number}): Promise<MetaData|Episode> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("get-meta-data-by-file-id", payload).then((data) => {

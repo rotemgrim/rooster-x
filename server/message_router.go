@@ -20,6 +20,7 @@ func (s *Server) SetRoutes() {
 	s.on("save-config", s.SaveConfig)
 	s.on("get-all-media", s.GetAllMedia)
 	s.on("get-episodes", s.GetAllEpisodes)
+	s.on("get-media-files", s.GetMediaFilesByMetaId)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {
