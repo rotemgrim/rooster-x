@@ -144,7 +144,8 @@ export class RoosterX extends LitElement {
         const newList: IMetaDataExtended[] = [...metaDataList];
         for (const me of newList) {
 
-            me.poster = me.poster ? `https://image.tmdb.org/t/p/original${me.poster}` : "";
+            // me.poster = me.poster ? `https://image.tmdb.org/t/p/original${me.poster}` : "";
+            me.poster = me.poster ? `https://image.tmdb.org/t/p/w300${me.poster}` : "";
             // check if media is watched
             // if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
             //     me.isWatched = true;

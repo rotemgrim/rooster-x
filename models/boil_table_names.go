@@ -4,7 +4,6 @@
 package models
 
 var TableNames = struct {
-	AbsMetaData  string
 	Alias        string
 	Episode      string
 	Genre        string
@@ -15,7 +14,6 @@ var TableNames = struct {
 	UserEpisode  string
 	UserMetaData string
 }{
-	AbsMetaData:  "absMetaData",
 	Alias:        "alias",
 	Episode:      "episode",
 	Genre:        "genre",

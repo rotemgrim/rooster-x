@@ -47,7 +47,6 @@ type MetaDatum struct {
 	Trailer      null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
 	Type         null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
 	Name         null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
-	Status       null.String  `boil:"status" json:"status,omitempty" toml:"status" yaml:"status,omitempty"`
 
 	R *metaDatumR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L metaDatumL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -77,7 +76,6 @@ var MetaDatumColumns = struct {
 	Trailer      string
 	Type         string
 	Name         string
-	Status       string
 }{
 	ID:           "id",
 	Title:        "title",
@@ -102,7 +100,6 @@ var MetaDatumColumns = struct {
 	Trailer:      "trailer",
 	Type:         "type",
 	Name:         "name",
-	Status:       "status",
 }
 
 var MetaDatumTableColumns = struct {
@@ -129,7 +126,6 @@ var MetaDatumTableColumns = struct {
 	Trailer      string
 	Type         string
 	Name         string
-	Status       string
 }{
 	ID:           "metaData.id",
 	Title:        "metaData.title",
@@ -154,7 +150,6 @@ var MetaDatumTableColumns = struct {
 	Trailer:      "metaData.trailer",
 	Type:         "metaData.type",
 	Name:         "metaData.name",
-	Status:       "metaData.status",
 }
 
 // Generated where
@@ -183,7 +178,6 @@ var MetaDatumWhere = struct {
 	Trailer      whereHelpernull_String
 	Type         whereHelpernull_String
 	Name         whereHelpernull_String
-	Status       whereHelpernull_String
 }{
 	ID:           whereHelpernull_Int64{field: "\"metaData\".\"id\""},
 	Title:        whereHelpernull_String{field: "\"metaData\".\"title\""},
@@ -208,7 +202,6 @@ var MetaDatumWhere = struct {
 	Trailer:      whereHelpernull_String{field: "\"metaData\".\"trailer\""},
 	Type:         whereHelpernull_String{field: "\"metaData\".\"type\""},
 	Name:         whereHelpernull_String{field: "\"metaData\".\"name\""},
-	Status:       whereHelpernull_String{field: "\"metaData\".\"status\""},
 }
 
 // MetaDatumRels is where relationship names are stored.
@@ -279,9 +272,9 @@ func (r *metaDatumR) GetMetaDataIdUserMetaData() UserMetaDatumSlice {
 type metaDatumL struct{}
 
 var (
-	metaDatumAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name", "status"}
+	metaDatumAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name"}
 	metaDatumColumnsWithoutDefault = []string{}
-	metaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name", "status"}
+	metaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name"}
 	metaDatumPrimaryKeyColumns     = []string{"id"}
 	metaDatumGeneratedColumns      = []string{"id"}
 )

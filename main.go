@@ -23,8 +23,8 @@ func main() {
 
 	schedulerInstance := scheduler.NewScheduler()
 	ServerInstance := server.NewServer("static")
-	//WalkerInstance := walker.NewWalker("B:\\downloads\\complete", ServerInstance)
-	WalkerInstance := walker.NewWalker("C:\\Users\\rotem\\Downloads", ServerInstance)
+	WalkerInstance := walker.NewWalker("B:\\downloads\\complete", ServerInstance)
+	//WalkerInstance := walker.NewWalker("C:\\Users\\rotem\\Downloads", ServerInstance)
 
 	// create a new app
 	app := &App{

@@ -31,6 +31,8 @@ type MediaFile struct {
 	Size         null.Int64  `boil:"size" json:"size,omitempty" toml:"size" yaml:"size,omitempty"`
 	MetaDataId   null.Int64  `boil:"metaDataId" json:"metaDataId,omitempty" toml:"metaDataId" yaml:"metaDataId,omitempty"`
 	EpisodeId    null.Int64  `boil:"episodeId" json:"episodeId,omitempty" toml:"episodeId" yaml:"episodeId,omitempty"`
+	Status       null.String `boil:"status" json:"status,omitempty" toml:"status" yaml:"status,omitempty"`
+	ScanError    null.String `boil:"scanError" json:"scanError,omitempty" toml:"scanError" yaml:"scanError,omitempty"`
 	Year         null.Int64  `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
 	Resolution   null.String `boil:"resolution" json:"resolution,omitempty" toml:"resolution" yaml:"resolution,omitempty"`
 	Quality      null.String `boil:"quality" json:"quality,omitempty" toml:"quality" yaml:"quality,omitempty"`
@@ -58,6 +60,8 @@ var MediaFileColumns = struct {
 	Size         string
 	MetaDataId   string
 	EpisodeId    string
+	Status       string
+	ScanError    string
 	Year         string
 	Resolution   string
 	Quality      string
@@ -80,6 +84,8 @@ var MediaFileColumns = struct {
 	Size:         "size",
 	MetaDataId:   "metaDataId",
 	EpisodeId:    "episodeId",
+	Status:       "status",
+	ScanError:    "scanError",
 	Year:         "year",
 	Resolution:   "resolution",
 	Quality:      "quality",
@@ -104,6 +110,8 @@ var MediaFileTableColumns = struct {
 	Size         string
 	MetaDataId   string
 	EpisodeId    string
+	Status       string
+	ScanError    string
 	Year         string
 	Resolution   string
 	Quality      string
@@ -126,6 +134,8 @@ var MediaFileTableColumns = struct {
 	Size:         "mediaFile.size",
 	MetaDataId:   "mediaFile.metaDataId",
 	EpisodeId:    "mediaFile.episodeId",
+	Status:       "mediaFile.status",
+	ScanError:    "mediaFile.scanError",
 	Year:         "mediaFile.year",
 	Resolution:   "mediaFile.resolution",
 	Quality:      "mediaFile.quality",
@@ -176,6 +186,8 @@ var MediaFileWhere = struct {
 	Size         whereHelpernull_Int64
 	MetaDataId   whereHelpernull_Int64
 	EpisodeId    whereHelpernull_Int64
+	Status       whereHelpernull_String
+	ScanError    whereHelpernull_String
 	Year         whereHelpernull_Int64
 	Resolution   whereHelpernull_String
 	Quality      whereHelpernull_String
@@ -198,6 +210,8 @@ var MediaFileWhere = struct {
 	Size:         whereHelpernull_Int64{field: "\"mediaFile\".\"size\""},
 	MetaDataId:   whereHelpernull_Int64{field: "\"mediaFile\".\"metaDataId\""},
 	EpisodeId:    whereHelpernull_Int64{field: "\"mediaFile\".\"episodeId\""},
+	Status:       whereHelpernull_String{field: "\"mediaFile\".\"status\""},
+	ScanError:    whereHelpernull_String{field: "\"mediaFile\".\"scanError\""},
 	Year:         whereHelpernull_Int64{field: "\"mediaFile\".\"year\""},
 	Resolution:   whereHelpernull_String{field: "\"mediaFile\".\"resolution\""},
 	Quality:      whereHelpernull_String{field: "\"mediaFile\".\"quality\""},
@@ -252,9 +266,9 @@ func (r *mediaFileR) GetMetaDataIdMetaDatum() *MetaDatum {
 type mediaFileL struct{}
 
 var (
-	mediaFileAllColumns            = []string{"id", "raw", "path", "hash", "size", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "downloadedAt"}
+	mediaFileAllColumns            = []string{"id", "raw", "path", "hash", "size", "metaDataId", "episodeId", "status", "scanError", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "downloadedAt"}
 	mediaFileColumnsWithoutDefault = []string{}
-	mediaFileColumnsWithDefault    = []string{"id", "raw", "path", "hash", "size", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "downloadedAt"}
+	mediaFileColumnsWithDefault    = []string{"id", "raw", "path", "hash", "size", "metaDataId", "episodeId", "status", "scanError", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "downloadedAt"}
 	mediaFilePrimaryKeyColumns     = []string{"id"}
 	mediaFileGeneratedColumns      = []string{"id"}
 )

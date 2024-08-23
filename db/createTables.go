@@ -6,7 +6,6 @@ import (
 )
 
 func createTablesIfNotExist(db *sql.DB) {
-	createAbsMetaDataTable(db)
 	createMetaDataTable(db)
 	createAliasTable(db)
 	createGenreTable(db)
@@ -16,35 +15,6 @@ func createTablesIfNotExist(db *sql.DB) {
 	createUserTable(db)
 	createUserEpisodeTable(db)
 	createUserMetaDataTable(db)
-}
-
-func createAbsMetaDataTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS absMetaData (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		title VARCHAR(255) COLLATE NOCASE,
-		imdbId VARCHAR(40) UNIQUE,
-		tmdbId INTEGER UNIQUE,
-		genres TEXT,
-		languages TEXT,
-		country TEXT,
-		votes INTEGER,
-		series BOOLEAN,
-		rating REAL,
-		runtime INTEGER,
-		"year" INTEGER,
-		poster TEXT,
-		metascore TEXT,
-		plot TEXT,
-		director VARCHAR,
-		writer VARCHAR,
-		actors TEXT,
-		released VARCHAR(255),
-		released_unix INTEGER,
-		trailer TEXT
-	)`)
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func createMetaDataTable(db *sql.DB) {
@@ -71,9 +41,11 @@ func createMetaDataTable(db *sql.DB) {
 		released_unix INTEGER,
 		trailer TEXT,
 		type VARCHAR(40),
-		name VARCHAR(255),
-		status VARCHAR(10) DEFAULT 'not-scanned'
-	)`)
+		name VARCHAR(255)
+	);
+		CREATE INDEX IF NOT EXISTS idx_type ON metaData(type);
+		CREATE INDEX IF NOT EXISTS idx_tmdbId ON metaData(tmdbId);
+		CREATE INDEX IF NOT EXISTS idx_imdbId ON metaData(imdbId);`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,7 +69,6 @@ func createEpisodeTable(db *sql.DB) {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 	metaDataId INTEGER,
     title VARCHAR(255) COLLATE NOCASE,
-    imdbId VARCHAR(40) UNIQUE,
     tmdbId INTEGER UNIQUE,
     votes INTEGER,
     series BOOLEAN,
@@ -118,7 +89,12 @@ func createEpisodeTable(db *sql.DB) {
     imdbSeriesId VARCHAR(255),
     tmdbSeriesId INTEGER,
 	FOREIGN KEY (metaDataId) REFERENCES metaData(id)
-)`)
+);  CREATE INDEX IF NOT EXISTS idx_metaDataId ON episode(metaDataId);
+	CREATE INDEX IF NOT EXISTS idx_tmdbSeriesId ON episode(tmdbSeriesId);
+	CREATE INDEX IF NOT EXISTS idx_imdbSeriesId ON episode(imdbSeriesId);
+	CREATE INDEX IF NOT EXISTS idx_season ON episode(season);
+	CREATE INDEX IF NOT EXISTS idx_episode ON episode(episode);
+`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -143,6 +119,8 @@ func createMediaFileTable(db *sql.DB) {
 		size INTEGER,
 		metaDataId INTEGER,
 		episodeId INTEGER,
+		status VARCHAR(10) DEFAULT 'not-scanned',
+		scanError TEXT,
 		year INTEGER,
 		resolution VARCHAR(40),
 		quality VARCHAR(40),
@@ -159,7 +137,10 @@ func createMediaFileTable(db *sql.DB) {
 		downloadedAt DATETIME,
 		FOREIGN KEY (metaDataId) REFERENCES metaData(id),
 		FOREIGN KEY (episodeId) REFERENCES episode(id)
-	)`)
+	);
+		CREATE INDEX IF NOT EXISTS idx_metaDataId ON mediaFile(metaDataId);
+		CREATE INDEX IF NOT EXISTS idx_status ON mediaFile(status);
+`)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -2,10 +2,8 @@ package walker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	tmdb "github.com/cyruzin/golang-tmdb"
-	"github.com/friendsofgo/errors"
 	ptn "github.com/middelink/go-parse-torrent-name"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -13,8 +11,6 @@ import (
 	"go-poc/db"
 	m "go-poc/models"
 	"go-poc/server"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -58,14 +54,14 @@ func (w *Walker) FullSweep() {
 	fmt.Println("Starting full sweep")
 
 	// read from file system
-	entries, err := w.getMediaFilesFromDisk(w.walkDir)
-	if err != nil {
-		fmt.Println("Error getting torrents")
-		return
-	}
-
-	// insert into db (not duplicates)
-	w.insertMediaFilesToDB(entries)
+	//entries, err := w.getMediaFilesFromDisk(w.walkDir)
+	//if err != nil {
+	//	fmt.Println("Error getting torrents")
+	//	return
+	//}
+	//
+	//// insert into db (not duplicates)
+	//w.insertMediaFilesToDB(entries)
 
 	// get all missing metadata for files and query TMDB
 	filesWithoutMetaData, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).AllG(context.Background())
@@ -119,17 +115,22 @@ func (w *Walker) FullSweep() {
 			if handleMetaDataGettingErr(*file, err) {
 				continue
 			}
-			// save the episode metadata to the db
-			fmt.Println("inserting episode to DB")
-			err = epMd.InsertG(context.Background(), boil.Infer())
-			if err != nil {
-				fmt.Println("Error inserting episode metadata %s", err)
+
+			if !epMd.ID.Valid {
+				// save the episode metadata to the db
+				fmt.Println("inserting episode to DB")
+				err = epMd.InsertG(context.Background(), boil.Infer())
+				if handleMetaDataGettingErr(*file, err) {
+					continue
+				}
 			}
+
 			file.EpisodeId = epMd.ID
 		}
 
 		// update file foreignKey in db row
 		file.MetaDataId = md.ID
+		file.Status = null.StringFrom("scanned")
 		_, _ = file.UpdateG(context.Background(), boil.Infer())
 	}
 }
@@ -156,60 +157,6 @@ type TMDBMetaData struct {
 		Overview         string   `json:"overview"`
 		OriginCountry    []string `json:"origin_country"`
 	} `json:"results"`
-}
-
-func get(url string, data interface{}) error {
-	if url == "" {
-		return errors.New("url field is empty")
-	}
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return fmt.Errorf("could not fetch the url: %s", err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	req = req.WithContext(ctx)
-	req.Header.Add("content-type", "application/json;charset=utf-8")
-	//req.Header.Add("Authorization", "Bearer "+c.bearerToken)
-	for {
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-		if res.StatusCode == http.StatusTooManyRequests {
-			//time.Sleep(retryDuration(res))
-			//continue
-			return nil
-		}
-		if res.StatusCode == http.StatusNoContent {
-			return nil
-		}
-		if res.StatusCode != http.StatusOK {
-			return nil
-		}
-		if err = json.NewDecoder(res.Body).Decode(data); err != nil {
-			return fmt.Errorf("could not decode the data: %s", err)
-		}
-		break
-	}
-	return nil
-}
-
-func fmtOptions(
-	urlOptions map[string]string,
-) string {
-	options := ""
-	if len(urlOptions) > 0 {
-		for key, value := range urlOptions {
-			options += fmt.Sprintf(
-				"&%s=%s",
-				key,
-				url.QueryEscape(value),
-			)
-		}
-	}
-	return options
 }
 
 func fileExists(path string, files m.MediaFileSlice) bool {
@@ -417,9 +364,8 @@ func getMetaData(mf *m.MediaFile, tor *ptn.TorrentInfo) {
 	if err != nil {
 		// create a new metadata
 		md = &m.MetaDatum{
-			Title:  null.StringFrom(tor.Title),
-			Type:   null.StringFrom(string(t)),
-			Status: null.StringFrom("not-scanned"),
+			Title: null.StringFrom(tor.Title),
+			Type:  null.StringFrom(string(t)),
 		}
 		// get the meta data from the internet
 		//md = getMetaDataFromInternetByMediaFile(md)

@@ -22,13 +22,38 @@ export class VideoCard extends LitElement {
     }
 
     public showDetails() {
-        this.isShowDetails = true;
+        this.toggleViewTransition(true);
         document.body.style.overflow = "hidden";
-        this.requestUpdate();
+        document.startViewTransition(() => {
+            this.toggleViewTransition(false);
+            this.isShowDetails = true;
+        });
+    }
+
+    public closeDetails() {
+        document.body.style.overflow = "auto";
+        RoosterX.setFocusToVideos();
+
+        document.startViewTransition(() => {
+            this.isShowDetails = false;
+            this.toggleViewTransition(true);
+            setTimeout(() => {
+                this.toggleViewTransition(false);
+            })
+        });
+    }
+
+    private toggleViewTransition(state: boolean) {
+        const img = this.querySelector(".poster img");
+        if (state) {
+            img.classList.add("video-poster-card-trans");
+        } else {
+            img.classList.remove("video-poster-card-trans");
+        }
     }
 
     public render() {
-        return html`<div class="video" @click="${this.showDetails}" >
+        return html`<div class="video" @click="${this.showDetails}">
             <div class="poster ${this.video.isWatched ? "watched" : ""}">
                 <div class="filter"></div>
                 <div class="watch-btn" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>

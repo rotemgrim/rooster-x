@@ -65,6 +65,18 @@ video-card {
   margin: 6px;
 }
 
+.video-poster-card-trans {
+  view-transition-name: poster-move;
+}
+
+// ::view-transition-old(poster-move) {
+// //   animation: 0.25s linear both shrink-x;
+// }
+//
+// ::view-transition-new(poster-move) {
+// //   animation: 0.25s 0.25s linear both grow-x;
+// }
+
 .video {
   width: 224px;
   height: 314px;
@@ -86,7 +98,9 @@ video-card {
       z-index: -1;
     }
   }
-
+  &.none-transition {
+      view-transition-name: unset !important;
+  }
   &:hover {
     box-shadow: none;
 

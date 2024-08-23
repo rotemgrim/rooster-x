@@ -48,6 +48,7 @@ video-details {
   overflow: hidden;
   padding: $topBarHeight 0 0 $topBarHeight;
   outline: none;
+  z-index: 1;
 }
 
 .video-details {

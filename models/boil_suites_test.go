@@ -12,7 +12,6 @@ import "testing"
 // It does NOT run each operation group in parallel.
 // Separating the tests thusly grants avoidance of Postgres deadlocks.
 func TestParent(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaData)
 	t.Run("Aliases", testAliases)
 	t.Run("Episodes", testEpisodes)
 	t.Run("Genres", testGenres)
@@ -25,7 +24,6 @@ func TestParent(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataDelete)
 	t.Run("Aliases", testAliasesDelete)
 	t.Run("Episodes", testEpisodesDelete)
 	t.Run("Genres", testGenresDelete)
@@ -38,7 +36,6 @@ func TestDelete(t *testing.T) {
 }
 
 func TestQueryDeleteAll(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataQueryDeleteAll)
 	t.Run("Aliases", testAliasesQueryDeleteAll)
 	t.Run("Episodes", testEpisodesQueryDeleteAll)
 	t.Run("Genres", testGenresQueryDeleteAll)
@@ -51,7 +48,6 @@ func TestQueryDeleteAll(t *testing.T) {
 }
 
 func TestSliceDeleteAll(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataSliceDeleteAll)
 	t.Run("Aliases", testAliasesSliceDeleteAll)
 	t.Run("Episodes", testEpisodesSliceDeleteAll)
 	t.Run("Genres", testGenresSliceDeleteAll)
@@ -64,7 +60,6 @@ func TestSliceDeleteAll(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataExists)
 	t.Run("Aliases", testAliasesExists)
 	t.Run("Episodes", testEpisodesExists)
 	t.Run("Genres", testGenresExists)
@@ -77,7 +72,6 @@ func TestExists(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataFind)
 	t.Run("Aliases", testAliasesFind)
 	t.Run("Episodes", testEpisodesFind)
 	t.Run("Genres", testGenresFind)
@@ -90,7 +84,6 @@ func TestFind(t *testing.T) {
 }
 
 func TestBind(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataBind)
 	t.Run("Aliases", testAliasesBind)
 	t.Run("Episodes", testEpisodesBind)
 	t.Run("Genres", testGenresBind)
@@ -103,7 +96,6 @@ func TestBind(t *testing.T) {
 }
 
 func TestOne(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataOne)
 	t.Run("Aliases", testAliasesOne)
 	t.Run("Episodes", testEpisodesOne)
 	t.Run("Genres", testGenresOne)
@@ -116,7 +108,6 @@ func TestOne(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataAll)
 	t.Run("Aliases", testAliasesAll)
 	t.Run("Episodes", testEpisodesAll)
 	t.Run("Genres", testGenresAll)
@@ -129,7 +120,6 @@ func TestAll(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataCount)
 	t.Run("Aliases", testAliasesCount)
 	t.Run("Episodes", testEpisodesCount)
 	t.Run("Genres", testGenresCount)
@@ -142,7 +132,6 @@ func TestCount(t *testing.T) {
 }
 
 func TestHooks(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataHooks)
 	t.Run("Aliases", testAliasesHooks)
 	t.Run("Episodes", testEpisodesHooks)
 	t.Run("Genres", testGenresHooks)
@@ -155,8 +144,6 @@ func TestHooks(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataInsert)
-	t.Run("AbsMetaData", testAbsMetaDataInsertWhitelist)
 	t.Run("Aliases", testAliasesInsert)
 	t.Run("Aliases", testAliasesInsertWhitelist)
 	t.Run("Episodes", testEpisodesInsert)
@@ -178,7 +165,6 @@ func TestInsert(t *testing.T) {
 }
 
 func TestReload(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataReload)
 	t.Run("Aliases", testAliasesReload)
 	t.Run("Episodes", testEpisodesReload)
 	t.Run("Genres", testGenresReload)
@@ -191,7 +177,6 @@ func TestReload(t *testing.T) {
 }
 
 func TestReloadAll(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataReloadAll)
 	t.Run("Aliases", testAliasesReloadAll)
 	t.Run("Episodes", testEpisodesReloadAll)
 	t.Run("Genres", testGenresReloadAll)
@@ -204,7 +189,6 @@ func TestReloadAll(t *testing.T) {
 }
 
 func TestSelect(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataSelect)
 	t.Run("Aliases", testAliasesSelect)
 	t.Run("Episodes", testEpisodesSelect)
 	t.Run("Genres", testGenresSelect)
@@ -217,7 +201,6 @@ func TestSelect(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataUpdate)
 	t.Run("Aliases", testAliasesUpdate)
 	t.Run("Episodes", testEpisodesUpdate)
 	t.Run("Genres", testGenresUpdate)
@@ -230,7 +213,6 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestSliceUpdateAll(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataSliceUpdateAll)
 	t.Run("Aliases", testAliasesSliceUpdateAll)
 	t.Run("Episodes", testEpisodesSliceUpdateAll)
 	t.Run("Genres", testGenresSliceUpdateAll)

@@ -6,8 +6,6 @@ package models
 import "testing"
 
 func TestUpsert(t *testing.T) {
-	t.Run("AbsMetaData", testAbsMetaDataUpsert)
-
 	t.Run("Aliases", testAliasesUpsert)
 
 	t.Run("Episodes", testEpisodesUpsert)

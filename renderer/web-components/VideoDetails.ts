@@ -35,10 +35,6 @@ export class VideoDetails extends LitElement {
         return this;
     }
 
-    constructor() {
-        super();
-    }
-
     set searchResults(results) {
         this._searchResults = results;
         this.requestUpdate();
@@ -82,10 +78,7 @@ export class VideoDetails extends LitElement {
     public close() {
         clearTimeout(this.playTimer);
         this.playTimer = null;
-        this.card.isShowDetails = false;
-        document.body.style.overflow = "auto";
-        RoosterX.setFocusToVideos();
-        this.requestUpdate();
+        this.card.closeDetails();
     }
 
     protected firstUpdated(): void {
@@ -322,7 +315,7 @@ export class VideoDetails extends LitElement {
                         ?checked=${this.video.isWatched}
                         title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
                     ${this.video.poster ?
-                        html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
+                        html`<img src="${this.video.poster.replace("/w300/","/original/")}" alt="${this.video.title}" class="video-poster-card-trans" />` :
                         html`<div class="img-missing"><span>${this.video.title}</span></div>`}
 
                 </div>
