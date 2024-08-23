@@ -20,13 +20,14 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
     }
 
     IpcRenderer() {
-        const send = (route: string, payload?: object) => {
-            const request = {
-                route: route,
-                payload: payload
-            }
-            this.socket.send(JSON.stringify(request));
-        }
+        // const send = (route: string, payload?: object) => {
+        //     const request = {
+        //         route: route,
+        //         payload: payload
+        //     }
+        //     this.socket.send(JSON.stringify(request));
+        // }
+        const send = this.send.bind(this);
         return {
             send,
         }
