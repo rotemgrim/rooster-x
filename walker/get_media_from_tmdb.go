@@ -7,6 +7,7 @@ import (
 	ptn "github.com/middelink/go-parse-torrent-name"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	m "go-poc/models"
 	"net/url"
 	"strconv"
@@ -14,15 +15,19 @@ import (
 	"time"
 )
 
-func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
+var TMDB_TV_SEARCH_CACHE = make(map[string]*tmdb.SearchTVShows)
+var TMDB_MOVIE_SEARCH_CACHE = make(map[string]*tmdb.SearchMovies)
+
+func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, file *m.MediaFile) (*m.MetaDatum, error) {
 
 	// get metadata from internet
-	var newMd = &m.MetaDatum{}
+	var newMd *m.MetaDatum
 	var err = error(nil)
+
 	if tor.Episode > 0 && tor.Season > 0 {
-		err = getSeriesMetaData(newMd, tmdbClient, tor)
+		newMd, err = getSeriesMetaData(tmdbClient, tor)
 	} else {
-		err = getMovieMetaData(newMd, tmdbClient, tor)
+		newMd, err = getMovieMetaData(tmdbClient, tor)
 	}
 	if err != nil {
 		return nil, err
@@ -61,19 +66,38 @@ func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.Meta
 	return epMd, nil
 }
 
-func getSeriesMetaData(newMd *m.MetaDatum, tmdbClient *tmdb.Client, tor ptn.TorrentInfo) error {
-	tmdbMetaData, err := tmdbClient.GetSearchTVShow(tor.Title, nil)
-	if err != nil {
-		return err
+func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
+
+	// check if metadata is already in cache
+	tmdbSearchResult := TMDB_TV_SEARCH_CACHE[tor.Title]
+	if tmdbSearchResult == nil {
+		fmt.Println("searching TMDB TV for %s", tor.Title)
+		tmpTmdbSearchResult, err := tmdbClient.GetSearchTVShow(tor.Title, nil)
+		if err != nil {
+			return nil, err
+		}
+		TMDB_TV_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
+		tmdbSearchResult = tmpTmdbSearchResult
+	} else {
+		fmt.Println("using cached for TMDB TV search: %s", tor.Title)
 	}
+
+	// check if metadata is not already id DB
+	md, err := m.MetaData(qm.Where("tmdbId = ?", int(tmdbSearchResult.Results[0].ID))).OneG(context.Background())
+	if err == nil {
+		return md, nil
+	}
+
 	detailsOptions := map[string]string{
 		"append_to_response": "external_ids,genres,episodes,credits",
 	}
-	tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbMetaData.Results[0].ID), detailsOptions)
+	fmt.Println("getting TMDB TV details for %s", tor.Title)
+	tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbSearchResult.Results[0].ID), detailsOptions)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	var newMd = &m.MetaDatum{}
 	newMd.Title = null.StringFrom(tmdbDetails.Name)
 	newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
 	newMd.Type = null.StringFrom("series")
@@ -112,23 +136,41 @@ func getSeriesMetaData(newMd *m.MetaDatum, tmdbClient *tmdb.Client, tor ptn.Torr
 	}
 	newMd.Country = null.StringFrom(strings.Join(countries, ","))
 
-	return nil
+	return newMd, nil
 
 }
 
-func getMovieMetaData(newMd *m.MetaDatum, tmdbClient *tmdb.Client, tor ptn.TorrentInfo) error {
-	metaData, err := tmdbClient.GetSearchMovies(tor.Title, nil)
-	if err != nil {
-		return err
+func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
+
+	// check if metadata is already in cache
+	var tmdbSearchResult = TMDB_MOVIE_SEARCH_CACHE[tor.Title]
+	if tmdbSearchResult == nil {
+		fmt.Println("searching TMDB MOVIE for %s", tor.Title)
+		tmpTmdbSearchResult, err := tmdbClient.GetSearchMovies(tor.Title, nil)
+		if err != nil {
+			return nil, err
+		}
+		TMDB_MOVIE_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
+		tmdbSearchResult = tmpTmdbSearchResult
+	} else {
+		fmt.Println("using cached for TMDB MOVIE search: %s", tor.Title)
 	}
+
+	// check if metadata is not already id DB
+	md, err := m.MetaData(qm.Where("tmdbId = ?", int(tmdbSearchResult.Results[0].ID))).OneG(context.Background())
+	if err == nil {
+		return md, nil
+	}
+
 	detailsOptions := map[string]string{
 		"append_to_response": "external_ids,genres,credits,release_dates",
 	}
-	tmdbDetails, err := tmdbClient.GetMovieDetails(int(metaData.Results[0].ID), detailsOptions)
+	fmt.Println("getting TMDB MOVIE details for %s", tor.Title)
+	tmdbDetails, err := tmdbClient.GetMovieDetails(int(tmdbSearchResult.Results[0].ID), detailsOptions)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
+	var newMd = &m.MetaDatum{}
 	newMd.Title = null.StringFrom(tmdbDetails.Title)
 	newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
 	newMd.Type = null.StringFrom("movie")
@@ -165,7 +207,7 @@ func getMovieMetaData(newMd *m.MetaDatum, tmdbClient *tmdb.Client, tor ptn.Torre
 		countries = append(countries, country)
 	}
 	newMd.Country = null.StringFrom(strings.Join(countries, ","))
-	return nil
+	return newMd, nil
 }
 
 func GetSearchTVShow(
@@ -191,7 +233,7 @@ func GetSearchTVShow(
 
 func handleMetaDataGettingErr(file m.MediaFile, err error) bool {
 	if err != nil {
-		fmt.Println("Error getting metadata from tmdb, %s", err)
+		fmt.Println("handle metadata error:", err)
 		// update file row in db
 		file.MetaDataId = null.Int64From(0)
 		_, _ = file.UpdateG(context.Background(), boil.Infer())

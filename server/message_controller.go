@@ -104,10 +104,14 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 	}
 	var result = []Result{}
 	for _, e := range episodes {
+		var userEpisode *models.UserEpisode
+		if e.R.EpisodeIdUserEpisodes != nil && len(e.R.EpisodeIdUserEpisodes) > 0 {
+			userEpisode = e.R.EpisodeIdUserEpisodes[0]
+		}
 		result = append(result, Result{
 			e,
 			e.R.MetaDataIdMetaDatum,
-			e.R.EpisodeIdUserEpisodes[0],
+			userEpisode,
 			e.R.EpisodeIdMediaFiles,
 		})
 	}

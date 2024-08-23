@@ -92,18 +92,20 @@ func (w *Walker) FullSweep() {
 			if handleMetaDataGettingErr(*file, err) {
 				continue
 			}
-			if md != nil {
-			}
 		} else {
-			newMd, err := GetMediaFromTMDB(tmdbClient, *tor)
+			newMd, err := GetMediaFromTMDB(tmdbClient, *tor, file)
 			if handleMetaDataGettingErr(*file, err) {
 				continue
 			}
 
-			// save the metadata to the db
-			err = newMd.InsertG(context.Background(), boil.Infer())
-			if handleMetaDataGettingErr(*file, err) {
-				continue
+			// check if newMd is already saved
+			if !newMd.ID.Valid {
+				// save the metadata to the db
+				fmt.Println("inserting metadata to DB")
+				err = newMd.InsertG(context.Background(), boil.Infer())
+				if handleMetaDataGettingErr(*file, err) {
+					continue
+				}
 			}
 			md = newMd
 		}
