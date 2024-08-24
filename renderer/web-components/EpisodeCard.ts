@@ -110,7 +110,7 @@ export class EpisodeCard extends LitElement {
             <div class="watch-btn" @click=${this.setWatch}
                     ?checked=${this.episode.isWatched}
                     title="${this.episode.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
-            <div class="image" @click=${this.playEpisode} title="${this.getTitle()}">
+            <div class="image" tabindex="0" @click=${this.playEpisode} title="${this.getTitle()}">
                 ${this.episode.mediaFiles.length > 0 ?
                     html`<i class="material-icons">play_circle_outline</i>` :
                     html`${this.episode.torrentFiles.length > 0 ?

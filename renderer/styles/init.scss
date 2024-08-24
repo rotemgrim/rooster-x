@@ -58,11 +58,17 @@ body {
   height: calc(100vh - #{$topBarHeight});
   overflow-x: auto;
   user-select: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2.4rem;
 }
+
 video-card {
   float: left;
   display: block;
-  margin: 6px;
+  /*margin: 6px;*/
 }
 
 .video-poster-card-trans {

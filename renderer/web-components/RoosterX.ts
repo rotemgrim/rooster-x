@@ -267,7 +267,7 @@ export class RoosterX extends LitElement {
     public getAllMedia() {
         IpcService.getAllMedia().then(media => this.media = media);
         RoosterX.setFocusToVideos();
-        this.closeSideBar();
+        this.closeSideBar && this.closeSideBar();
     }
 
     private getMovies() {
@@ -329,13 +329,13 @@ export class RoosterX extends LitElement {
         <top-bar .rooster=${this}></top-bar>
         <div class="side-bar ${this._sideBar ? "open" : ""}">
             <ul>
-                <li @click=${this.getAllMedia}><i class="material-icons">video_library</i>All Media</li>
-                <li @click=${this.getMovies}><i class="material-icons">movie</i>Movies</li>
-                <li @click=${this.getSeries}><i class="material-icons">live_tv</i>Series</li>
-                <li @click=${this.showFilters}><i class="material-icons">filter_list</i>Filter</li>
+                <li tabindex="0" @click=${this.getAllMedia}><i class="material-icons">video_library</i>All Media</li>
+                <li tabindex="0" @click=${this.getMovies}><i class="material-icons">movie</i>Movies</li>
+                <li tabindex="0" @click=${this.getSeries}><i class="material-icons">live_tv</i>Series</li>
+                <li tabindex="0" @click=${this.showFilters}><i class="material-icons">filter_list</i>Filter</li>
             </ul>
             <ul>
-                <li @click=${this.showSettings}><i class="material-icons">settings</i>Settings</li>
+                <li tabindex="0" @click=${this.showSettings}><i class="material-icons">settings</i>Settings</li>
             </ul>
         </div>
         ${this._sideBar ? html`<div class="panel">

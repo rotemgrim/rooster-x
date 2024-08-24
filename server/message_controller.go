@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/friendsofgo/errors"
 	"github.com/gorilla/websocket"
+	"github.com/skratchdot/open-golang/open"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/models"
 	"log"
-	"os/exec"
-	"runtime"
 )
 
 type StatusResponse string // "success" or "failure"
@@ -136,7 +134,17 @@ func (s *Server) GetMediaFilesByMetaId(c *websocket.Conn, req PayloadRequest) {
 func (s *Server) OpenExternal(c *websocket.Conn, req PayloadRequest) {
 	path := req.Data.(map[string]interface{})["url"]
 	log.Println("Opening external:", path)
-	err := runFile(path.(string))
+	err := open.Run(path.(string))
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not open external %s", err))
+	}
+	transmitPromiseResponse(c, req, "Opening external")
+}
+
+func (s *Server) OpenD(c *websocket.Conn, req PayloadRequest) {
+	path := req.Data.(map[string]interface{})["url"]
+	log.Println("Opening external:", path)
+	err := open.Run(path.(string))
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not open external %s", err))
 	}
@@ -145,24 +153,6 @@ func (s *Server) OpenExternal(c *websocket.Conn, req PayloadRequest) {
 
 func (s *Server) RouteNotFound(c *websocket.Conn, data PayloadRequest) {
 	transmitPromiseReject(c, data, "Route not found")
-}
-
-func runFile(filePath string) error {
-	var cmd *exec.Cmd
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", filePath)
-	case "darwin":
-		cmd = exec.Command("open", filePath)
-	case "linux":
-		cmd = exec.Command("xdg-open", filePath)
-	default:
-		return errors.New("unsupported platform")
-	}
-
-	err := cmd.Start()
-	return err
 }
 
 func transmitPromiseResponse(c *websocket.Conn, req PayloadRequest, data interface{}) {

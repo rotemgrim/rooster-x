@@ -33,14 +33,14 @@ type FileEntry struct {
 }
 
 type Walker struct {
-	walkDir string
-	server  *server.Server
+	walkDirArr []string
+	server     *server.Server
 }
 
-func NewWalker(walkDir string, server *server.Server) *Walker {
+func NewWalker(walkDirArr []string, server *server.Server) *Walker {
 	return &Walker{
-		walkDir: walkDir,
-		server:  server,
+		walkDirArr: walkDirArr,
+		server:     server,
 	}
 }
 
@@ -53,15 +53,24 @@ func (w *Walker) FullSweep() {
 
 	fmt.Println("Starting full sweep")
 
-	// read from file system
-	//entries, err := w.getMediaFilesFromDisk(w.walkDir)
-	//if err != nil {
-	//	fmt.Println("Error getting torrents")
-	//	return
-	//}
-	//
-	//// insert into db (not duplicates)
-	//w.insertMediaFilesToDB(entries)
+	// read from file system, accumulate all files
+	var entries []m.MediaFile
+	for _, dir := range w.walkDirArr {
+		tmpEntries, err := w.getMediaFilesFromDisk(dir)
+		if err != nil {
+			fmt.Println("Error getting torrents")
+			continue
+		}
+		entries = append(entries, tmpEntries...)
+	}
+
+	if entries == nil || len(entries) == 0 {
+		fmt.Println("No files found")
+		return
+	}
+
+	// insert into db (not duplicates)
+	w.insertMediaFilesToDB(entries)
 
 	// get all missing metadata for files and query TMDB
 	filesWithoutMetaData, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).AllG(context.Background())
@@ -235,11 +244,14 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 				return nil
 			}
 
+			fmt.Sprintf("scanning name: %s", tor.Title)
+			//fmt.Printf("scanning name: %s\n", tor.Title)
+
 			if len(tor.Title) < 3 {
 				return nil
 			}
 
-			if countSetProperties(tor) < 5 {
+			if countSetProperties(tor) < 3 {
 				return nil
 			}
 

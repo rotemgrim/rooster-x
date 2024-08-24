@@ -23,7 +23,14 @@ func main() {
 
 	schedulerInstance := scheduler.NewScheduler()
 	ServerInstance := server.NewServer("static")
-	WalkerInstance := walker.NewWalker("B:\\downloads\\complete", ServerInstance)
+
+	// directories array to walk
+	dirs := []string{
+		"B:\\downloads\\complete",
+		//"C:\\Users\\rotem\\Downloads",
+		"B:\\dekel",
+	}
+	WalkerInstance := walker.NewWalker(dirs, ServerInstance)
 	//WalkerInstance := walker.NewWalker("C:\\Users\\rotem\\Downloads", ServerInstance)
 
 	// create a new app

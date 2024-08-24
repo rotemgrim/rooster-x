@@ -53,10 +53,10 @@ export class VideoCard extends LitElement {
     }
 
     public render() {
-        return html`<div class="video" @click="${this.showDetails}">
+        return html`<div class="video" tabindex="0" @click="${this.showDetails}">
             <div class="poster ${this.video.isWatched ? "watched" : ""}">
                 <div class="filter"></div>
-                <div class="watch-btn" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
+                <div class="watch-btn" tabindex="-1" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
                 ${this.video.poster ?
                     html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
                     html`<div class="img-missing"><span>${this.video.title}</span></div>`}

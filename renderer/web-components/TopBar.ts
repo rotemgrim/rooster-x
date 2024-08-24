@@ -112,14 +112,17 @@ export class TopBar extends LitElement {
         return html`
         <div class="top-bar">
             <div>
-                <div class="logo" @click="${this.toggleSideBar}"></div>
-                <div class="filter ${this._toggleTorrents ? `` : `active`}" @click="${this.showFolders}">
+                <div class="logo" tabindex="0" @click="${this.toggleSideBar}"></div>                
+                <div class="filter" tabindex="0" @click="${this.rooster.getAllMedia}">
+                    <i class="material-icons">sync</i>
+                </div>
+                <div tabindex="0" class="filter ${this._toggleTorrents ? `` : `active`}" @click="${this.showFolders}">
                     <i class="material-icons">folder</i>
                 </div>
-                <div class="filter ${this._toggleTorrents ? `active` : ``}" @click="${this.showTorrents}">
+                <div tabindex="0" class="filter ${this._toggleTorrents ? `active` : ``}" @click="${this.showTorrents}">
                     <i class="material-icons">cloud_download</i>
                 </div>
-                <div class="filter" @click="${this.showFilters}" style="display: block; color: white;">
+                <div tabindex="0" class="filter" @click="${this.showFilters}" style="display: block; color: white;">
                     <i class="material-icons">filter_list</i>
                 </div>
                 <div class="search">

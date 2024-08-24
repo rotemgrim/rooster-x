@@ -16,6 +16,7 @@ import (
 
 var TMDB_TV_SEARCH_CACHE = make(map[string]*tmdb.SearchTVShows)
 var TMDB_MOVIE_SEARCH_CACHE = make(map[string]*tmdb.SearchMovies)
+var LANG = "he-IL"
 
 func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, file *m.MediaFile) (*m.MetaDatum, error) {
 
@@ -50,6 +51,7 @@ func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.Meta
 	// get metadata from internet
 	var epMd = &m.Episode{}
 	detailsOptions := map[string]string{
+		"language":           LANG,
 		"append_to_response": "external_ids",
 	}
 	epDetail, err := tmdbClient.GetTVEpisodeDetails(int(md.TMDBID.Int64), tor.Season, tor.Episode, detailsOptions)
@@ -83,7 +85,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	if tmdbSearchResult == nil {
 		fmt.Println("searching TMDB TV for %s", tor.Title)
 		options := map[string]string{}
-
+		options["language"] = LANG
 		// if year exists -> search with it
 		year := null.StringFrom(strconv.Itoa(tor.Year))
 		if year.Valid && year.String != "" {
@@ -111,6 +113,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	}
 
 	detailsOptions := map[string]string{
+		"language":           LANG,
 		"append_to_response": "external_ids,genres,episodes,credits",
 	}
 	fmt.Println("getting TMDB TV details for %s", tor.Title)
@@ -171,7 +174,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 		fmt.Println("searching TMDB MOVIE for %s", tor.Title)
 
 		options := map[string]string{}
-
+		options["language"] = LANG
 		// if year exists -> search with it
 		year := null.StringFrom(strconv.Itoa(tor.Year))
 		if year.Valid && year.String != "" {
@@ -199,6 +202,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	}
 
 	detailsOptions := map[string]string{
+		"language":           LANG,
 		"append_to_response": "external_ids,genres,credits,release_dates",
 	}
 	fmt.Println("getting TMDB MOVIE details for %s", tor.Title)
