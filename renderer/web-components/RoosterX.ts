@@ -15,6 +15,7 @@ import {List} from "linqts";
 import * as _ from "lodash";
 import {type MediaFile} from "../entity/MediaFile";
 import {type TorrentFile} from "../entity/TorrentFile";
+import {VideoCard} from "./VideoCard";
 
 
 export function isStringContains(str, items) {
@@ -79,6 +80,33 @@ export class RoosterX extends LitElement {
 
         console.log("RoosterX sweep-update");
         console.log("RoosterX refresh-media");
+
+        window.addEventListener('popstate', (e) => {
+            console.log("popstate", e.state);
+
+            const id = e.state.id || "";
+
+            if (id) {
+                const videoCard = document.getElementById(`v${id}`) as VideoCard;
+                // get all video cards and close them
+                // @ts-ignore
+                const openVideoCards = [...document.querySelectorAll("video-card[show-details=true]")] as VideoCard[];
+                for (const card of openVideoCards) {
+                    card !== videoCard && card.closeDetails(true);
+                }
+                if (videoCard && !videoCard.isShowDetails) {
+                   videoCard.showDetails(false);
+                }
+            } else {
+                // @ts-ignore
+                const videoCards = document.querySelectorAll("video-card[show-details=true]") as VideoCard[];
+                if (videoCards.length > 0) {
+                    for (const videoCard of videoCards) {
+                        videoCard.closeDetails(true);
+                    }
+                }
+            }
+        });
 
         // ipcRenderer.on("sweep-update", (e, data) => {
         //     // console.log("sweep-update", data);
@@ -343,7 +371,7 @@ export class RoosterX extends LitElement {
             ${this._panel === "settings" ? html`<settings-page .rooster=${this}></settings-page>` : ""}
         </div>` : ""}
         <div class="videos" tabindex="0">
-            ${this._filteredMedia.map(v => html`<video-card .video=${v} .rooster=${this}></video-card>`)}
+            ${this._filteredMedia.map(v => html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
         </div>`;
     }
 }

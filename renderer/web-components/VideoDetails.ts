@@ -371,7 +371,7 @@ export class VideoDetails extends LitElement {
                         })}
                     </div>` : ""}
                 <br><br>
-                <p>Actors: <small>${this.video.actors}</small></p>
+                <p>Actors: <small title="${this.video.actors}">${this.video.actors?.slice(0, 80)}...</small></p>
                 <br><br>
                 <p>Made in ${this.video.country}</p>
                 <br><br>

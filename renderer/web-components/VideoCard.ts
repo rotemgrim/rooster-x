@@ -10,7 +10,9 @@ export class VideoCard extends LitElement {
 
     @property() public rooster: RoosterX;
     @property() public video: IMetaDataExtended;
-    @property() public isShowDetails: boolean;
+
+    @property({attribute: "show-details", reflect: true})
+    public isShowDetails: boolean;
 
     public createRenderRoot() {
         return this;
@@ -21,7 +23,12 @@ export class VideoCard extends LitElement {
         this.isShowDetails = false;
     }
 
-    public showDetails() {
+    public showDetails(useHistory = false) {
+        if (useHistory) {
+            history.pushState({id: this.video.id}, this.video.title, `/${this.video.type}/${this.video.id}`);
+        }
+        console.log("showDetails", this.video.id);
+        // window.addEventListener('popstate', this.closeDetails.bind(this), {once: true});
         this.toggleViewTransition(true);
         document.body.style.overflow = "hidden";
         document.startViewTransition(() => {
@@ -30,10 +37,12 @@ export class VideoCard extends LitElement {
         });
     }
 
-    public closeDetails() {
+    public closeDetails(skipHistory = false) {
+        if (!skipHistory) {
+            history.pushState({}, "", "/");
+        }
         document.body.style.overflow = "auto";
         RoosterX.setFocusToVideos();
-
         document.startViewTransition(() => {
             this.isShowDetails = false;
             this.toggleViewTransition(true);
