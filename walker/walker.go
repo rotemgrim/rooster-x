@@ -18,8 +18,6 @@ import (
 	"strings"
 )
 
-const dir = "B:\\downloads\\complete\\"
-
 // filter is a list of strings that we want to filter out
 var dirFilter = []string{"sample", "samples", "moudles", "git", "subs"}
 var includeExtensions = []string{"mkv", "avi", "3g2", "3gp", "aaf", "asf", "avchd",

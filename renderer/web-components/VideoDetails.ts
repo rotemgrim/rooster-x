@@ -92,6 +92,9 @@ export class VideoDetails extends LitElement {
         this.mainDetailsEl = document.querySelector(".main-details") as HTMLElement;
         this.mainDetailsEl.focus();
         this.mainDetailsEl.addEventListener("blur", this.setMainDetailsFocus);
+        setTimeout(() => {
+            this.querySelector(".original-poster")?.classList.add("show");
+        }, 1000)
     }
 
     public disconnectedCallback() {
@@ -315,7 +318,8 @@ export class VideoDetails extends LitElement {
                         ?checked=${this.video.isWatched}
                         title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
                     ${this.video.poster ?
-                        html`<img src="${this.video.poster.replace("/w300/","/original/")}" alt="${this.video.title}" class="video-poster-card-trans" />` :
+                        html`<img src="${this.video.poster}" alt="${this.video.title}" class="video-poster-card-trans" />
+                        <img src="${this.video.poster.replace("/w300/","/original/")}" alt="${this.video.title}" class="original-poster" />` :
                         html`<div class="img-missing"><span>${this.video.title}</span></div>`}
 
                 </div>

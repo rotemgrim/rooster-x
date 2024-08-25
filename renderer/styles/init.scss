@@ -70,7 +70,17 @@ video-card {
   display: block;
   /*margin: 6px;*/
 }
-
+.original-poster {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    opacity: 0;
+    transition: all 0.25s;
+}
+.original-poster.show {
+    opacity: 1;
+}
 .video-poster-card-trans {
   view-transition-name: poster-move;
 }

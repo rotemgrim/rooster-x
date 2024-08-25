@@ -60,8 +60,13 @@ func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
 	//	qm.InnerJoin("metaData as md on mf.metaDataId = md.id"),
 	//).BindG(context.Background(), &media)
 	media, err := models.MetaData(
-		qm.Load(models.MetaDatumRels.MetaDataIdMediaFiles),
-		qm.Load(models.MetaDatumRels.MetaDataIdTorrentFiles),
+		//qm.Load(models.MetaDatumRels.MetaDataIdMediaFiles),
+		//qm.Load(models.MetaDatumRels.MetaDataIdTorrentFiles),
+		qm.Select("md.*"),
+		qm.From("metaData as md"),
+		qm.LeftOuterJoin("mediaFile as mf on mf.metaDataId = md.id"),
+		qm.GroupBy("md.id"),
+		qm.OrderBy(" max(mf.downloadedAt) DESC"),
 	).AllG(context.Background())
 	type Result struct {
 		*models.MetaDatum
@@ -69,7 +74,7 @@ func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
 		//TorrentFiles []*models.TorrentFile `json:"torrentFiles"`
 	}
 	if err != nil {
-		transmitPromiseReject(c, data, "could not get media")
+		transmitPromiseReject(c, data, fmt.Sprintf("could not get media %s", err))
 		return
 	}
 	//spew.Dump(media)

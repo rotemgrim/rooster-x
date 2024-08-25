@@ -16,7 +16,9 @@ import (
 
 var TMDB_TV_SEARCH_CACHE = make(map[string]*tmdb.SearchTVShows)
 var TMDB_MOVIE_SEARCH_CACHE = make(map[string]*tmdb.SearchMovies)
-var LANG = "he-IL"
+var LANG = "en-US"
+
+//var LANG = "he-IL"
 
 func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, file *m.MediaFile) (*m.MetaDatum, error) {
 

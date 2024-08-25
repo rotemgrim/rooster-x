@@ -3,7 +3,7 @@ import {LitElement, html} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";
-import * as score from "string-score";
+import score from "string-score";
 
 @customElement("top-bar")
 export class TopBar extends LitElement {
@@ -90,7 +90,7 @@ export class TopBar extends LitElement {
             // this.search();
             this.rooster.refreshMedia();
             RoosterX.setFocusToVideos();
-            this.requestUpdate();
+            // this.requestUpdate();
         }
     }
 
@@ -113,7 +113,7 @@ export class TopBar extends LitElement {
         <div class="top-bar">
             <div>
                 <div class="logo" tabindex="0" @click="${this.toggleSideBar}"></div>                
-                <div class="filter" tabindex="0" @click="${this.rooster.getAllMedia}">
+                <div class="filter" tabindex="0" @click="${this.rooster?.getAllMedia}">
                     <i class="material-icons">sync</i>
                 </div>
                 <div tabindex="0" class="filter ${this._toggleTorrents ? `` : `active`}" @click="${this.showFolders}">
