@@ -7,6 +7,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/models"
 	"log"
@@ -59,34 +61,49 @@ func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
 	//	qm.From("mediaFile as mf"),
 	//	qm.InnerJoin("metaData as md on mf.metaDataId = md.id"),
 	//).BindG(context.Background(), &media)
-	media, err := models.MetaData(
-		//qm.Load(models.MetaDatumRels.MetaDataIdMediaFiles),
-		//qm.Load(models.MetaDatumRels.MetaDataIdTorrentFiles),
-		qm.Select("md.*"),
+	type MediaWithDownloadedAt struct {
+		//models.MetaDatum
+		ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+		Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+		ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
+		TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
+		Genres       null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
+		Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
+		Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
+		Votes        null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
+		Series       null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
+		Rating       null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
+		Runtime      null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
+		Year         null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
+		Poster       null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
+		Metascore    null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
+		Plot         null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
+		Director     null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
+		Writer       null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
+		Actors       null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
+		Released     null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
+		ReleasedUnix null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
+		Trailer      null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
+		Type         null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
+		Name         null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
+		IsWatched    null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
+		DownloadedAt null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
+	}
+	var media []MediaWithDownloadedAt
+	err := models.NewQuery(
+		qm.Select("md.*, max(mf.downloadedAt) as downloadedAt, umd.isWatched as isWatched"),
 		qm.From("metaData as md"),
 		qm.LeftOuterJoin("mediaFile as mf on mf.metaDataId = md.id"),
+		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = 1"),
 		qm.GroupBy("md.id"),
 		qm.OrderBy(" max(mf.downloadedAt) DESC"),
-	).AllG(context.Background())
-	type Result struct {
-		*models.MetaDatum
-		//MediaFiles   []*models.MediaFile   `json:"mediaFiles"`
-		//TorrentFiles []*models.TorrentFile `json:"torrentFiles"`
-	}
+	).BindG(context.Background(), &media)
 	if err != nil {
 		transmitPromiseReject(c, data, fmt.Sprintf("could not get media %s", err))
 		return
 	}
-	//spew.Dump(media)
-	var result = []Result{}
-	for _, e := range media {
-		result = append(result, Result{
-			e,
-			//e.R.GetMetaDataIdMediaFiles(),
-			//e.R.GetMetaDataIdTorrentFiles(),
-		})
-	}
-	transmitPromiseResponse(c, data, result)
+
+	transmitPromiseResponse(c, data, media)
 }
 
 func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
@@ -95,7 +112,9 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 	episodes, err := models.Episodes(
 		qm.Where("metaDataId = ?", p),
 		qm.Load(models.EpisodeRels.MetaDataIdMetaDatum),
-		qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes, qm.Where("userId = ?", 1)),
+		qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes,
+			qm.Where("userId = ?", 1),
+		),
 		qm.Load(models.EpisodeRels.EpisodeIdMediaFiles),
 	).AllG(context.Background())
 	if err != nil {
@@ -107,6 +126,7 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 		MetaData    *models.MetaDatum   `json:"metaData"`
 		UserEpisode *models.UserEpisode `json:"userEpisode"`
 		MediaFiles  []*models.MediaFile `json:"mediaFiles"`
+		IsWatched   bool                `json:"isWatched"`
 	}
 	var result = []Result{}
 	for _, e := range episodes {
@@ -119,6 +139,7 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 			e.R.MetaDataIdMetaDatum,
 			userEpisode,
 			e.R.EpisodeIdMediaFiles,
+			userEpisode != nil && userEpisode.IsWatched.Bool,
 		})
 	}
 	transmitPromiseResponse(c, req, result)
@@ -146,14 +167,87 @@ func (s *Server) OpenExternal(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, "Opening external")
 }
 
-func (s *Server) OpenD(c *websocket.Conn, req PayloadRequest) {
-	path := req.Data.(map[string]interface{})["url"]
-	log.Println("Opening external:", path)
-	err := open.Run(path.(string))
-	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not open external %s", err))
+func (s *Server) SetWatched(c *websocket.Conn, req PayloadRequest) {
+	typeWatched := req.Data.(map[string]interface{})["type"].(string)
+	entityId := (req.Data.(map[string]interface{})["entityId"]).(float64)
+	isWatched := req.Data.(map[string]interface{})["isWatched"].(bool)
+	if typeWatched == "Episode" {
+		s.setWatchedEpisode(c, req, int64(entityId), isWatched)
+	} else {
+		s.setWatchedMeta(c, req, int64(entityId), isWatched)
 	}
-	transmitPromiseResponse(c, req, "Opening external")
+}
+
+func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {
+	episode, err := models.FindEpisodeG(context.Background(), null.Int64From(entityId))
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not find episode %s", err))
+		return
+	}
+
+	// Check if userEpisode already exists
+	uep, err := models.UserEpisodes(
+		qm.Where("episodeId = ?", entityId),
+		qm.Where("userId = ?", 1),
+	).OneG(context.Background())
+	if err == nil {
+		// update existing
+		uep.IsWatched = null.BoolFrom(isWatched)
+		_, err = uep.UpdateG(context.Background(), boil.Infer())
+		if err != nil {
+			transmitPromiseReject(c, req, fmt.Sprintf("could not update user episode %s", err))
+			return
+		}
+		transmitPromiseResponse(c, req, "episode updated")
+		return
+	}
+
+	// create new
+	err = episode.AddEpisodeIdUserEpisodesG(context.Background(), true, &models.UserEpisode{
+		UserId:    null.Int64From(1),
+		IsWatched: null.BoolFrom(isWatched),
+	})
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not create user episode data %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, "episode updated")
+}
+
+func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {
+	meta, err := models.FindMetaDatumG(context.Background(), null.Int64From(entityId))
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not find meta %s", err))
+		return
+	}
+
+	// Check if userMetaDatum already exists
+	umd, err := models.UserMetaData(
+		qm.Where("metaDataId = ?", entityId),
+		qm.Where("userId = ?", 1),
+	).OneG(context.Background())
+	if err == nil {
+		// update existing
+		umd.IsWatched = null.BoolFrom(isWatched)
+		_, err = umd.UpdateG(context.Background(), boil.Infer())
+		if err != nil {
+			transmitPromiseReject(c, req, fmt.Sprintf("could not update user meta %s", err))
+			return
+		}
+		transmitPromiseResponse(c, req, "Meta updated")
+		return
+	}
+
+	// create new
+	err = meta.AddMetaDataIdUserMetaDataG(context.Background(), true, &models.UserMetaDatum{
+		UserId:    null.Int64From(1),
+		IsWatched: null.BoolFrom(isWatched),
+	})
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not create user meta data %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, "Meta updated")
 }
 
 func (s *Server) RouteNotFound(c *websocket.Conn, data PayloadRequest) {

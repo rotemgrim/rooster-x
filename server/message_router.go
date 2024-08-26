@@ -22,6 +22,7 @@ func (s *Server) SetRoutes() {
 	s.on("get-episodes", s.GetAllEpisodes)
 	s.on("get-media-files", s.GetMediaFilesByMetaId)
 	s.on("open-external", s.OpenExternal)
+	s.on("set-watched", s.SetWatched)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {

@@ -30,5 +30,5 @@ export class Episode extends AbsMetaData {
     public metaData: MetaData;
 
     @OneToMany(() => UserEpisode, x => x.episode, {eager: true, cascade: true})
-    public userEpisode: UserEpisode[];
+    public userEpisode: UserEpisode;
 }
