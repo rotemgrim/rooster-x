@@ -201,7 +201,7 @@ export class VideoDetails extends LitElement {
             clearTimeout(this.playTimer);
             this.playTimer = setTimeout(() => {
                 console.log("did you watched? " + mediaFile.raw, mediaFile);
-                // this.didYouWatched = null;
+                this.didYouWatched = null;
                 IpcService.getMetaDataByFileId({id: mediaFile.id})
                     .then((metaData: MetaData|Episode) => {
                         if (metaData) {
@@ -210,7 +210,7 @@ export class VideoDetails extends LitElement {
                             this.requestUpdate();
                         }
                     }).catch(console.log);
-            }, 3000); // this is 5 min
+            }, 3000);
         }
     }
 

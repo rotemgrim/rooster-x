@@ -156,7 +156,7 @@ export class IpcService {
     public static getMetaDataByFileId(payload: {id: number}): Promise<MetaData|Episode> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("get-meta-data-by-file-id", payload).then((data) => {
-                if (data && data.imdbSeriesId) {
+                if (data && data.tmdbSeriesId) {
                     if (!data.metaData) {
                         data.metaData = data.__metaData__;
                     }

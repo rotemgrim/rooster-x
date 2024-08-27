@@ -178,6 +178,62 @@ func (s *Server) SetWatched(c *websocket.Conn, req PayloadRequest) {
 	}
 }
 
+func (s *Server) GetMetaDataByFileId(c *websocket.Conn, req PayloadRequest) {
+	id := int64(req.Data.(map[string]interface{})["id"].(float64))
+	mediaFile, err := models.MediaFiles(
+		qm.Where("id = ?", id),
+	).OneG(context.Background())
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not find media file by id in db %s", err))
+		return
+	}
+
+	type meta struct {
+		Id           null.Int64  `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+		Title        null.String `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+		ImdbId       null.String `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
+		TmdbId       null.Int64  `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
+		Episode      null.Int64  `boil:"episode" json:"episode,omitempty" toml:"episode" yaml:"episode,omitempty"`
+		Season       null.Int64  `boil:"season" json:"season,omitempty" toml:"season" yaml:"season,omitempty"`
+		IsWatched    null.Bool   `boil:"isWatched" json:"isWatched,omitempty" toml:"isWatched" yaml:"isWatched,omitempty"`
+		Poster       null.String `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
+		Plot         null.String `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
+		EpisodePlot  null.String `boil:"episodePlot" json:"episodePlot,omitempty" toml:"episodePlot" yaml:"episodePlot,omitempty"`
+		EpisodeTitle null.String `boil:"episodeTitle" json:"episodeTitle,omitempty" toml:"episodeTitle" yaml:"episodeTitle,omitempty"`
+	}
+	var tmp meta
+	err = models.NewQuery(
+		qm.Select("md.*, umd.isWatched as isWatched"),
+		qm.From("metaData as md"),
+		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = 1"),
+		qm.Where("id = ?", mediaFile.MetaDataId.Int64)).BindG(context.Background(), &tmp)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not find meta data in db %s", err))
+		return
+	}
+	if mediaFile.EpisodeId.Valid {
+		err = models.NewQuery(
+			qm.Select(`ep.*, 
+ep.plot as episodePlot, 
+ep.title as episodeTitle, 
+md.*, ue.isWatched as isWatched`),
+			qm.From("episode as ep"),
+			qm.Where("ep.id = ?", mediaFile.EpisodeId.Int64),
+			qm.LeftOuterJoin("userEpisode as ue on ue.episodeId = ep.id and ue.userId = 1"),
+			qm.LeftOuterJoin("metaData as md on md.id = ep.metaDataId"),
+			//qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes, qm.Where("userId = ?", 1)),
+		).BindG(context.Background(), &tmp)
+		if err != nil {
+			transmitPromiseReject(c, req, fmt.Sprintf("could not find episode in db %s", err))
+			return
+		}
+		//tmp["userEpisode"] = episode
+		//tmp["isAlreadyWatched"] = episode.isWatched.Bool
+		//tmp["isAlreadyWatched"] = episode.(*models.Episode).R.EpisodeIdUserEpisodes[0].IsWatched.Bool
+	}
+	transmitPromiseResponse(c, req, tmp)
+}
+
 func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {
 	episode, err := models.FindEpisodeG(context.Background(), null.Int64From(entityId))
 	if err != nil {

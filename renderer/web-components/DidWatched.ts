@@ -14,7 +14,13 @@ export class DidWatched extends LitElement {
     @property() public rooster: RoosterX;
     @property() public videoDetails: VideoDetails;
     @property() public mediaFile: MediaFile;
-    @property() public didYouWatched: null | MetaData | Episode = null;
+    @property() public didYouWatched: {
+        id: number,
+        isWatched: boolean,
+        season?: number,
+        episode?: number,
+        title?: string,
+    };
 
     public createRenderRoot() {
         return this;
@@ -27,7 +33,7 @@ export class DidWatched extends LitElement {
     public setDidWatchedYes() {
         const e: any = this.didYouWatched;
         let type = "MetaData";
-        if (e && e.imdbSeriesId) {
+        if (e && e.episode) {
             type = "Episode";
         }
 
@@ -77,41 +83,29 @@ export class DidWatched extends LitElement {
             titleHtml: null,
             plot: "",
         };
-        if (u && (u as Episode).imdbSeriesId !== undefined) {
+        if (u && u.episode) {
             // this is episode
             const e: Episode = u;
             const epiNumber = "S" + ("0" + e.season).slice(-2) + "-E" + ("0" + e.episode).slice(-2);
-            data.poster = e.poster || e.metaData.poster || "";
-            data.title = e.metaData.title + " | " + epiNumber;
-            data.titleHtml = html`<h1>${e.metaData.name || e.metaData.title}
+            data.poster = e.poster || "";
+            data.title = e.title + " | " + epiNumber;
+            data.titleHtml = html`<h1>${e.name || e.title}
                 <br>${epiNumber}${e.title ? " | " + e.title : ""}</h1>`;
             data.plot = e.plot || "";
-        } else if (u && (u as MetaData).name !== undefined) {
+        } else if (u && u.title !== undefined) {
             // this is metaData
             const e: MetaData = u;
             data.poster = e.poster || "";
-            data.title = e.name || e.title;
+            data.title = e.title;
             data.titleHtml = html`<h1>${data.title}</h1>`;
             data.plot = e.plot || "";
         }
         return data;
     }
 
-    private isAlreadyWatched(e: any): boolean {
-        if (e && e.userEpisode && e.userEpisode.length > 0) {
-            if (e.userEpisode.filter(x => x.isWatched && x.userId === this.rooster.user.id).length > 0) {
-                return true;
-            }
-        } else if (e && e.userMetaData && e.userMetaData.length > 0) {
-            if (e.userMetaData.filter(x => x.isWatched && x.userId === this.rooster.user.id).length > 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public render() {
-        if (this.isAlreadyWatched(this.didYouWatched)) {
+        console.log("didYouWatched", this.didYouWatched);
+        if (!this.didYouWatched || this.didYouWatched.isWatched) {
             return html``;
         }
 
