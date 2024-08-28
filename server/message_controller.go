@@ -106,6 +106,10 @@ func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
 	transmitPromiseResponse(c, data, media)
 }
 
+func (s *Server) GetAllTorrents(c *websocket.Conn, data PayloadRequest) {
+
+}
+
 func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 	p := req.Data.(map[string]interface{})["metaDataId"]
 	spew.Dump(p)

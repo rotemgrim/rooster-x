@@ -4,6 +4,7 @@ import (
 	"go-poc/db"
 	"go-poc/scheduler"
 	"go-poc/server"
+	"go-poc/torrents"
 	"go-poc/walker"
 	"os"
 	"os/signal"
@@ -11,9 +12,10 @@ import (
 )
 
 type App struct {
-	Scheduler *scheduler.Scheduler
-	Server    *server.Server
-	Walker    *walker.Walker
+	Scheduler       *scheduler.Scheduler
+	Server          *server.Server
+	Walker          *walker.Walker
+	TorrentsFetcher *torrents.TorrentFetcher
 }
 
 func main() {
@@ -31,15 +33,17 @@ func main() {
 		"B:\\dekel",
 	}
 	WalkerInstance := walker.NewWalker(dirs, ServerInstance)
-	//WalkerInstance := walker.NewWalker("C:\\Users\\rotem\\Downloads", ServerInstance)
+	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org")
 
 	// create a new app
 	app := &App{
-		Scheduler: schedulerInstance,
-		Server:    ServerInstance,
-		Walker:    WalkerInstance,
+		Scheduler:       schedulerInstance,
+		Server:          ServerInstance,
+		Walker:          WalkerInstance,
+		TorrentsFetcher: TorrentsFetcher,
 	}
 
+	//go TorrentsFetcher.Fetch()
 	go app.Server.Start(WalkerInstance)
 	//go app.Walker.FullSweep()
 	//app.Scheduler.Schedule("10 21 * * *", app.Walker.FullSweep)

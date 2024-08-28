@@ -239,6 +239,7 @@ export class RoosterX extends LitElement {
     }
 
     private filterTorrents(list: IMetaDataExtended[]): IMetaDataExtended[] {
+
         // filter media with files
         list = list.filter((m) => m.mediaFiles.length === 0 && m.torrentFiles.length > 0);
 
@@ -281,6 +282,7 @@ export class RoosterX extends LitElement {
     }
 
     public showTorrents() {
+        IpcService.getAllTorrents().then(torrents => this._torrents = torrents);
         this._showTorrents = true;
         this.refreshMedia(this._media);
         RoosterX.setFocusToVideos();

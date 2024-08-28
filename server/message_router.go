@@ -19,6 +19,7 @@ func (s *Server) SetRoutes() {
 	s.on("get-all-users", s.GetAllUsers)
 	s.on("save-config", s.SaveConfig)
 	s.on("get-all-media", s.GetAllMedia)
+	s.on("get-all-torrents", s.GetAllTorrents)
 	s.on("get-episodes", s.GetAllEpisodes)
 	s.on("get-media-files", s.GetMediaFilesByMetaId)
 	s.on("open-external", s.OpenExternal)
