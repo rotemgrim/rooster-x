@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	tmdb "github.com/cyruzin/golang-tmdb"
 	"go-poc/db"
 	"go-poc/scheduler"
 	"go-poc/server"
@@ -25,6 +27,11 @@ func main() {
 
 	schedulerInstance := scheduler.NewScheduler()
 	ServerInstance := server.NewServer("static")
+	tmdbClient, err := tmdb.Init("REMOVED_TMDB_API_KEY")
+	if err != nil {
+		fmt.Println("Error initializing tmdb client")
+		return
+	}
 
 	// directories array to walk
 	dirs := []string{
@@ -32,8 +39,8 @@ func main() {
 		//"C:\\Users\\rotem\\Downloads",
 		"B:\\dekel",
 	}
-	WalkerInstance := walker.NewWalker(dirs, ServerInstance)
-	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org")
+	WalkerInstance := walker.NewWalker(dirs, ServerInstance, tmdbClient)
+	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org", tmdbClient)
 
 	// create a new app
 	app := &App{
@@ -43,7 +50,7 @@ func main() {
 		TorrentsFetcher: TorrentsFetcher,
 	}
 
-	//go TorrentsFetcher.Fetch()
+	go TorrentsFetcher.Fetch()
 	go app.Server.Start(WalkerInstance)
 	//go app.Walker.FullSweep()
 	//app.Scheduler.Schedule("10 21 * * *", app.Walker.FullSweep)

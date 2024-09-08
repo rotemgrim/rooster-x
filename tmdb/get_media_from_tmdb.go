@@ -1,4 +1,4 @@
-package walker
+package tmdb
 
 import (
 	"context"
@@ -20,7 +20,7 @@ var LANG = "en-US"
 
 //var LANG = "he-IL"
 
-func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, file *m.MediaFile) (*m.MetaDatum, error) {
+func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
 
 	// get metadata from internet
 	var newMd *m.MetaDatum
@@ -251,7 +251,26 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	return newMd, nil
 }
 
-func handleMetaDataGettingErr(file m.MediaFile, err error) bool {
+//type MediaEntry interface {
+//	m.MediaFile | m.TorrentFile
+//	UpdateG(ctx context.Context, columns boil.Columns) (int64, error)
+//}
+
+func HandleMetaDataGettingErr(file m.MediaFile, err error) bool {
+	if err != nil {
+		fmt.Println("handle metadata error:", err)
+		// update file row in db
+		file.MetaDataId = null.Int64From(0)
+		file.Status = null.StringFrom("error")
+		file.ScanError = null.StringFrom(err.Error())
+		_, _ = file.UpdateG(context.Background(), boil.Infer())
+		return true
+	} else {
+		return false
+	}
+}
+
+func HandleMetaDataGettingErr2(file m.TorrentFile, err error) bool {
 	if err != nil {
 		fmt.Println("handle metadata error:", err)
 		// update file row in db

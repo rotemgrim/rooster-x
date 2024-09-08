@@ -27,7 +27,6 @@ type Episode struct {
 	ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
 	MetaDataId   null.Int64   `boil:"metaDataId" json:"metaDataId,omitempty" toml:"metaDataId" yaml:"metaDataId,omitempty"`
 	Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
-	ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
 	TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
 	Votes        null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
 	Series       null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
@@ -56,7 +55,6 @@ var EpisodeColumns = struct {
 	ID           string
 	MetaDataId   string
 	Title        string
-	ImdbId       string
 	TMDBID       string
 	Votes        string
 	Series       string
@@ -80,7 +78,6 @@ var EpisodeColumns = struct {
 	ID:           "id",
 	MetaDataId:   "metaDataId",
 	Title:        "title",
-	ImdbId:       "imdbId",
 	TMDBID:       "tmdbId",
 	Votes:        "votes",
 	Series:       "series",
@@ -106,7 +103,6 @@ var EpisodeTableColumns = struct {
 	ID           string
 	MetaDataId   string
 	Title        string
-	ImdbId       string
 	TMDBID       string
 	Votes        string
 	Series       string
@@ -130,7 +126,6 @@ var EpisodeTableColumns = struct {
 	ID:           "episode.id",
 	MetaDataId:   "episode.metaDataId",
 	Title:        "episode.title",
-	ImdbId:       "episode.imdbId",
 	TMDBID:       "episode.tmdbId",
 	Votes:        "episode.votes",
 	Series:       "episode.series",
@@ -220,7 +215,6 @@ var EpisodeWhere = struct {
 	ID           whereHelpernull_Int64
 	MetaDataId   whereHelpernull_Int64
 	Title        whereHelpernull_String
-	ImdbId       whereHelpernull_String
 	TMDBID       whereHelpernull_Int64
 	Votes        whereHelpernull_Int64
 	Series       whereHelpernull_Bool
@@ -244,7 +238,6 @@ var EpisodeWhere = struct {
 	ID:           whereHelpernull_Int64{field: "\"episode\".\"id\""},
 	MetaDataId:   whereHelpernull_Int64{field: "\"episode\".\"metaDataId\""},
 	Title:        whereHelpernull_String{field: "\"episode\".\"title\""},
-	ImdbId:       whereHelpernull_String{field: "\"episode\".\"imdbId\""},
 	TMDBID:       whereHelpernull_Int64{field: "\"episode\".\"tmdbId\""},
 	Votes:        whereHelpernull_Int64{field: "\"episode\".\"votes\""},
 	Series:       whereHelpernull_Bool{field: "\"episode\".\"series\""},
@@ -324,9 +317,9 @@ func (r *episodeR) GetEpisodeIdUserEpisodes() UserEpisodeSlice {
 type episodeL struct{}
 
 var (
-	episodeAllColumns            = []string{"id", "metaDataId", "title", "imdbId", "tmdbId", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "season", "episode", "imdbSeriesId", "tmdbSeriesId"}
+	episodeAllColumns            = []string{"id", "metaDataId", "title", "tmdbId", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "season", "episode", "imdbSeriesId", "tmdbSeriesId"}
 	episodeColumnsWithoutDefault = []string{}
-	episodeColumnsWithDefault    = []string{"id", "metaDataId", "title", "imdbId", "tmdbId", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "season", "episode", "imdbSeriesId", "tmdbSeriesId"}
+	episodeColumnsWithDefault    = []string{"id", "metaDataId", "title", "tmdbId", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "season", "episode", "imdbSeriesId", "tmdbSeriesId"}
 	episodePrimaryKeyColumns     = []string{"id"}
 	episodeGeneratedColumns      = []string{"id"}
 )

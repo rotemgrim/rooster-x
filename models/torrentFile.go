@@ -28,6 +28,9 @@ type TorrentFile struct {
 	Raw        null.String `boil:"raw" json:"raw,omitempty" toml:"raw" yaml:"raw,omitempty"`
 	Title      null.String `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
 	Magnet     null.String `boil:"magnet" json:"magnet,omitempty" toml:"magnet" yaml:"magnet,omitempty"`
+	Size       null.Int64  `boil:"size" json:"size,omitempty" toml:"size" yaml:"size,omitempty"`
+	Status     null.String `boil:"status" json:"status,omitempty" toml:"status" yaml:"status,omitempty"`
+	ScanError  null.String `boil:"scanError" json:"scanError,omitempty" toml:"scanError" yaml:"scanError,omitempty"`
 	MetaDataId null.Int64  `boil:"metaDataId" json:"metaDataId,omitempty" toml:"metaDataId" yaml:"metaDataId,omitempty"`
 	EpisodeId  null.Int64  `boil:"episodeId" json:"episodeId,omitempty" toml:"episodeId" yaml:"episodeId,omitempty"`
 	Year       null.Int64  `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
@@ -54,6 +57,9 @@ var TorrentFileColumns = struct {
 	Raw        string
 	Title      string
 	Magnet     string
+	Size       string
+	Status     string
+	ScanError  string
 	MetaDataId string
 	EpisodeId  string
 	Year       string
@@ -75,6 +81,9 @@ var TorrentFileColumns = struct {
 	Raw:        "raw",
 	Title:      "title",
 	Magnet:     "magnet",
+	Size:       "size",
+	Status:     "status",
+	ScanError:  "scanError",
 	MetaDataId: "metaDataId",
 	EpisodeId:  "episodeId",
 	Year:       "year",
@@ -98,6 +107,9 @@ var TorrentFileTableColumns = struct {
 	Raw        string
 	Title      string
 	Magnet     string
+	Size       string
+	Status     string
+	ScanError  string
 	MetaDataId string
 	EpisodeId  string
 	Year       string
@@ -119,6 +131,9 @@ var TorrentFileTableColumns = struct {
 	Raw:        "torrentFile.raw",
 	Title:      "torrentFile.title",
 	Magnet:     "torrentFile.magnet",
+	Size:       "torrentFile.size",
+	Status:     "torrentFile.status",
+	ScanError:  "torrentFile.scanError",
 	MetaDataId: "torrentFile.metaDataId",
 	EpisodeId:  "torrentFile.episodeId",
 	Year:       "torrentFile.year",
@@ -144,6 +159,9 @@ var TorrentFileWhere = struct {
 	Raw        whereHelpernull_String
 	Title      whereHelpernull_String
 	Magnet     whereHelpernull_String
+	Size       whereHelpernull_Int64
+	Status     whereHelpernull_String
+	ScanError  whereHelpernull_String
 	MetaDataId whereHelpernull_Int64
 	EpisodeId  whereHelpernull_Int64
 	Year       whereHelpernull_Int64
@@ -165,6 +183,9 @@ var TorrentFileWhere = struct {
 	Raw:        whereHelpernull_String{field: "\"torrentFile\".\"raw\""},
 	Title:      whereHelpernull_String{field: "\"torrentFile\".\"title\""},
 	Magnet:     whereHelpernull_String{field: "\"torrentFile\".\"magnet\""},
+	Size:       whereHelpernull_Int64{field: "\"torrentFile\".\"size\""},
+	Status:     whereHelpernull_String{field: "\"torrentFile\".\"status\""},
+	ScanError:  whereHelpernull_String{field: "\"torrentFile\".\"scanError\""},
 	MetaDataId: whereHelpernull_Int64{field: "\"torrentFile\".\"metaDataId\""},
 	EpisodeId:  whereHelpernull_Int64{field: "\"torrentFile\".\"episodeId\""},
 	Year:       whereHelpernull_Int64{field: "\"torrentFile\".\"year\""},
@@ -221,9 +242,9 @@ func (r *torrentFileR) GetMetaDataIdMetaDatum() *MetaDatum {
 type torrentFileL struct{}
 
 var (
-	torrentFileAllColumns            = []string{"id", "raw", "title", "magnet", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "uploadedAt"}
+	torrentFileAllColumns            = []string{"id", "raw", "title", "magnet", "size", "status", "scanError", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "uploadedAt"}
 	torrentFileColumnsWithoutDefault = []string{}
-	torrentFileColumnsWithDefault    = []string{"id", "raw", "title", "magnet", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "uploadedAt"}
+	torrentFileColumnsWithDefault    = []string{"id", "raw", "title", "magnet", "size", "status", "scanError", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "uploadedAt"}
 	torrentFilePrimaryKeyColumns     = []string{"id"}
 	torrentFileGeneratedColumns      = []string{"id"}
 )

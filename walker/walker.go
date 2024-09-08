@@ -11,6 +11,7 @@ import (
 	"go-poc/db"
 	m "go-poc/models"
 	"go-poc/server"
+	tmdb2 "go-poc/tmdb"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -33,12 +34,14 @@ type FileEntry struct {
 type Walker struct {
 	walkDirArr []string
 	server     *server.Server
+	tmdbClient *tmdb.Client
 }
 
-func NewWalker(walkDirArr []string, server *server.Server) *Walker {
+func NewWalker(walkDirArr []string, server *server.Server, tmdbClient *tmdb.Client) *Walker {
 	return &Walker{
 		walkDirArr: walkDirArr,
 		server:     server,
+		tmdbClient: tmdbClient,
 	}
 }
 
@@ -77,14 +80,10 @@ func (w *Walker) FullSweep() {
 		return
 	}
 
-	tmdbClient, err := tmdb.Init("REMOVED_TMDB_API_KEY")
-	if err != nil {
-		fmt.Println("Error initializing tmdb client")
-		return
-	}
+	tmdbClient := w.tmdbClient
 	for _, file := range filesWithoutMetaData {
 		tor, err := ptn.Parse(file.Raw.String)
-		if handleMetaDataGettingErr(*file, err) {
+		if tmdb2.HandleMetaDataGettingErr(*file, err) {
 			continue
 		}
 
@@ -92,12 +91,12 @@ func (w *Walker) FullSweep() {
 		var md = &m.MetaDatum{}
 		if file.MetaDataId.Valid && !file.MetaDataId.IsZero() {
 			md, err = m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).OneG(context.Background())
-			if handleMetaDataGettingErr(*file, err) {
+			if tmdb2.HandleMetaDataGettingErr(*file, err) {
 				continue
 			}
 		} else {
-			newMd, err := GetMediaFromTMDB(tmdbClient, *tor, file)
-			if handleMetaDataGettingErr(*file, err) {
+			newMd, err := tmdb2.GetMediaFromTMDB(tmdbClient, *tor)
+			if tmdb2.HandleMetaDataGettingErr(*file, err) {
 				continue
 			}
 
@@ -106,7 +105,7 @@ func (w *Walker) FullSweep() {
 				// save the metadata to the db
 				fmt.Println("inserting metadata to DB")
 				err = newMd.InsertG(context.Background(), boil.Infer())
-				if handleMetaDataGettingErr(*file, err) {
+				if tmdb2.HandleMetaDataGettingErr(*file, err) {
 					continue
 				}
 			}
@@ -118,8 +117,8 @@ func (w *Walker) FullSweep() {
 
 			// try getting episode from DB
 			fmt.Println("Getting episode metadata")
-			epMd, err := GetEpisodeFromTMDB(tmdbClient, *tor, md)
-			if handleMetaDataGettingErr(*file, err) {
+			epMd, err := tmdb2.GetEpisodeFromTMDB(tmdbClient, *tor, md)
+			if tmdb2.HandleMetaDataGettingErr(*file, err) {
 				continue
 			}
 
@@ -127,7 +126,7 @@ func (w *Walker) FullSweep() {
 				// save the episode metadata to the db
 				fmt.Println("inserting episode to DB")
 				err = epMd.InsertG(context.Background(), boil.Infer())
-				if handleMetaDataGettingErr(*file, err) {
+				if tmdb2.HandleMetaDataGettingErr(*file, err) {
 					continue
 				}
 			}
