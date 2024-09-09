@@ -46,7 +46,7 @@ type TorrentFile struct {
 	Proper     null.Bool   `boil:"proper" json:"proper,omitempty" toml:"proper" yaml:"proper,omitempty"`
 	Repack     null.Bool   `boil:"repack" json:"repack,omitempty" toml:"repack" yaml:"repack,omitempty"`
 	WideScreen null.Bool   `boil:"wideScreen" json:"wideScreen,omitempty" toml:"wideScreen" yaml:"wideScreen,omitempty"`
-	UploadedAt null.Int64  `boil:"uploadedAt" json:"uploadedAt,omitempty" toml:"uploadedAt" yaml:"uploadedAt,omitempty"`
+	UploadedAt null.Time   `boil:"uploadedAt" json:"uploadedAt,omitempty" toml:"uploadedAt" yaml:"uploadedAt,omitempty"`
 
 	R *torrentFileR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L torrentFileL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -177,7 +177,7 @@ var TorrentFileWhere = struct {
 	Proper     whereHelpernull_Bool
 	Repack     whereHelpernull_Bool
 	WideScreen whereHelpernull_Bool
-	UploadedAt whereHelpernull_Int64
+	UploadedAt whereHelpernull_Time
 }{
 	ID:         whereHelpernull_Int64{field: "\"torrentFile\".\"id\""},
 	Raw:        whereHelpernull_String{field: "\"torrentFile\".\"raw\""},
@@ -201,7 +201,7 @@ var TorrentFileWhere = struct {
 	Proper:     whereHelpernull_Bool{field: "\"torrentFile\".\"proper\""},
 	Repack:     whereHelpernull_Bool{field: "\"torrentFile\".\"repack\""},
 	WideScreen: whereHelpernull_Bool{field: "\"torrentFile\".\"wideScreen\""},
-	UploadedAt: whereHelpernull_Int64{field: "\"torrentFile\".\"uploadedAt\""},
+	UploadedAt: whereHelpernull_Time{field: "\"torrentFile\".\"uploadedAt\""},
 }
 
 // TorrentFileRels is where relationship names are stored.

@@ -35,9 +35,9 @@ func main() {
 
 	// directories array to walk
 	dirs := []string{
-		"B:\\downloads\\complete",
-		//"C:\\Users\\rotem\\Downloads",
-		"B:\\dekel",
+		//"B:\\downloads\\complete",
+		"C:\\Users\\rotem\\Downloads",
+		//"B:\\dekel",
 	}
 	WalkerInstance := walker.NewWalker(dirs, ServerInstance, tmdbClient)
 	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org", tmdbClient)
@@ -50,8 +50,8 @@ func main() {
 		TorrentsFetcher: TorrentsFetcher,
 	}
 
-	go TorrentsFetcher.Fetch()
 	go app.Server.Start(WalkerInstance)
+	//go TorrentsFetcher.Fetch()
 	//go app.Walker.FullSweep()
 	//app.Scheduler.Schedule("10 21 * * *", app.Walker.FullSweep)
 

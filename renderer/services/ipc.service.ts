@@ -103,27 +103,12 @@ export class IpcService {
         });
     }
 
-    public static getAllTorrents(): Promise<any> {
+    public static getMedia(payload?: {
+        filter: "movies" | "series" | "all",
+        isTorrents: boolean
+    }): Promise<any> {
         return new Promise((resolve, reject) => {
-            promiseIpc.send("get-all-torrents").then(resolve).catch(reject);
-        });
-    }
-
-    public static getAllMedia(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            promiseIpc.send("get-all-media").then(resolve).catch(reject);
-        });
-    }
-
-    public static getAllMovies(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            promiseIpc.send("get-movies").then(resolve).catch(reject);
-        });
-    }
-
-    public static getAllSeries(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            promiseIpc.send("get-series").then(resolve).catch(reject);
+            promiseIpc.send("get-media", {...payload}).then(resolve).catch(reject);
         });
     }
 

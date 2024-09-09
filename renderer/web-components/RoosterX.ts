@@ -64,7 +64,10 @@ export class RoosterX extends LitElement {
         super();
         this._sideBar = false;
         this._panel = "";
-        IpcService.getAllMedia().then(media => this.media = media);
+        IpcService.getMedia({
+            filter: "all",
+            isTorrents: this._showTorrents
+        }).then(media => this.media = media);
         document.addEventListener("click", <HTMLElement>(e) => {
             if (e && !e.target.closest(".side-bar")
                 && !e.target.closest(".top-bar")
@@ -115,7 +118,7 @@ export class RoosterX extends LitElement {
         // });
         //
         // ipcRenderer.on("refresh-media", (e, data) => {
-        //     IpcService.getAllMedia().then(media => this.media = media);
+        //     IpcService.getMedia().then(media => this.media = media);
         // });
     }
 
@@ -130,7 +133,7 @@ export class RoosterX extends LitElement {
     }
 
     set media(data) {
-        console.log(data);
+        console.log("new data", data);
         this._media = data;
         this.refreshMedia(data);
     }
@@ -146,11 +149,12 @@ export class RoosterX extends LitElement {
     }
 
     public refreshMedia(data?) {
+        console.log("refreshMedia", data);
         if (this._showTorrents) {
             if (data) {
                 this._filteredMedia = this.prepareMediaTorrents(data);
             } else {
-                this._filteredMedia = this.prepareMediaTorrents(this._media);
+                this._filteredMedia = this.prepareMediaTorrents(this._torrents);
             }
             this._filteredMedia = this.filterTorrents(this._filteredMedia);
         } else {
@@ -169,6 +173,9 @@ export class RoosterX extends LitElement {
     }
 
     private prepareMedia(metaDataList: MetaData[]): IMetaDataExtended[] {
+        if (!metaDataList) {
+            return [];
+        }
         const newList: IMetaDataExtended[] = [...metaDataList];
         for (const me of newList) {
 
@@ -181,12 +188,23 @@ export class RoosterX extends LitElement {
             //     me.isWatched = true;
             // }
 
-            // get latest max date downloaded / changed
-            const latestMediaFile: MediaFile | undefined = _.maxBy(me.mediaFiles, (o) => {
-                return new Date(o.downloadedAt).getTime();
-            });
-            if (latestMediaFile) {
-                me.latestChange = new Date(latestMediaFile.downloadedAt).getTime();
+            let latestMedia: MediaFile | TorrentFile | undefined;
+            if (this._showTorrents) {
+                latestMedia = _.maxBy(me.torrentFiles, (o) => {
+                    return new Date(o.uploadedAt).getTime();
+                });
+            } else {
+                latestMedia = _.maxBy(me.mediaFiles, (o) => {
+                    return new Date(o.downloadedAt).getTime();
+                });
+            }
+
+            if (latestMedia && this._showTorrents) {
+                // @ts-ignore
+                me.latestChange = new Date(latestMedia.uploadedAt).getTime();
+            } else if (latestMedia) {
+                // @ts-ignore
+                me.latestChange = new Date(latestMedia.downloadedAt).getTime();
             }
 
         }
@@ -194,9 +212,16 @@ export class RoosterX extends LitElement {
     }
 
     private prepareMediaTorrents(metaDataList: MetaData[]): IMetaDataExtended[] {
+        if (!metaDataList) {
+            return [];
+        }
         const newList: IMetaDataExtended[] = [...metaDataList];
         for (const me of newList) {
 
+            // me.poster = me.poster ? `https://image.tmdb.org/t/p/original${me.poster}` : "";
+            if (me.poster && !me.poster.startsWith("http")) {
+                me.poster = `https://image.tmdb.org/t/p/w300${me.poster}`;
+            }
             // check if media is watched
             // if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
             //     me.isWatched = true;
@@ -241,7 +266,7 @@ export class RoosterX extends LitElement {
     private filterTorrents(list: IMetaDataExtended[]): IMetaDataExtended[] {
 
         // filter media with files
-        list = list.filter((m) => m.mediaFiles.length === 0 && m.torrentFiles.length > 0);
+        // list = list.filter((m) => m.mediaFiles?.length === 0 && m.torrentFiles.length > 0);
 
         // filter watched
         if (this._filterConfig.unwatchedMedia) {
@@ -282,34 +307,51 @@ export class RoosterX extends LitElement {
     }
 
     public showTorrents() {
-        IpcService.getAllTorrents().then(torrents => this._torrents = torrents);
         this._showTorrents = true;
-        this.refreshMedia(this._media);
-        RoosterX.setFocusToVideos();
+        IpcService.getMedia({
+            filter: "all",
+            isTorrents: this._showTorrents
+        }).then(torrents => {
+            this._torrents = torrents;
+            this.refreshMedia(this._torrents);
+            RoosterX.setFocusToVideos();
+        });
         this.closeSideBar();
     }
 
     public showFolders() {
         this._showTorrents = false;
-        this.refreshMedia(this._media);
+        IpcService.getMedia({
+            filter: "all",
+            isTorrents: this._showTorrents
+        }).then(media => this.media = media);
         RoosterX.setFocusToVideos();
-        this.closeSideBar();
+        this.closeSideBar && this.closeSideBar();
     }
 
-    public getAllMedia() {
-        IpcService.getAllMedia().then(media => this.media = media);
+    public getMedia() {
+        IpcService.getMedia({
+            filter: "all",
+            isTorrents: this._showTorrents
+        }).then(media => this.media = media);
         RoosterX.setFocusToVideos();
         this.closeSideBar && this.closeSideBar();
     }
 
     private getMovies() {
-        IpcService.getAllMovies().then(media => this.media = media);
+        IpcService.getMedia({
+            filter: "movies",
+            isTorrents: this._showTorrents
+        }).then(media => this.media = media);
         RoosterX.setFocusToVideos();
         this.closeSideBar();
     }
 
     private getSeries() {
-        IpcService.getAllSeries().then(media => this.media = media);
+        IpcService.getMedia({
+            filter: "series",
+            isTorrents: this._showTorrents
+        }).then(media => this.media = media);
         RoosterX.setFocusToVideos();
         this.closeSideBar();
     }
@@ -361,7 +403,7 @@ export class RoosterX extends LitElement {
         <top-bar .rooster=${this}></top-bar>
         <div class="side-bar ${this._sideBar ? "open" : ""}">
             <ul>
-                <li tabindex="0" @click=${this.getAllMedia}><i class="material-icons">video_library</i>All Media</li>
+                <li tabindex="0" @click=${this.getMedia}><i class="material-icons">video_library</i>All Media</li>
                 <li tabindex="0" @click=${this.getMovies}><i class="material-icons">movie</i>Movies</li>
                 <li tabindex="0" @click=${this.getSeries}><i class="material-icons">live_tv</i>Series</li>
                 <li tabindex="0" @click=${this.showFilters}><i class="material-icons">filter_list</i>Filter</li>

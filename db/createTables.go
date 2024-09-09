@@ -170,7 +170,7 @@ func createTorrentFileTable(db *sql.DB) {
 		proper BOOLEAN DEFAULT 0,
 		repack BOOLEAN DEFAULT 0,
 		wideScreen BOOLEAN DEFAULT 0,
-		uploadedAt INTEGER,
+		uploadedAt DATETIME,
 		FOREIGN KEY (metaDataId) REFERENCES metaData(id),
   		FOREIGN KEY (episodeId) REFERENCES episode(id)
 	)`)

@@ -121,21 +121,12 @@ export class VideoDetails extends LitElement {
         if (this.video.type === "movie") {
             IpcService.getMediaFilesByMetaDataId({metaDataId: this.video.id})
                 .then(res => {
-                    this.video.mediaFiles = res;
+                    this.video.torrentFiles = res.torrentFiles;
+                    this.video.mediaFiles = res.mediaFiles;
                     this.requestUpdate();
                 }).catch(console.log);
         } else if (this.video.type === "series") {
             console.log("reloadVideo", this.video);
-            // IpcService.dbQuery("Episode", {
-            //     where: {
-            //         metaDataId: this.video.id,
-            //     },
-            //     order: {
-            //         season: "ASC",
-            //         episode: "ASC",
-            //     },
-            //     cache: true,
-
             // @ts-ignore
             IpcService.getEpisodes({metaDataId: this.video.id})
                 .then(res => {

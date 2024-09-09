@@ -104,8 +104,20 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 }
 
 func (tf *TorrentFetcher) GetTorrents() {
+	listOfSearches := []string{
+		"top100:48h_211", // movies trending in the last 48 hours 2160p
+		"top100:48h_212", // series trending in the last 48 hours 2160p
+		"top100:48h_207", // movies trending in the last 48 hours 1080p
+		"top100:48h_208", // series trending in the last 48 hours 1080p
+	}
+	for _, search := range listOfSearches {
+		fetchTorrentsFromSearch(search)
+	}
+}
+
+func fetchTorrentsFromSearch(search string) {
 	// Fetch the torrent from the pirate bay link
-	torrents, err := tpb.Lookup("top100:48h_211", time.Second*30)
+	torrents, err := tpb.Lookup(search, time.Second*30)
 	if err != nil {
 		fmt.Println("Error fetching torrents: ", err)
 		return
@@ -117,7 +129,7 @@ func (tf *TorrentFetcher) GetTorrents() {
 			continue
 		}
 
-		timeTemplate := "2006-01-02"
+		timeTemplate := "2006-01-02 15:04:05"
 		uploadedAt, err := time.Parse(timeTemplate, torrent.UplDate)
 		if err != nil {
 			uploadedAt = time.Now()
@@ -142,7 +154,7 @@ func (tf *TorrentFetcher) GetTorrents() {
 			Proper:     null.BoolFrom(tor.Proper),
 			Repack:     null.BoolFrom(tor.Repack),
 			WideScreen: null.BoolFrom(tor.Widescreen),
-			UploadedAt: null.Int64From(uploadedAt.Unix()),
+			UploadedAt: null.TimeFrom(uploadedAt),
 		}
 		err = dbTor.InsertG(context.Background(), boil.Infer())
 		if err != nil {

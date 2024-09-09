@@ -21,10 +21,12 @@ import (
 
 // filter is a list of strings that we want to filter out
 var dirFilter = []string{"sample", "samples", "moudles", "git", "subs"}
-var includeExtensions = []string{"mkv", "avi", "3g2", "3gp", "aaf", "asf", "avchd",
-	"m2v", "m4p", "m4v", "mng", "mov", "mp2", "mp4", "mpe", "mpeg", "mpg",
-	"mpv", "mxf", "nsv", "ogg", "ogv", "qt", "rm", "rmvb", "roq", "svi",
-	"vob", "webm", "wmv"}
+var includeExtensions = []string{
+	"mkv", "avi", "3g2", "3gp", "aaf",
+	"m2v", "m4p", "m4v", "mov", "mp2", "mp4", "mpe", "mpeg", "mpg",
+	//"mpv", "mxf", "nsv", "ogg", "ogv", "qt", "rm", "rmvb", "roq", "svi",
+	//"vob", "webm", "wmv",
+}
 
 type FileEntry struct {
 	m *ptn.TorrentInfo
@@ -234,7 +236,7 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 		}
 
 		// check if file extension is not in the includeExtensions list
-		if !info.IsDir() && stringInSlice(info.Name(), includeExtensions) {
+		if !info.IsDir() && hasValidExtension(info.Name(), includeExtensions) {
 			tor, err := ptn.Parse(info.Name())
 			if err != nil {
 				fmt.Println("Error parsing torrent name")
@@ -391,4 +393,14 @@ func getMetaData(mf *m.MediaFile, tor *ptn.TorrentInfo) {
 			}
 		}
 	}
+}
+
+// Helper function to check if a file has a valid extension
+func hasValidExtension(fileName string, extensions []string) bool {
+	for _, ext := range extensions {
+		if strings.HasSuffix(strings.ToLower(fileName), ext) {
+			return true
+		}
+	}
+	return false
 }

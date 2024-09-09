@@ -44,8 +44,8 @@ export class TopBar extends LitElement {
     }
 
     private showTorrents() {
-        this._toggleTorrents = true;
         this.rooster.showTorrents();
+        this._toggleTorrents = true;
         this.requestUpdate();
     }
 
@@ -112,10 +112,7 @@ export class TopBar extends LitElement {
         return html`
         <div class="top-bar">
             <div>
-                <div class="logo" tabindex="0" @click="${this.toggleSideBar}"></div>                
-                <div class="filter" tabindex="0" @click="${this.rooster?.getAllMedia}">
-                    <i class="material-icons">sync</i>
-                </div>
+                <div class="logo" tabindex="0" @click="${this.toggleSideBar}"></div>
                 <div tabindex="0" class="filter ${this._toggleTorrents ? `` : `active`}" @click="${this.showFolders}">
                     <i class="material-icons">folder</i>
                 </div>

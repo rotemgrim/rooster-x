@@ -9,6 +9,7 @@ import (
 	"github.com/skratchdot/open-golang/open"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/models"
 	"log"
@@ -24,6 +25,36 @@ type PayloadResponse struct {
 	ReplyChannel string         `json:"replyChannel"`
 	Status       StatusResponse `json:"status"`
 	Data         interface{}    `json:"data"`
+}
+
+type MediaDataExtended struct {
+	//models.MetaDatum
+	ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+	Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+	ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
+	TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
+	Genres       null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
+	Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
+	Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
+	Votes        null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
+	Series       null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
+	Rating       null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
+	Runtime      null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
+	Year         null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
+	Poster       null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
+	Metascore    null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
+	Plot         null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
+	Director     null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
+	Writer       null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
+	Actors       null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
+	Released     null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
+	ReleasedUnix null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
+	Trailer      null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
+	Type         null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
+	Name         null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
+	IsWatched    null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
+	DownloadedAt null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
+	UploadedAt   null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
 }
 
 func (s *Server) GetConfig(c *websocket.Conn, data PayloadRequest) {
@@ -49,57 +80,44 @@ func (s *Server) SaveConfig(c *websocket.Conn, request PayloadRequest) {
 	transmitPromiseResponse(c, request, "Config saved")
 }
 
-func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
-	//type MediaFileAndMetaData struct {
-	//	models.MediaFile `boil:",bind"`
-	//	models.MetaDatum `boil:",bind"`
-	//}
-	//media, err := models.MediaFiles(qm.Load(models.MetaDatumRels.MetaDataIdMediaFiles)).AllG(context.Background())
-	//var media []MediaFileAndMetaData
-	//err := models.NewQuery(
-	//	qm.Select("mf.*, md.*"),
-	//	qm.From("mediaFile as mf"),
-	//	qm.InnerJoin("metaData as md on mf.metaDataId = md.id"),
-	//).BindG(context.Background(), &media)
-	type MediaWithDownloadedAt struct {
-		//models.MetaDatum
-		ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
-		Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
-		ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
-		TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
-		Genres       null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
-		Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
-		Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
-		Votes        null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
-		Series       null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
-		Rating       null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
-		Runtime      null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
-		Year         null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
-		Poster       null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
-		Metascore    null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
-		Plot         null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
-		Director     null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
-		Writer       null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
-		Actors       null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
-		Released     null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
-		ReleasedUnix null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
-		Trailer      null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
-		Type         null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
-		Name         null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
-		IsWatched    null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
-		DownloadedAt null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
-	}
-	var media []MediaWithDownloadedAt
-	err := models.NewQuery(
-		qm.Select("md.*, max(mf.downloadedAt) as downloadedAt, umd.isWatched as isWatched"),
-		qm.From("metaData as md"),
-		qm.LeftOuterJoin("mediaFile as mf on mf.metaDataId = md.id"),
+func (s *Server) GetAllMedia(c *websocket.Conn, req PayloadRequest) {
+	filter := req.Data.(map[string]interface{})["filter"]
+	isTorrents := req.Data.(map[string]interface{})["isTorrents"]
+	s.GetMedia(c, req, isTorrents.(bool), filter.(string))
+}
+
+func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string) {
+	var media []MediaDataExtended
+	queryMods := []qm.QueryMod{
+		qm.Select("md.*, umd.isWatched as isWatched"),
+		qm.Where("sub.metaDataId != 0"),
+		qm.LeftOuterJoin("metaData as md on md.id = sub.metaDataId"),
 		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = 1"),
 		qm.GroupBy("md.id"),
-		qm.OrderBy(" max(mf.downloadedAt) DESC"),
-	).BindG(context.Background(), &media)
+	}
+
+	if isTorrents {
+		queryMods = append(queryMods, qm.From("torrentFile as sub"))
+		queryMods = append(queryMods, qm.Select("max(sub.uploadedAt) as uploadedAt"))
+		queryMods = append(queryMods, qm.OrderBy(" max(sub.uploadedAt) DESC"))
+	} else {
+		queryMods = append(queryMods, qm.From("mediaFile as sub"))
+		queryMods = append(queryMods, qm.Select("max(sub.downloadedAt) as downloadedAt"))
+		queryMods = append(queryMods, qm.OrderBy(" max(sub.downloadedAt) DESC"))
+	}
+
+	if filter == "movies" {
+		queryMods = append(queryMods, qm.Where("md.series = false"))
+	} else if filter == "series" {
+		queryMods = append(queryMods, qm.Where("md.series = true"))
+	}
+
+	err := models.NewQuery(queryMods...).BindG(context.Background(), &media)
 	if err != nil {
-		transmitPromiseReject(c, data, fmt.Sprintf("could not get media %s", err))
+		query := models.NewQuery(queryMods...)
+		text, _ := queries.BuildQuery(query)
+		transmitPromiseReject(c, data, fmt.Sprintf("could not get media:\n%s\n\nquery: %s", err, text))
+		//transmitPromiseReject(c, data, fmt.Sprintf("could not get media %s", err))
 		return
 	}
 
@@ -107,7 +125,7 @@ func (s *Server) GetAllMedia(c *websocket.Conn, data PayloadRequest) {
 }
 
 func (s *Server) GetAllTorrents(c *websocket.Conn, data PayloadRequest) {
-
+	s.GetMedia(c, data, true, "all")
 }
 
 func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
@@ -120,6 +138,7 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 			qm.Where("userId = ?", 1),
 		),
 		qm.Load(models.EpisodeRels.EpisodeIdMediaFiles),
+		qm.Load(models.EpisodeRels.EpisodeIdTorrentFiles),
 	).AllG(context.Background())
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not get episodes 2 %s", err))
@@ -127,10 +146,11 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 	}
 	type Result struct {
 		*models.Episode
-		MetaData    *models.MetaDatum   `json:"metaData"`
-		UserEpisode *models.UserEpisode `json:"userEpisode"`
-		MediaFiles  []*models.MediaFile `json:"mediaFiles"`
-		IsWatched   bool                `json:"isWatched"`
+		MetaData     *models.MetaDatum     `json:"metaData"`
+		UserEpisode  *models.UserEpisode   `json:"userEpisode"`
+		MediaFiles   []*models.MediaFile   `json:"mediaFiles"`
+		TorrentFiles []*models.TorrentFile `json:"torrentFiles"`
+		IsWatched    bool                  `json:"isWatched"`
 	}
 	var result = []Result{}
 	for _, e := range episodes {
@@ -143,6 +163,7 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 			e.R.MetaDataIdMetaDatum,
 			userEpisode,
 			e.R.EpisodeIdMediaFiles,
+			e.R.EpisodeIdTorrentFiles,
 			userEpisode != nil && userEpisode.IsWatched.Bool,
 		})
 	}
@@ -154,11 +175,22 @@ func (s *Server) GetMediaFilesByMetaId(c *websocket.Conn, req PayloadRequest) {
 	mediaFiles, err := models.MediaFiles(
 		qm.Where("metaDataId = ?", p),
 	).AllG(context.Background())
+	torrentFiles, err := models.TorrentFiles(
+		qm.Where("metaDataId = ?", p),
+	).AllG(context.Background())
 	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not get media files %s", err))
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get media / torrent files %s", err))
 		return
 	}
-	transmitPromiseResponse(c, req, mediaFiles)
+	type Result struct {
+		MediaFiles   []*models.MediaFile   `json:"mediaFiles,omitempty"`
+		TorrentFiles []*models.TorrentFile `json:"torrentFiles,omitempty"`
+	}
+	var result = Result{
+		mediaFiles,
+		torrentFiles,
+	}
+	transmitPromiseResponse(c, req, result)
 }
 
 func (s *Server) OpenExternal(c *websocket.Conn, req PayloadRequest) {
