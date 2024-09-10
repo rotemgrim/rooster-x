@@ -162,6 +162,10 @@ export class IpcService {
         ipcRenderer.send("full-sweep");
     }
 
+    public static syncTorrents() {
+        ipcRenderer.send("sync-torrents");
+    }
+
     public static scanDir(payload: {dir: string}) {
         ipcRenderer.send("scan-dir", payload);
     }

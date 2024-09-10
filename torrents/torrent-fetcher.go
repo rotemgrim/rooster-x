@@ -9,6 +9,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	m "go-poc/models"
+	"go-poc/server"
 	tmdb2 "go-poc/tmdb"
 	"go-poc/torrents/tpb"
 	"time"
@@ -17,21 +18,25 @@ import (
 type TorrentFetcher struct {
 	pirateBayLink string
 	tmdbClient    *tmdb.Client
+	server        *server.Server
 }
 
-func NewTorrentFetcher(link string, tmdbClient *tmdb.Client) *TorrentFetcher {
+func NewTorrentFetcher(link string, s *server.Server, tmdbClient *tmdb.Client) *TorrentFetcher {
 	return &TorrentFetcher{
 		pirateBayLink: link,
+		server:        s,
 		tmdbClient:    tmdbClient,
 	}
 }
 
-func (tf *TorrentFetcher) Fetch() {
+func (tf *TorrentFetcher) FullSweep() {
 	// Fetch the torrent from the pirate bay link
 	tf.GetTorrents()
 
 	// Get metadata from the internet
 	tf.GetMetaDataFromInternet()
+
+	tf.server.BroadcastMessage("Finished fetching torrents and metadata :)")
 }
 
 func (tf *TorrentFetcher) GetMetaDataFromInternet() {
@@ -43,7 +48,8 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 	}
 
 	tmdbClient := tf.tmdbClient
-	for _, file := range torrentsWithoutMetaData {
+	totalFiles := len(torrentsWithoutMetaData)
+	for i, file := range torrentsWithoutMetaData {
 		tor, err := ptn.Parse(file.Raw.String)
 		if tmdb2.HandleMetaDataGettingErr2(*file, err) {
 			continue
@@ -57,6 +63,8 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 				continue
 			}
 		} else {
+			msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, md.Title.String)
+			tf.server.BroadcastMessage(msg)
 			newMd, err := tmdb2.GetMediaFromTMDB(tmdbClient, *tor)
 			if tmdb2.HandleMetaDataGettingErr2(*file, err) {
 				continue
@@ -79,6 +87,9 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 
 			// try getting episode from DB
 			fmt.Println("Getting episode metadata")
+			msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, md.Title.String, tor.Season,
+				tor.Episode)
+			tf.server.BroadcastMessage(msg)
 			epMd, err := tmdb2.GetEpisodeFromTMDB(tmdbClient, *tor, md)
 			if tmdb2.HandleMetaDataGettingErr2(*file, err) {
 				continue
@@ -110,7 +121,10 @@ func (tf *TorrentFetcher) GetTorrents() {
 		"top100:48h_207", // movies trending in the last 48 hours 1080p
 		"top100:48h_208", // series trending in the last 48 hours 1080p
 	}
-	for _, search := range listOfSearches {
+	tf.server.BroadcastMessage("Fetching torrents from pirate bay, Please wait...")
+	for i, search := range listOfSearches {
+		msg := fmt.Sprintf("Fetching torrents from pirate bay [%d/%d] %s", i, len(listOfSearches), search)
+		tf.server.BroadcastMessage(msg)
 		fetchTorrentsFromSearch(search)
 	}
 }

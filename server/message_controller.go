@@ -69,6 +69,12 @@ func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
 	}(s)
 }
 
+func (s *Server) SyncTorrents(c *websocket.Conn, data PayloadRequest) {
+	go func(s *Server) {
+		s.torrentsFetcher.FullSweep()
+	}(s)
+}
+
 func (s *Server) GetConfig(c *websocket.Conn, data PayloadRequest) {
 	var result = map[string]interface{}{
 		"serverUrl":        "http://localhost:8080",

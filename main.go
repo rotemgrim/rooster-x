@@ -40,7 +40,7 @@ func main() {
 		"B:\\dekel",
 	}
 	WalkerInstance := walker.NewWalker(dirs, ServerInstance, tmdbClient)
-	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org", tmdbClient)
+	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org", ServerInstance, tmdbClient)
 
 	// create a new app
 	app := &App{
@@ -50,7 +50,7 @@ func main() {
 		TorrentsFetcher: TorrentsFetcher,
 	}
 
-	go app.Server.Start(WalkerInstance)
+	go app.Server.Start(WalkerInstance, TorrentsFetcher)
 	//go TorrentsFetcher.Fetch()
 	//go app.Walker.FullSweep()
 	//app.Scheduler.Schedule("10 21 * * *", app.Walker.FullSweep)

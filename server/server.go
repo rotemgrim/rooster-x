@@ -16,10 +16,11 @@ type Sweeper interface {
 }
 
 type Server struct {
-	staticDir string
-	clients   map[*websocket.Conn]bool
-	mutex     *sync.Mutex
-	walker    Sweeper
+	staticDir       string
+	clients         map[*websocket.Conn]bool
+	mutex           *sync.Mutex
+	walker          Sweeper
+	torrentsFetcher Sweeper
 }
 
 //go:embed static
@@ -31,15 +32,17 @@ func Assets() (fs.FS, error) {
 
 func NewServer(staticDir string) *Server {
 	return &Server{
-		staticDir: staticDir,
-		clients:   make(map[*websocket.Conn]bool),
-		mutex:     &sync.Mutex{},
-		walker:    nil,
+		staticDir:       staticDir,
+		clients:         make(map[*websocket.Conn]bool),
+		mutex:           &sync.Mutex{},
+		walker:          nil,
+		torrentsFetcher: nil,
 	}
 }
 
-func (s *Server) Start(walker Sweeper) {
+func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 	s.walker = walker
+	s.torrentsFetcher = fetcher
 	s.SetRoutes()
 	go func() {
 		// Use the file system to serve static files

@@ -31,6 +31,10 @@ export class SettingsPage extends LitElement {
         IpcService.fullFilesScan();
     }
 
+    private syncTorrents() {
+        IpcService.syncTorrents();
+    }
+
     private scanNow() {
         IpcService.scanDir({dir: this.scanDir});
     }
@@ -62,6 +66,7 @@ export class SettingsPage extends LitElement {
             <div class="page-body">
                 <div class="section">
                     <button @click="${this.fullSweep}">Full system sweep</button>
+                    <button @click="${this.syncTorrents}">Sync Torrents</button>
                     <!--<h2>Scan Directories under</h2>
                     <input type="text" @input=${(e) => this.scanDir = e.target.value}
                         value="${this.scanDir}">
