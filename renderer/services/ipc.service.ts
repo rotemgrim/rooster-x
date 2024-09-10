@@ -158,6 +158,10 @@ export class IpcService {
         });
     }
 
+    public static fullFilesScan() {
+        ipcRenderer.send("full-sweep");
+    }
+
     public static scanDir(payload: {dir: string}) {
         ipcRenderer.send("scan-dir", payload);
     }

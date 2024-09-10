@@ -17,6 +17,7 @@ import (
 
 type StatusResponse string // "success" or "failure"
 const (
+	StatusMsg     StatusResponse = "msg"
 	StatusSuccess StatusResponse = "success"
 	StatusFailure StatusResponse = "failure"
 )
@@ -25,6 +26,11 @@ type PayloadResponse struct {
 	ReplyChannel string         `json:"replyChannel"`
 	Status       StatusResponse `json:"status"`
 	Data         interface{}    `json:"data"`
+}
+
+type MsgResponse struct {
+	Status StatusResponse `json:"status"`
+	Data   interface{}    `json:"data"`
 }
 
 type MediaDataExtended struct {
@@ -55,6 +61,12 @@ type MediaDataExtended struct {
 	IsWatched    null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
 	DownloadedAt null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
 	UploadedAt   null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
+}
+
+func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
+	go func(s *Server) {
+		s.walker.FullSweep()
+	}(s)
 }
 
 func (s *Server) GetConfig(c *websocket.Conn, data PayloadRequest) {
@@ -344,6 +356,22 @@ func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId 
 
 func (s *Server) RouteNotFound(c *websocket.Conn, data PayloadRequest) {
 	transmitPromiseReject(c, data, "Route not found")
+}
+
+func transmitMessage(c *websocket.Conn, data interface{}) {
+	response := MsgResponse{
+		Status: StatusMsg,
+		Data:   data,
+	}
+	jsonResult, err := json.Marshal(response)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return
+	}
+	err = c.WriteMessage(websocket.TextMessage, jsonResult)
+	if err != nil {
+		log.Println("Error writing message:", err)
+	}
 }
 
 func transmitPromiseResponse(c *websocket.Conn, req PayloadRequest, data interface{}) {

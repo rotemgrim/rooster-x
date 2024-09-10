@@ -27,6 +27,10 @@ export class SettingsPage extends LitElement {
         this.rooster.closeSideBar();
     }
 
+    private fullSweep() {
+        IpcService.fullFilesScan();
+    }
+
     private scanNow() {
         IpcService.scanDir({dir: this.scanDir});
     }
@@ -57,10 +61,11 @@ export class SettingsPage extends LitElement {
             </div>
             <div class="page-body">
                 <div class="section">
-                    <h2>Scan Directories under</h2>
+                    <button @click="${this.fullSweep}">Full system sweep</button>
+                    <!--<h2>Scan Directories under</h2>
                     <input type="text" @input=${(e) => this.scanDir = e.target.value}
                         value="${this.scanDir}">
-                    <button @click=${this.scanNow}>Scan Now!</button>
+                    <button @click=${this.scanNow}>Scan Now!</button>-->
                 </div>
                 <br>
                 <div class="section">

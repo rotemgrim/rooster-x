@@ -86,6 +86,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	tmdbSearchResult := TMDB_TV_SEARCH_CACHE[tor.Title]
 	if tmdbSearchResult == nil {
 		fmt.Println("searching TMDB TV for %s", tor.Title)
+
 		options := map[string]string{}
 		options["language"] = LANG
 		// if year exists -> search with it

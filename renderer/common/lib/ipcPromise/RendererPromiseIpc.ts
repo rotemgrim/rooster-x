@@ -72,6 +72,9 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
                         cb.failure(new Error(`Unexpected IPC call for in ${JSON.stringify(response)}`));
                         delete this.queue[response.replyChannel];
                 }
+            } else if (response.status === "msg") {
+                // console.log("msg", response.data);
+                window["RoosterX"].showMsg = response.data;
             } else {
                 console.error(`No callback found for ${JSON.stringify(response)}`);
             }

@@ -1,4 +1,4 @@
-import {LitElement, html} from "lit";
+import {LitElement, html, PropertyValues} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import "./RoosterX";

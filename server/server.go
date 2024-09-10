@@ -2,6 +2,7 @@ package server
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"io/fs"
@@ -113,10 +114,24 @@ var upgrader = websocket.Upgrader{
 func (s Server) BroadcastMessage(message string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
+	//payload :=
+
+	response := MsgResponse{
+		Status: StatusMsg,
+		Data:   message,
+	}
+
+	jsonResult, err := json.Marshal(response)
+	if err != nil {
+		log.Println("Error marshalling message:", err)
+		return
+	}
+
 	for client := range s.clients {
-		err := client.WriteMessage(websocket.TextMessage, []byte(message))
+		err = client.WriteMessage(websocket.TextMessage, jsonResult)
 		if err != nil {
-			//log.Println("Error writing message:", err)
+			log.Println("Error writing message:", err)
 			client.Close()
 			delete(s.clients, client)
 		}

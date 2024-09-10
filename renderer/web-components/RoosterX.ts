@@ -55,8 +55,10 @@ export class RoosterX extends LitElement {
     @property() public _sweepStatus: string = "";
     @property() public _sweepCount: string = "";
     @property() public _showTorrents: boolean = false;
+    private msgTimeout: number;
 
     public createRenderRoot() {
+        window["RoosterX"] = this;
         return this;
     }
 
@@ -122,13 +124,13 @@ export class RoosterX extends LitElement {
         // });
     }
 
-    set sweepStatus(value) {
+    set showMsg(value: string) {
         this._sweepStatus = value;
-        this.requestUpdate();
-    }
-
-    set sweepCount(value) {
-        this._sweepCount = value;
+        clearTimeout(this.msgTimeout);
+        this.msgTimeout = setTimeout(() => {
+            this._sweepStatus = "";
+            this.requestUpdate();
+        }, 3000);
         this.requestUpdate();
     }
 
@@ -397,7 +399,7 @@ export class RoosterX extends LitElement {
         ${this._sweepStatus ?
             html`<div class="status-wrap">
                 <div class="sweep-status">
-                    ${this._sweepStatus} <span>${this._sweepCount}</span>
+                    ${this._sweepStatus}
                 </div>
             </div>` : ""}
         <top-bar .rooster=${this}></top-bar>

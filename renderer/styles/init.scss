@@ -32,10 +32,12 @@ body {
 }
 .sweep-status {
   background: antiquewhite;
-  position: absolute;
+  position: fixed;
   padding: 0.5em 1em;
-  border-radius: 0 0 0.5em 0.5em;
+  border-radius: 0 0.5em 0.5em 0;
   box-shadow: 5px 4px 5px #00000069;
+  bottom: 0;
+  left: 0;
 }
 
 .clock {

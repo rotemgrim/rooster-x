@@ -53,6 +53,7 @@ func (w *Walker) FullSweep() {
 		return
 	}
 	defer os.Remove("sweep.lock")
+	defer w.server.BroadcastMessage("Sweep done")
 
 	fmt.Println("Starting full sweep")
 
@@ -83,7 +84,8 @@ func (w *Walker) FullSweep() {
 	}
 
 	tmdbClient := w.tmdbClient
-	for _, file := range filesWithoutMetaData {
+	totalFiles := len(filesWithoutMetaData)
+	for i, file := range filesWithoutMetaData {
 		tor, err := ptn.Parse(file.Raw.String)
 		if tmdb2.HandleMetaDataGettingErr(*file, err) {
 			continue
@@ -97,6 +99,7 @@ func (w *Walker) FullSweep() {
 				continue
 			}
 		} else {
+			w.server.BroadcastMessage(fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, tor.Title))
 			newMd, err := tmdb2.GetMediaFromTMDB(tmdbClient, *tor)
 			if tmdb2.HandleMetaDataGettingErr(*file, err) {
 				continue
@@ -119,6 +122,9 @@ func (w *Walker) FullSweep() {
 
 			// try getting episode from DB
 			fmt.Println("Getting episode metadata")
+			msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, md.Title.String, tor.Season,
+				tor.Episode)
+			w.server.BroadcastMessage(msg)
 			epMd, err := tmdb2.GetEpisodeFromTMDB(tmdbClient, *tor, md)
 			if tmdb2.HandleMetaDataGettingErr(*file, err) {
 				continue
@@ -265,7 +271,7 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 
 			// print the number of torrents to console without adding a newline
 			//fmt.Printf("\rNumber of torrents found: %d", len(result))
-			str := fmt.Sprintf("Number of torrents found: %d", len(result))
+			str := fmt.Sprintf("searching media files... found: %d", len(result))
 			w.server.BroadcastMessage(str)
 
 			// calculate checksum
@@ -313,6 +319,7 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 
 	// print the number of torrents found
 	fmt.Println("\rNumber of torrents found: ", len(result))
+	w.server.BroadcastMessage(fmt.Sprintf("total files found: %d", len(result)))
 	return result, nil
 }
 

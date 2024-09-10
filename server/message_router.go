@@ -15,6 +15,7 @@ type PayloadRequest struct {
 var routes = make(map[string]func(*websocket.Conn, PayloadRequest))
 
 func (s *Server) SetRoutes() {
+	s.on("full-sweep", s.FullSweep)
 	s.on("get-config", s.GetConfig)
 	s.on("get-all-users", s.GetAllUsers)
 	s.on("save-config", s.SaveConfig)
