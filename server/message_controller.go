@@ -13,6 +13,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/models"
 	"log"
+	"strings"
 )
 
 type StatusResponse string // "success" or "failure"
@@ -61,6 +62,7 @@ type MediaDataExtended struct {
 	IsWatched    null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
 	DownloadedAt null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
 	UploadedAt   null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
+	MediaFiles   null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
 }
 
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
@@ -108,19 +110,22 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	var media []MediaDataExtended
 	queryMods := []qm.QueryMod{
 		qm.Select("md.*, umd.isWatched as isWatched"),
-		qm.Where("sub.metaDataId != 0"),
-		qm.LeftOuterJoin("metaData as md on md.id = sub.metaDataId"),
+		qm.From("metaData as md"),
+		//qm.Where("sub.metaDataId != 0"),
+		//qm.LeftOuterJoin("metaData as md on md.id = sub.metaDataId"),
 		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = 1"),
 		qm.GroupBy("md.id"),
 	}
 
 	if isTorrents {
-		queryMods = append(queryMods, qm.From("torrentFile as sub"))
+		//queryMods = append(queryMods, qm.From("torrentFile as sub"))
+		queryMods = append(queryMods, qm.LeftOuterJoin("torrentFile as sub on sub.metaDataId = md.id"))
 		queryMods = append(queryMods, qm.Select("max(sub.uploadedAt) as uploadedAt"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.uploadedAt) DESC"))
 	} else {
-		queryMods = append(queryMods, qm.From("mediaFile as sub"))
-		queryMods = append(queryMods, qm.Select("max(sub.downloadedAt) as downloadedAt"))
+		//queryMods = append(queryMods, qm.From("mediaFile as sub"))
+		queryMods = append(queryMods, qm.LeftOuterJoin("mediaFile as sub on sub.metaDataId = md.id"))
+		queryMods = append(queryMods, qm.Select("max(sub.downloadedAt) as downloadedAt, count(sub.id) as mediaFiles"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.downloadedAt) DESC"))
 	}
 
@@ -286,6 +291,59 @@ md.*, ue.isWatched as isWatched`),
 		//tmp["isAlreadyWatched"] = episode.(*models.Episode).R.EpisodeIdUserEpisodes[0].IsWatched.Bool
 	}
 	transmitPromiseResponse(c, req, tmp)
+}
+
+func (s *Server) ReprocessGenres(c *websocket.Conn, req PayloadRequest) {
+
+	// get all genres
+	genres, err := models.Genres().AllG(context.Background())
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get genres %s", err))
+		return
+	}
+
+	// get all metadata
+	metas, err := models.MetaData().AllG(context.Background())
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get metadata %s", err))
+		return
+	}
+
+	s.BroadcastMessage("Processing genres...")
+
+	// for each metadata get genres split them and add them to the genre table
+	count := 0
+	for _, meta := range metas {
+		if meta.Genres.Valid {
+			genresArr := strings.Split(meta.Genres.String, ",")
+			for _, genre := range genresArr {
+				// trim spaces and change to lowercase
+				genre = strings.TrimSpace(genre)
+				if genre == "" {
+					continue
+				}
+				genre = strings.ToLower(genre)
+				found := false
+				for _, g := range genres {
+					if g.Type.String == genre {
+						found = true
+						break
+					}
+				}
+				if !found {
+					genreModel := models.Genre{
+						Type: null.StringFrom(genre),
+					}
+					err = genreModel.InsertG(context.Background(), boil.Infer())
+					if err == nil {
+						count++
+					}
+				}
+			}
+		}
+	}
+	s.BroadcastMessage(fmt.Sprintf("Processed %d genres", count))
+	transmitPromiseResponse(c, req, fmt.Sprintf("Processed %d genres", count))
 }
 
 func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {

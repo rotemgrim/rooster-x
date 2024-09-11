@@ -247,12 +247,13 @@ export class RoosterX extends LitElement {
             list = list.filter((m) => !m.isWatched);
         }
 
-        // filter media entries that dont have any files
-        // if (this._filterConfig.noMediaWithoutFiles) {
-        //     list = list.filter((m) => m.mediaFiles.length > 0);
-        // }
+        // filter media entries that don't have any files
+        if (this._filterConfig.noMediaWithoutFiles) {
+            // @ts-ignore
+            list = list.filter((m) => !!m.mediaFiles && m.mediaFiles > 0);
+        }
 
-        // filter media entries that font have meta data from imdb
+        // filter media entries that don't have metaData from imdb
         // if (this._filterConfig.noMediaWithoutMetaData) {
         //     list = list.filter((m) => m.status !== "failed");
         // }

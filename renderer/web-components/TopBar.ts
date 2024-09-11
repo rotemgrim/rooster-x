@@ -34,7 +34,33 @@ export class TopBar extends LitElement {
     }
 
     private toggleFullScreen() {
-        IpcService.fullScreen();
+        // IpcService.fullScreen();
+        // make the div full screen
+        const elem = document.querySelector("body");
+        if (elem && !this._fullScreen) {
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                // @ts-ignore
+                elem.webkitRequestFullscreen();
+                // @ts-ignore
+            } else if (elem.msRequestFullscreen) {
+                // @ts-ignore
+                elem.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                // @ts-ignore
+            } else if (document.webkitExitFullscreen) {
+                // @ts-ignore
+                document.webkitExitFullscreen();
+                // @ts-ignore
+            } else if (document.msExitFullscreen) {
+                // @ts-ignore
+                document.msExitFullscreen();
+            }
+        }
         this._fullScreen = !this._fullScreen;
         RoosterX.setFocusToVideos();
     }
