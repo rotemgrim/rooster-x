@@ -294,7 +294,7 @@ md.*, ue.isWatched as isWatched`),
 }
 
 func (s *Server) GetAllGenres(c *websocket.Conn, req PayloadRequest) {
-	genres, err := models.Genres().AllG(context.Background())
+	genres, err := models.Genres(qm.OrderBy("type ASC")).AllG(context.Background())
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not get genres %s", err))
 		return
@@ -304,10 +304,10 @@ func (s *Server) GetAllGenres(c *websocket.Conn, req PayloadRequest) {
 
 func (s *Server) ReprocessGenres(c *websocket.Conn, req PayloadRequest) {
 
-	// get all genres
-	genres, err := models.Genres().AllG(context.Background())
+	// remove all genres
+	_, err := models.Genres().DeleteAllG(context.Background())
 	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not get genres %s", err))
+		transmitPromiseReject(c, req, fmt.Sprintf("could not delete genres %s", err))
 		return
 	}
 
@@ -322,6 +322,8 @@ func (s *Server) ReprocessGenres(c *websocket.Conn, req PayloadRequest) {
 
 	// for each metadata get genres split them and add them to the genre table
 	count := 0
+	var genres []*models.Genre
+
 	for _, meta := range metas {
 		if meta.Genres.Valid {
 			genresArr := strings.Split(meta.Genres.String, ",")
@@ -335,16 +337,20 @@ func (s *Server) ReprocessGenres(c *websocket.Conn, req PayloadRequest) {
 				found := false
 				for _, g := range genres {
 					if g.Type.String == genre {
+						g.Count.Int64 += 1
+						_, err = g.UpdateG(context.Background(), boil.Infer())
 						found = true
 						break
 					}
 				}
 				if !found {
 					genreModel := models.Genre{
-						Type: null.StringFrom(genre),
+						Type:  null.StringFrom(genre),
+						Count: null.Int64From(1),
 					}
 					err = genreModel.InsertG(context.Background(), boil.Infer())
 					if err == nil {
+						genres = append(genres, &genreModel)
 						count++
 					}
 				}

@@ -47,29 +47,38 @@ func NewWalker(walkDirArr []string, server *server.Server, tmdbClient *tmdb.Clie
 	}
 }
 
-func (w *Walker) FullSweep() {
+func (w *Walker) releseLock(msg string) {
+	if msg != "" {
+		fmt.Println(msg)
+		w.server.BroadcastMessage(msg)
+	}
+	os.Remove("sweep.lock")
+}
 
+func (w *Walker) FullSweep() {
+	endMsg := "Sweep done"
 	if checkIfSweepIsRunning() {
+		w.server.BroadcastMessage("Sweep already running")
 		return
 	}
-	defer os.Remove("sweep.lock")
-	defer w.server.BroadcastMessage("Sweep done")
+	defer w.releseLock(endMsg)
 
 	fmt.Println("Starting full sweep")
+	w.server.BroadcastMessage("Starting full sweep")
 
 	// read from file system, accumulate all files
 	var entries []m.MediaFile
 	for _, dir := range w.walkDirArr {
 		tmpEntries, err := w.getMediaFilesFromDisk(dir)
 		if err != nil {
-			fmt.Println("Error getting torrents")
+			endMsg = fmt.Sprintf("Error getting media files from %s", dir)
 			continue
 		}
 		entries = append(entries, tmpEntries...)
 	}
 
 	if entries == nil || len(entries) == 0 {
-		fmt.Println("No files found")
+		w.releseLock("No files found in sweep. " + endMsg)
 		return
 	}
 
@@ -79,7 +88,7 @@ func (w *Walker) FullSweep() {
 	// get all missing metadata for files and query TMDB
 	filesWithoutMetaData, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).AllG(context.Background())
 	if err != nil {
-		fmt.Println("no files without metadata found, skipping")
+		w.releseLock("No files without metadata found, skipping net search")
 		return
 	}
 
@@ -314,6 +323,7 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 	})
 	if err != nil {
 		fmt.Printf("Error walking the path %q: %v\n", dir, err)
+		w.server.BroadcastMessage(fmt.Sprintf("Error walking the path %q: %v", dir, err))
 		return nil, err
 	}
 

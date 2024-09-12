@@ -568,7 +568,7 @@ func testGenresSelect(t *testing.T) {
 }
 
 var (
-	genreDBTypes = map[string]string{`ID`: `INTEGER`, `Type`: `VARCHAR(255)`}
+	genreDBTypes = map[string]string{`ID`: `INTEGER`, `Type`: `VARCHAR(255)`, `Count`: `INTEGER`}
 	_            = bytes.MinRead
 )
 

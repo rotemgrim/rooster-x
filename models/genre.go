@@ -24,37 +24,44 @@ import (
 
 // Genre is an object representing the database table.
 type Genre struct {
-	ID   null.Int64  `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
-	Type null.String `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
+	ID    null.Int64  `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+	Type  null.String `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
+	Count null.Int64  `boil:"count" json:"count,omitempty" toml:"count" yaml:"count,omitempty"`
 
 	R *genreR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L genreL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var GenreColumns = struct {
-	ID   string
-	Type string
+	ID    string
+	Type  string
+	Count string
 }{
-	ID:   "id",
-	Type: "type",
+	ID:    "id",
+	Type:  "type",
+	Count: "count",
 }
 
 var GenreTableColumns = struct {
-	ID   string
-	Type string
+	ID    string
+	Type  string
+	Count string
 }{
-	ID:   "genre.id",
-	Type: "genre.type",
+	ID:    "genre.id",
+	Type:  "genre.type",
+	Count: "genre.count",
 }
 
 // Generated where
 
 var GenreWhere = struct {
-	ID   whereHelpernull_Int64
-	Type whereHelpernull_String
+	ID    whereHelpernull_Int64
+	Type  whereHelpernull_String
+	Count whereHelpernull_Int64
 }{
-	ID:   whereHelpernull_Int64{field: "\"genre\".\"id\""},
-	Type: whereHelpernull_String{field: "\"genre\".\"type\""},
+	ID:    whereHelpernull_Int64{field: "\"genre\".\"id\""},
+	Type:  whereHelpernull_String{field: "\"genre\".\"type\""},
+	Count: whereHelpernull_Int64{field: "\"genre\".\"count\""},
 }
 
 // GenreRels is where relationship names are stored.
@@ -74,9 +81,9 @@ func (*genreR) NewStruct() *genreR {
 type genreL struct{}
 
 var (
-	genreAllColumns            = []string{"id", "type"}
+	genreAllColumns            = []string{"id", "type", "count"}
 	genreColumnsWithoutDefault = []string{}
-	genreColumnsWithDefault    = []string{"id", "type"}
+	genreColumnsWithDefault    = []string{"id", "type", "count"}
 	genrePrimaryKeyColumns     = []string{"id"}
 	genreGeneratedColumns      = []string{"id"}
 )

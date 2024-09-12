@@ -63,7 +63,8 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 				continue
 			}
 		} else {
-			msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, md.Title.String)
+			title := getTitle(md, tor, file)
+			msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, title)
 			tf.server.BroadcastMessage(msg)
 			newMd, err := tmdb2.GetMediaFromTMDB(tmdbClient, *tor)
 			if tmdb2.HandleMetaDataGettingErr2(*file, err) {
@@ -87,7 +88,8 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 
 			// try getting episode from DB
 			fmt.Println("Getting episode metadata")
-			msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, md.Title.String, tor.Season,
+			title := getTitle(md, tor, file)
+			msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, title, tor.Season,
 				tor.Episode)
 			tf.server.BroadcastMessage(msg)
 			epMd, err := tmdb2.GetEpisodeFromTMDB(tmdbClient, *tor, md)
@@ -175,4 +177,15 @@ func fetchTorrentsFromSearch(search string) {
 			continue
 		}
 	}
+}
+
+func getTitle(md *m.MetaDatum, tor *ptn.TorrentInfo, file *m.TorrentFile) string {
+	if md.Title.Valid {
+		return md.Title.String
+	} else if tor.Title != "" {
+		return tor.Title
+	} else if file.Raw.Valid {
+		return file.Raw.String
+	}
+	return "unknown"
 }
