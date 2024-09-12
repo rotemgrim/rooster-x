@@ -362,6 +362,11 @@ func (s *Server) ReprocessGenres(c *websocket.Conn, req PayloadRequest) {
 }
 
 func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {
+
+	type response struct {
+		IsSeriesWatched bool `json:"isSeriesWatched"`
+	}
+
 	episode, err := models.FindEpisodeG(context.Background(), null.Int64From(entityId))
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not find episode %s", err))
@@ -381,20 +386,41 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 			transmitPromiseReject(c, req, fmt.Sprintf("could not update user episode %s", err))
 			return
 		}
-		transmitPromiseResponse(c, req, "episode updated")
-		return
+	} else {
+		// create new
+		err = episode.AddEpisodeIdUserEpisodesG(context.Background(), true, &models.UserEpisode{
+			UserId:    null.Int64From(1),
+			IsWatched: null.BoolFrom(isWatched),
+		})
+		if err != nil {
+			transmitPromiseReject(c, req, fmt.Sprintf("could not create user episode data %s", err))
+			return
+		}
 	}
 
-	// create new
-	err = episode.AddEpisodeIdUserEpisodesG(context.Background(), true, &models.UserEpisode{
-		UserId:    null.Int64From(1),
-		IsWatched: null.BoolFrom(isWatched),
-	})
-	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not create user episode data %s", err))
-		return
+	// check if all episodes are watched
+	eps, err := models.Episodes(
+		qm.Where("metaDataId = ?", episode.MetaDataId.Int64),
+		qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes,
+			qm.Where("userId = ?", 1),
+		),
+	).AllG(context.Background())
+
+	isSeriesWatched := false
+	if err == nil {
+		isSeriesWatched = true
+		for _, e := range eps {
+			if e.R.EpisodeIdUserEpisodes == nil || len(e.R.EpisodeIdUserEpisodes) == 0 || !e.R.EpisodeIdUserEpisodes[0].IsWatched.Bool {
+				isSeriesWatched = false
+				break
+			}
+		}
 	}
-	transmitPromiseResponse(c, req, "episode updated")
+
+	res := response{
+		IsSeriesWatched: isSeriesWatched,
+	}
+	transmitPromiseResponse(c, req, res)
 }
 
 func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {
