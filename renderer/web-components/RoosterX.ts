@@ -170,7 +170,7 @@ export class RoosterX extends LitElement {
         }
 
         this._filteredMedia = this.sortMedia(this._filteredMedia);
-        console.log(this._filteredMedia);
+        console.log("sorted:", this._filteredMedia);
         this.requestUpdate();
     }
 
@@ -291,20 +291,40 @@ export class RoosterX extends LitElement {
 
     private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
         const linqList = new List<IMetaDataExtended>([...list]);
+        let newList: List<IMetaDataExtended>;
         console.log("orderBy", this._orderConfig);
         // static order for torrents
-        if (this._showTorrents) {
-            linqList.OrderByDescending((x: IMetaDataExtended): any => x.id);
-        } else if (this._orderConfig.directionDescending) {
-            linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+        // if (this._showTorrents) {
+        //     newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x.id);
+        // } else
+        if (this._orderConfig.directionDescending) {
+            newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
         } else {
-            linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+            newList = linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
         }
 
-        let mediaArray = linqList.ToArray();
+        let mediaArray = newList.ToArray();
         if (this._orderConfig.showUnwatchedFirst) {
             mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
         }
+
+        // group by
+        // if (this._orderConfig.groupBy) {
+        //     const linqList = new List<IMetaDataExtended>([...mediaArray]);
+        //     const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]);
+        //     let result = grouped;
+        //     if (this._orderConfig.directionDescending) {
+        //         // reverse group order
+        //         // result = grouped.reverse();
+        //     }
+        //     console.log("grouped", result);
+        //     mediaArray = [];
+        //     // for (const group of grouped) {
+        //     //     mediaArray.push({title: group.Key(), isGroup: true});
+        //     //     mediaArray = mediaArray.concat(group.ToArray());
+        //     // }
+        // }
+
 
         return mediaArray;
     }

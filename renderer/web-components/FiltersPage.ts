@@ -67,6 +67,12 @@ export class FiltersPage extends LitElement {
         this.rooster.orderConfig = Object.assign(this.rooster._orderConfig, addToOrderConfig);
     }
 
+    private groupByChange(e) {
+        const addToOrderConfig = {};
+        addToOrderConfig[e.target.id] = e.target.value;
+        this.rooster.orderConfig = Object.assign(this.rooster._orderConfig, addToOrderConfig);
+    }
+
     public render() {
         return html`<div class="page filters-page">
             <div class="page-top">
@@ -94,6 +100,25 @@ export class FiltersPage extends LitElement {
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "runtime"}
                                     value="runtime">Runtime</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "status"}
+                                    value="status">Status</option>
+                            </select>
+                        </li>
+                        <li>
+                            <h3>Group by</h3>
+                            <select @change=${this.groupByChange} id="groupBy">
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "latestChange"}
+                                    value="latestChange">Download Date</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "rating"}
+                                    value="rating">IMDB Score</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "votes"}
+                                    value="votes">IMDB Votes</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "year"}
+                                    value="year">Year</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "released_unix"}
+                                    value="released_unix">Release Date</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "runtime"}
+                                    value="runtime">Runtime</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "status"}
                                     value="status">Status</option>
                             </select>
                         </li>
