@@ -103,7 +103,8 @@ func createEpisodeTable(db *sql.DB) {
 func createGenreTable(db *sql.DB) {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS genre (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		type VARCHAR(255) UNIQUE
+		type VARCHAR(255) UNIQUE,
+		count INTEGER
 	)`)
 	if err != nil {
 		log.Fatal(err)

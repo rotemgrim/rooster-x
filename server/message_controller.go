@@ -293,6 +293,15 @@ md.*, ue.isWatched as isWatched`),
 	transmitPromiseResponse(c, req, tmp)
 }
 
+func (s *Server) GetAllGenres(c *websocket.Conn, req PayloadRequest) {
+	genres, err := models.Genres().AllG(context.Background())
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get genres %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, genres)
+}
+
 func (s *Server) ReprocessGenres(c *websocket.Conn, req PayloadRequest) {
 
 	// get all genres

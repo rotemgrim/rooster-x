@@ -27,6 +27,7 @@ func (s *Server) SetRoutes() {
 	s.on("set-watched", s.SetWatched)
 	s.on("get-meta-data-by-file-id", s.GetMetaDataByFileId)
 	s.on("reprocess-genres", s.ReprocessGenres)
+	s.on("get-all-genres", s.GetAllGenres)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {
