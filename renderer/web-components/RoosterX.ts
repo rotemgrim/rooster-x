@@ -1,5 +1,5 @@
 
-import {LitElement, html} from "lit";
+import {LitElement, html, TemplateResult} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import "./TopBar";
@@ -30,12 +30,19 @@ export function isStringContains(str, items) {
     return false;
 }
 
+type OrderConfig = {
+    directionDescending: boolean;
+    orderBy: string;
+    groupBy: string;
+    showUnwatchedFirst: boolean;
+}
+
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
 
     @property() public _media: MetaData[] = [];
     @property() public _torrents: MetaData[] = [];
-    @property() public _filteredMedia: IMetaDataExtended[] = [];
+    @property() public _filteredMedia: IMetaDataExtended[] | Record<string, IMetaDataExtended[]> = [];
     @property() public _sideBar: boolean = false;
     @property() public _panel: string = "";
     @property() public user: User;
@@ -47,9 +54,10 @@ export class RoosterX extends LitElement {
         noMediaWithoutMetaData: true,
         noMediaWithoutGenres: [],
     };
-    @property() public _orderConfig: any = {
+    @property() public _orderConfig: OrderConfig = {
         directionDescending: true,
         orderBy: "latestChange",
+        groupBy: "none",
         showUnwatchedFirst: false,
     };
     @property() public _sweepStatus: string = "";
@@ -289,7 +297,7 @@ export class RoosterX extends LitElement {
         return list;
     }
 
-    private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
+    private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] | Record<string, IMetaDataExtended[]> {
         const linqList = new List<IMetaDataExtended>([...list]);
         let newList: List<IMetaDataExtended>;
         console.log("orderBy", this._orderConfig);
@@ -304,29 +312,29 @@ export class RoosterX extends LitElement {
         }
 
         let mediaArray = newList.ToArray();
+        let result;
         if (this._orderConfig.showUnwatchedFirst) {
             mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
         }
+        result = mediaArray;
 
         // group by
-        // if (this._orderConfig.groupBy) {
-        //     const linqList = new List<IMetaDataExtended>([...mediaArray]);
-        //     const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]);
-        //     let result = grouped;
-        //     if (this._orderConfig.directionDescending) {
-        //         // reverse group order
-        //         // result = grouped.reverse();
-        //     }
-        //     console.log("grouped", result);
-        //     mediaArray = [];
-        //     // for (const group of grouped) {
-        //     //     mediaArray.push({title: group.Key(), isGroup: true});
-        //     //     mediaArray = mediaArray.concat(group.ToArray());
-        //     // }
-        // }
+        if (this._orderConfig.groupBy && this._orderConfig.groupBy !== "none") {
+            const linqList = new List<IMetaDataExtended>([...mediaArray]);
+            const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
+            result = grouped;
+            // if (this._orderConfig.directionDescending) {
+            //     // reverse group order
+            //     // result = grouped.reverse();
+            // }
+            // console.log("grouped", result);
+            // for (const group of grouped) {
+            //     mediaArray.push({title: group.Key(), isGroup: true});
+            //     mediaArray = mediaArray.concat(group.ToArray());
+            // }
+        }
 
-
-        return mediaArray;
+        return result;
     }
 
     public showTorrents() {
@@ -415,6 +423,58 @@ export class RoosterX extends LitElement {
         }
     }
 
+    private getVideoCard(v: IMetaDataExtended) {
+        return html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`;
+    }
+
+    private getVideoCards() {
+        if (!this._filteredMedia) {
+            return;
+        }
+
+        if (!this._filteredMedia.length) {
+
+            const getGroupTitleFunc = (oc: OrderConfig): (group: string)=>string => {
+                // if (this._orderConfig.groupBy === "genres") {
+                //     return (v) => v.genres;
+                // }
+                if (this._orderConfig.groupBy === "uploadedDate") {
+                    return (group) => group ? group : "N/A";
+                }
+                if (oc.groupBy === "quality") {
+                    return (group) => group ? group : "N/A";
+                }
+                if (oc.groupBy === "resolution") {
+                    return (group) => group === "0" ? "N/A" : group ? group + "p" : "N/A";
+                }
+                if (oc.groupBy === "year") {
+                    return (group) => group ? group.toString() || "N/A" : "N/A";
+                }
+                return (v) => "";
+            }
+
+            // this is a record
+            const result: TemplateResult[] = [];
+            const keys = Object.keys(this._filteredMedia);
+            const getGroupTitle = getGroupTitleFunc(this._orderConfig);
+            for (let i = keys.length - 1; i >= 0; i--) {
+                const key = keys[i];
+                console.log("key", key);
+                result.push(html`<div class="group">
+                    <h2>${getGroupTitle(key)}</h2>
+                    <div class="group-videos">
+                        ${this._filteredMedia[key].map(v => 
+                            html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
+                    </div>
+                </div>`);
+            }
+            return result;
+        } else {
+            // this is an array
+            return (this._filteredMedia as IMetaDataExtended[]).map(v => this.getVideoCard(v));
+        }
+    }
+
     public render() {
         return html`
         ${this._sweepStatus ?
@@ -440,7 +500,7 @@ export class RoosterX extends LitElement {
             ${this._panel === "settings" ? html`<settings-page .rooster=${this}></settings-page>` : ""}
         </div>` : ""}
         <div class="videos" tabindex="0">
-            ${this._filteredMedia.map(v => html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
+            ${this.getVideoCards()}
         </div>`;
     }
 }

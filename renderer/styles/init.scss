@@ -65,6 +65,33 @@ body {
   align-items: center;
   justify-content: center;
   gap: 2.4rem;
+
+  .group {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      width: 100%;
+
+      h2 {
+        color: white;
+        font-size: 4.5em;
+        margin: 1rem;
+      }
+
+      .group-videos {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 2.4rem;
+            flex-direction: row;
+            width: 100%;
+
+      }
+  }
 }
 
 video-card {

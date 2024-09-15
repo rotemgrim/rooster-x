@@ -106,20 +106,24 @@ export class FiltersPage extends LitElement {
                         <li>
                             <h3>Group by</h3>
                             <select @change=${this.groupByChange} id="groupBy">
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "none"}
+                                        value="none">None</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "latestChange"}
                                     value="latestChange">Download Date</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "rating"}
                                     value="rating">IMDB Score</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "votes"}
-                                    value="votes">IMDB Votes</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "quality"}
+                                    value="quality">Quality</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "resolution"}
+                                        value="resolution">Resolution</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "year"}
                                     value="year">Year</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "released_unix"}
                                     value="released_unix">Release Date</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "runtime"}
                                     value="runtime">Runtime</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "status"}
-                                    value="status">Status</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "uploadedDate"}
+                                    value="uploadedDate">Uploaded Date</option>
                             </select>
                         </li>
                         <li>

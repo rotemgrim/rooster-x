@@ -62,6 +62,9 @@ type MediaDataExtended struct {
 	DownloadedAt null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
 	UploadedAt   null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
 	MediaFiles   null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
+	Quality      null.String  `boil:"quality" json:"quality,omitempty"`
+	Resolution   null.String  `boil:"resolution" json:"resolution,omitempty"`
+	UploadedDate null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
 }
 
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
@@ -108,7 +111,9 @@ func (s *Server) GetAllMedia(c *websocket.Conn, req PayloadRequest) {
 func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string) {
 	var media []MediaDataExtended
 	queryMods := []qm.QueryMod{
-		qm.Select("md.*, umd.isWatched as isWatched"),
+		qm.Select("md.*, umd.isWatched as isWatched, " +
+			"max(IFNULL(CAST(SUBSTR(sub.resolution, 0) AS int), 0)) as resolution, " +
+			"rtrim(replace(group_concat(DISTINCT sub.quality||','), ',,', ','), ',') as quality"),
 		qm.From("metaData as md"),
 		//qm.Where("sub.metaDataId != 0"),
 		//qm.LeftOuterJoin("metaData as md on md.id = sub.metaDataId"),
@@ -119,7 +124,9 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	if isTorrents {
 		//queryMods = append(queryMods, qm.From("torrentFile as sub"))
 		queryMods = append(queryMods, qm.LeftOuterJoin("torrentFile as sub on sub.metaDataId = md.id"))
-		queryMods = append(queryMods, qm.Select("max(sub.uploadedAt) as uploadedAt"))
+		queryMods = append(queryMods, qm.Select("max(sub.uploadedAt) as uploadedAt, "+
+			"DATE(SUBSTR(uploadedAt, 1, 19)) as uploadedDate,"+
+			"count(sub.id) as mediaFiles"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.uploadedAt) DESC"))
 	} else {
 		//queryMods = append(queryMods, qm.From("mediaFile as sub"))
@@ -142,7 +149,9 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		//transmitPromiseReject(c, data, fmt.Sprintf("could not get media %s", err))
 		return
 	}
-
+	query := models.NewQuery(queryMods...)
+	text, _ := queries.BuildQuery(query)
+	fmt.Printf("could not get media:\n%s\n\nquery: %s", err, text)
 	transmitPromiseResponse(c, data, media)
 }
 
