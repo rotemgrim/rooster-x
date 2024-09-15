@@ -26,7 +26,7 @@ func (s *Server) SetRoutes() {
 	s.on("open-external", s.OpenExternal)
 	s.on("set-watched", s.SetWatched)
 	s.on("get-meta-data-by-file-id", s.GetMetaDataByFileId)
-	s.on("reprocess-genres", s.ReprocessGenres)
+	s.on("reprocess-genres", s.ReprocessGenresRequest)
 	s.on("get-all-genres", s.GetAllGenres)
 }
 

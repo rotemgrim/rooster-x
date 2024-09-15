@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/websocket"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/volatiletech/null/v8"
@@ -153,7 +152,6 @@ func (s *Server) GetAllTorrents(c *websocket.Conn, data PayloadRequest) {
 
 func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 	p := req.Data.(map[string]interface{})["metaDataId"]
-	spew.Dump(p)
 	episodes, err := models.Episodes(
 		qm.Where("metaDataId = ?", p),
 		qm.Load(models.EpisodeRels.MetaDataIdMetaDatum),
@@ -302,23 +300,32 @@ func (s *Server) GetAllGenres(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, genres)
 }
 
-func (s *Server) ReprocessGenres(c *websocket.Conn, req PayloadRequest) {
+func (s *Server) ReprocessGenresRequest(c *websocket.Conn, req PayloadRequest) {
+
+	s.BroadcastMessage("Processing genres...")
+
+	count, err := s.ReprocessGenres()
+	if err != nil {
+		transmitPromiseReject(c, req, err)
+	}
+
+	s.BroadcastMessage(fmt.Sprintf("Processed %d genres", count))
+	transmitPromiseResponse(c, req, fmt.Sprintf("Processed %d genres", count))
+}
+
+func (s *Server) ReprocessGenres() (int, error) {
 
 	// remove all genres
 	_, err := models.Genres().DeleteAllG(context.Background())
 	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not delete genres %s", err))
-		return
+		return 0, fmt.Errorf("could not delete genres %s", err)
 	}
 
 	// get all metadata
 	metas, err := models.MetaData().AllG(context.Background())
 	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not get metadata %s", err))
-		return
+		return 0, fmt.Errorf("could not get metadata %s", err)
 	}
-
-	s.BroadcastMessage("Processing genres...")
 
 	// for each metadata get genres split them and add them to the genre table
 	count := 0
@@ -357,8 +364,7 @@ func (s *Server) ReprocessGenres(c *websocket.Conn, req PayloadRequest) {
 			}
 		}
 	}
-	s.BroadcastMessage(fmt.Sprintf("Processed %d genres", count))
-	transmitPromiseResponse(c, req, fmt.Sprintf("Processed %d genres", count))
+	return count, nil
 }
 
 func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {

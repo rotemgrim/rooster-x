@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	tmdb "github.com/cyruzin/golang-tmdb"
+	"github.com/fsnotify/fsnotify"
 	ptn "github.com/middelink/go-parse-torrent-name"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -12,11 +13,14 @@ import (
 	m "go-poc/models"
 	"go-poc/server"
 	tmdb2 "go-poc/tmdb"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 )
 
 // filter is a list of strings that we want to filter out
@@ -37,48 +41,184 @@ type Walker struct {
 	walkDirArr []string
 	server     *server.Server
 	tmdbClient *tmdb.Client
+	watcher    *fsnotify.Watcher
 }
 
 func NewWalker(walkDirArr []string, server *server.Server, tmdbClient *tmdb.Client) *Walker {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		panic(err)
+	}
+
 	return &Walker{
 		walkDirArr: walkDirArr,
 		server:     server,
 		tmdbClient: tmdbClient,
+		watcher:    watcher,
 	}
 }
 
-func (w *Walker) releseLock(msg string) {
+func (w *Walker) StopWatch() {
+	_ = w.watcher.Close()
+}
+
+func (w *Walker) StartWatch() {
+
+	go w.debounceWatch(w.watcher)
+
+	// watch the directories
+	for _, dir := range w.walkDirArr {
+		err := w.watcher.Add(dir)
+		if err != nil {
+			fmt.Println("Error watching directory", err)
+		} else {
+			fmt.Println("Watching directory: ", dir)
+		}
+	}
+}
+
+func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
+	var (
+		// Wait 1000ms for new events; each new event resets the timer.
+		waitFor = 1000 * time.Millisecond
+
+		// Keep track of the timers, as path → timer.
+		mu     sync.Mutex
+		timers = make(map[string]*time.Timer)
+
+		// Callback we run.
+		callBack = func(e fsnotify.Event) {
+			fmt.Println(e.String())
+
+			if (e.Op & fsnotify.Create) == fsnotify.Create {
+				fmt.Println("Create event")
+				dirArr := []string{e.Name}
+				w.Sweep(dirArr)
+			} else if (e.Op & fsnotify.Write) == fsnotify.Write {
+				fmt.Println("Write event (do nothing): %s", e.Name)
+			} else if (e.Op & fsnotify.Remove) == fsnotify.Remove {
+				fmt.Println("Remove event: %s", e.Name)
+				_ = w.removeAllDeletedMediaFiles()
+			} else if (e.Op & fsnotify.Rename) == fsnotify.Rename {
+				fmt.Println("Rename event (do nothing): %s", e.Name)
+				dirArr := []string{e.Name}
+				w.Sweep(dirArr)
+				_ = w.removeAllDeletedMediaFiles()
+			} else if (e.Op & fsnotify.Chmod) == fsnotify.Chmod {
+				fmt.Println("Chmod event (do nothing): %s", e.Name)
+			}
+
+			// Don't need to remove the timer if you don't have a lot of files.
+			mu.Lock()
+			delete(timers, e.Name)
+			mu.Unlock()
+		}
+	)
+
+	for {
+		select {
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			fmt.Println("error:", err)
+
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+
+			// We just want to watch for file creation, so ignore everything
+			// outside of Create and Write.
+			//if !e.Has(fsnotify.Create) && !e.Has(fsnotify.Write) {
+			//	continue
+			//}
+
+			// Get timer.
+			mu.Lock()
+			t, ok := timers[event.Name]
+			mu.Unlock()
+
+			// No timer yet, so create one.
+			if !ok {
+				t = time.AfterFunc(math.MaxInt64, func() {
+					callBack(event)
+				})
+				t.Stop()
+
+				mu.Lock()
+				timers[event.Name] = t
+				mu.Unlock()
+			}
+
+			// Reset the timer for this path, so it will start from 100ms again.
+			t.Reset(waitFor)
+
+		}
+	}
+}
+
+func (w *Walker) releaseLock(msg string) {
 	if msg != "" {
 		fmt.Println(msg)
 		w.server.BroadcastMessage(msg)
 	}
-	os.Remove("sweep.lock")
+	_ = os.Remove("sweep.lock")
 }
 
-func (w *Walker) FullSweep() {
-	endMsg := "Sweep done"
-	if checkIfSweepIsRunning() {
-		w.server.BroadcastMessage("Sweep already running")
-		return
-	}
-	defer w.releseLock(endMsg)
-
-	fmt.Println("Starting full sweep")
-	w.server.BroadcastMessage("Starting full sweep")
-
-	// read from file system, accumulate all files
+func (w *Walker) GetEntriesFromPaths(paths []string) []m.MediaFile {
 	var entries []m.MediaFile
-	for _, dir := range w.walkDirArr {
+	for _, dir := range paths {
 		tmpEntries, err := w.getMediaFilesFromDisk(dir)
 		if err != nil {
-			endMsg = fmt.Sprintf("Error getting media files from %s", dir)
+			fmt.Printf("Error getting media files from %s", dir)
 			continue
 		}
 		entries = append(entries, tmpEntries...)
 	}
+	return entries
+}
 
+func (w *Walker) removeAllDeletedMediaFiles() error {
+	// get all media files
+	mediaFiles, err := m.MediaFiles().AllG(context.Background())
+	if err != nil {
+		return fmt.Errorf("could not get media files: %w", err)
+	}
+	w.removeDeletedMediaFiles(mediaFiles)
+	return nil
+}
+
+func (w *Walker) removeDeletedMediaFilesByMetaDataId(id float64) {
+	// get all media files by meta data id
+	mediaFiles, err := m.MediaFiles(
+		qm.Where("metaDataId = ?", id),
+	).AllG(context.Background())
+	if err != nil {
+		fmt.Println("could not get media files by meta data id", err)
+		return
+	}
+	w.removeDeletedMediaFiles(mediaFiles)
+}
+
+func (w *Walker) removeDeletedMediaFiles(mediaFiles []*m.MediaFile) {
+	// delete all media files that are not in the file system
+	for _, mediaFile := range mediaFiles {
+
+		// check if file not exists
+		if _, err := os.Stat(mediaFile.Path.String); os.IsNotExist(err) {
+			_, _ = mediaFile.DeleteG(context.Background())
+		}
+	}
+}
+
+func (w *Walker) Sweep(paths []string) {
+	endMsg := "Sweep done"
+
+	// read from file system, accumulate all files
+	entries := w.GetEntriesFromPaths(paths)
 	if entries == nil || len(entries) == 0 {
-		w.releseLock("No files found in sweep. " + endMsg)
+		w.releaseLock("No files found in sweep. " + endMsg)
 		return
 	}
 
@@ -88,7 +228,7 @@ func (w *Walker) FullSweep() {
 	// get all missing metadata for files and query TMDB
 	filesWithoutMetaData, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).AllG(context.Background())
 	if err != nil {
-		w.releseLock("No files without metadata found, skipping net search")
+		w.releaseLock("No files without metadata found, skipping net search")
 		return
 	}
 
@@ -155,6 +295,36 @@ func (w *Walker) FullSweep() {
 		file.MetaDataId = md.ID
 		file.Status = null.StringFrom("scanned")
 		_, _ = file.UpdateG(context.Background(), boil.Infer())
+	}
+}
+
+func (w *Walker) FullSweep() {
+	endMsg := "Sweep done"
+	if checkIfSweepIsRunning() {
+		w.server.BroadcastMessage("Sweep already running")
+		return
+	}
+	defer w.releaseLock(endMsg)
+
+	fmt.Println("Starting full sweep")
+	w.server.BroadcastMessage("Starting full sweep")
+
+	w.Sweep(w.walkDirArr)
+
+	// remove deleted files from db
+	err := w.removeAllDeletedMediaFiles()
+	if err != nil {
+		fmt.Println("Error removing deleted files", err)
+	} else {
+		fmt.Println("Deleted files removed")
+	}
+
+	// generate genres
+	_, err = w.server.ReprocessGenres()
+	if err != nil {
+		fmt.Println("Error reprocessing genres", err)
+	} else {
+		fmt.Println("Genres reprocessed")
 	}
 }
 

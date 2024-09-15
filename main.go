@@ -50,6 +50,7 @@ func main() {
 		TorrentsFetcher: TorrentsFetcher,
 	}
 
+	app.Walker.StartWatch()
 	go app.Server.Start(WalkerInstance, TorrentsFetcher)
 	//go TorrentsFetcher.Fetch()
 	//go app.Walker.FullSweep()
@@ -62,6 +63,7 @@ func main() {
 	// block until a signal is received
 	select {
 	case _ = <-sigChan:
+		app.Walker.StopWatch()
 		// handle the signal and exit
 		os.Remove("sweep.lock")
 		println("Exiting")
