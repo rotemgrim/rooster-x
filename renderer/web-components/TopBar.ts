@@ -14,8 +14,8 @@ export class TopBar extends LitElement {
     @property() public showProfileMenu: boolean = false;
     @property() public _toggleTorrents: boolean = false;
 
-    @property() public hours: number = 0;
-    @property() public minutes: number = 0;
+    @property() public hours: string = "";
+    @property() public minutes: string = "";
 
     public createRenderRoot() {
         return this;
@@ -28,8 +28,11 @@ export class TopBar extends LitElement {
     public firstUpdated() {
         setInterval(() => {
             const date = new Date();
-            this.hours = date.getHours();
-            this.minutes = date.getMinutes();
+            // get hours and minutes and pad them with 0 if they are less than 10
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            minutes < 10 ? (this.minutes = "0" + minutes) : (this.minutes = minutes.toString());
+            hours < 10 ? (this.hours = "0" + hours) : (this.hours = hours.toString());
         }, 1000);
     }
 
@@ -40,6 +43,7 @@ export class TopBar extends LitElement {
         if (elem && !this._fullScreen) {
             if (elem.requestFullscreen) {
                 elem.requestFullscreen();
+                // @ts-ignore
             } else if (elem.webkitRequestFullscreen) {
                 // @ts-ignore
                 elem.webkitRequestFullscreen();
