@@ -305,10 +305,15 @@ export class RoosterX extends LitElement {
         // if (this._showTorrents) {
         //     newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x.id);
         // } else
-        if (this._orderConfig.directionDescending) {
-            newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+
+        if (this._orderConfig.groupBy !== "genres") {
+            if (this._orderConfig.directionDescending) {
+                newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+            } else {
+                newList = linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+            }
         } else {
-            newList = linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+            newList = linqList;
         }
 
         let mediaArray = newList.ToArray();
@@ -320,18 +325,41 @@ export class RoosterX extends LitElement {
 
         // group by
         if (this._orderConfig.groupBy && this._orderConfig.groupBy !== "none") {
-            const linqList = new List<IMetaDataExtended>([...mediaArray]);
-            const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
-            result = grouped;
-            // if (this._orderConfig.directionDescending) {
-            //     // reverse group order
-            //     // result = grouped.reverse();
-            // }
-            // console.log("grouped", result);
-            // for (const group of grouped) {
-            //     mediaArray.push({title: group.Key(), isGroup: true});
-            //     mediaArray = mediaArray.concat(group.ToArray());
-            // }
+            if (this._orderConfig.groupBy === "genres") {
+                const tmpResult = {};
+                // for each media, split the genres
+                for (const media of mediaArray) {
+                    if (media.genres) {
+                        if (media.genres.includes(",")) {
+                            const genres = media.genres.split(",");
+                            for (const genre of genres) {
+                                if (!tmpResult[genre]) {
+                                    tmpResult[genre] = [];
+                                }
+                                tmpResult[genre].push(media);
+                            }
+                        } else {
+                            if (!tmpResult[media.genres]) {
+                                tmpResult[media.genres] = [];
+                            }
+                            tmpResult[media.genres].push(media);
+                        }
+                    }
+                }
+                // sort the groups by most media
+                const keys = Object.keys(tmpResult);
+                keys.sort((a, b) => tmpResult[a].length - tmpResult[b].length);
+                const sortedResult = {};
+                for (const key of keys) {
+                    sortedResult[key + ` (${tmpResult[key].length})`] = tmpResult[key];
+                }
+                result = sortedResult;
+
+            } else {
+                const linqList = new List<IMetaDataExtended>([...mediaArray]);
+                const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
+                result = grouped;
+            }
         }
 
         return result;
@@ -435,13 +463,16 @@ export class RoosterX extends LitElement {
         if (!this._filteredMedia.length) {
 
             const getGroupTitleFunc = (oc: OrderConfig): (group: string)=>string => {
-                // if (this._orderConfig.groupBy === "genres") {
-                //     return (v) => v.genres;
-                // }
-                if (this._orderConfig.groupBy === "uploadedDate") {
+                if (oc.groupBy === "genres") {
                     return (group) => group ? group : "N/A";
                 }
-                if (oc.groupBy === "quality") {
+                if (oc.groupBy === "uploadedDate") {
+                    return (group) => group === "null" ? "N/A" : group ? group : "N/A";
+                }
+                if (oc.groupBy === "downloadedDate") {
+                    return (group) => group === "null" ? "N/A" : group ? new Date(group).toLocaleDateString() : "N/A";
+                }
+                 if (oc.groupBy === "quality") {
                     return (group) => group ? group : "N/A";
                 }
                 if (oc.groupBy === "resolution") {
@@ -459,7 +490,6 @@ export class RoosterX extends LitElement {
             const getGroupTitle = getGroupTitleFunc(this._orderConfig);
             for (let i = keys.length - 1; i >= 0; i--) {
                 const key = keys[i];
-                console.log("key", key);
                 result.push(html`<div class="group">
                     <h2>${getGroupTitle(key)}</h2>
                     <div class="group-videos">

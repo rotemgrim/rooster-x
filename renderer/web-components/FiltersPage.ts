@@ -108,22 +108,19 @@ export class FiltersPage extends LitElement {
                             <select @change=${this.groupByChange} id="groupBy">
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "none"}
                                         value="none">None</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "latestChange"}
-                                    value="latestChange">Download Date</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "rating"}
-                                    value="rating">IMDB Score</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "quality"}
-                                    value="quality">Quality</option>
+                                        value="rating">IMDB Score</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "resolution"}
                                         value="resolution">Resolution</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "year"}
-                                    value="year">Year</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "released_unix"}
-                                    value="released_unix">Release Date</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "runtime"}
-                                    value="runtime">Runtime</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "uploadedDate"}
-                                    value="uploadedDate">Uploaded Date</option>
+                                        value="year">Year</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "genres"}
+                                        value="genres">Genres</option>
+                                ${this.rooster._showTorrents 
+                                    ? html`<option ?selected=${this.rooster._orderConfig.groupBy === "uploadedDate"}
+                                            value="uploadedDate">Uploaded Date</option>`
+                                    : html`<option ?selected=${this.rooster._orderConfig.groupBy === "downloadedDate"} 
+                                            value="downloadedDate">Download Date</option>`}
                             </select>
                         </li>
                         <li>

@@ -35,36 +35,37 @@ type MsgResponse struct {
 
 type MediaDataExtended struct {
 	//models.MetaDatum
-	ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
-	Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
-	ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
-	TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
-	Genres       null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
-	Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
-	Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
-	Votes        null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
-	Series       null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
-	Rating       null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
-	Runtime      null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
-	Year         null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
-	Poster       null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
-	Metascore    null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
-	Plot         null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
-	Director     null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
-	Writer       null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
-	Actors       null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
-	Released     null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
-	ReleasedUnix null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
-	Trailer      null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
-	Type         null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
-	Name         null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
-	IsWatched    null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
-	DownloadedAt null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
-	UploadedAt   null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
-	MediaFiles   null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
-	Quality      null.String  `boil:"quality" json:"quality,omitempty"`
-	Resolution   null.String  `boil:"resolution" json:"resolution,omitempty"`
-	UploadedDate null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
+	ID             null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+	Title          null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+	ImdbId         null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
+	TMDBID         null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
+	Genres         null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
+	Languages      null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
+	Country        null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
+	Votes          null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
+	Series         null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
+	Rating         null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
+	Runtime        null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
+	Year           null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
+	Poster         null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
+	Metascore      null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
+	Plot           null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
+	Director       null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
+	Writer         null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
+	Actors         null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
+	Released       null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
+	ReleasedUnix   null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
+	Trailer        null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
+	Type           null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
+	Name           null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
+	IsWatched      null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
+	DownloadedAt   null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
+	UploadedAt     null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
+	MediaFiles     null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
+	Quality        null.String  `boil:"quality" json:"quality,omitempty"`
+	Resolution     null.String  `boil:"resolution" json:"resolution,omitempty"`
+	UploadedDate   null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
+	DownloadedDate null.String  `boil:"downloadedDate" json:"downloadedDate,omitempty"`
 }
 
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
@@ -127,11 +128,14 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		queryMods = append(queryMods, qm.Select("max(sub.uploadedAt) as uploadedAt, "+
 			"DATE(SUBSTR(uploadedAt, 1, 19)) as uploadedDate,"+
 			"count(sub.id) as mediaFiles"))
+		queryMods = append(queryMods, qm.Where("sub.magnet is not null"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.uploadedAt) DESC"))
 	} else {
 		//queryMods = append(queryMods, qm.From("mediaFile as sub"))
 		queryMods = append(queryMods, qm.LeftOuterJoin("mediaFile as sub on sub.metaDataId = md.id"))
-		queryMods = append(queryMods, qm.Select("max(sub.downloadedAt) as downloadedAt, count(sub.id) as mediaFiles"))
+		queryMods = append(queryMods, qm.Select("max(sub.downloadedAt) as downloadedAt, "+
+			"DATE(SUBSTR(downloadedAt, 1, 19)) as downloadedDate,"+
+			"count(sub.id) as mediaFiles"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.downloadedAt) DESC"))
 	}
 
@@ -151,7 +155,7 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	}
 	query := models.NewQuery(queryMods...)
 	text, _ := queries.BuildQuery(query)
-	fmt.Printf("could not get media:\n%s\n\nquery: %s", err, text)
+	fmt.Printf(text)
 	transmitPromiseResponse(c, data, media)
 }
 

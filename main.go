@@ -35,9 +35,9 @@ func main() {
 
 	// directories array to walk
 	dirs := []string{
-		//"B:\\downloads\\complete",
-		"C:\\Users\\rotem\\Downloads",
-		//"B:\\dekel",
+		"B:\\downloads\\complete",
+		//"C:\\Users\\rotem\\Downloads",
+		"B:\\dekel",
 	}
 	WalkerInstance := walker.NewWalker(dirs, ServerInstance, tmdbClient)
 	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org", ServerInstance, tmdbClient)
@@ -49,6 +49,19 @@ func main() {
 		Walker:          WalkerInstance,
 		TorrentsFetcher: TorrentsFetcher,
 	}
+
+	//// Path to the Chrome executable
+	//chromePath := "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+	//// URL to open in kiosk mode
+	//url := "https://google.com"
+	//// Command to run Chrome in kiosk mode
+	//cmd := exec.Command(chromePath, "--kiosk", url)
+	//// Start the command
+	//err = cmd.Start()
+	//if err != nil {
+	//	fmt.Println("Error starting Chrome:", err)
+	//	return
+	//}
 
 	app.Walker.StartWatch()
 	go app.Server.Start(WalkerInstance, TorrentsFetcher)
