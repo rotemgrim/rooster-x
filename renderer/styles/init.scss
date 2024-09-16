@@ -82,15 +82,20 @@ body {
       }
 
       .group-videos {
-            display: flex;
+            display: none;
             flex-wrap: wrap;
             align-items: center;
             justify-content: center;
             gap: 2.4rem;
             flex-direction: row;
             width: 100%;
-
       }
+
+        &.open {
+            .group-videos {
+                display: flex;
+            }
+        }
   }
 }
 

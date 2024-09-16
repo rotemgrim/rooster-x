@@ -301,13 +301,12 @@ export class RoosterX extends LitElement {
         const linqList = new List<IMetaDataExtended>([...list]);
         let newList: List<IMetaDataExtended>;
         console.log("orderBy", this._orderConfig);
-        // static order for torrents
-        // if (this._showTorrents) {
-        //     newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x.id);
-        // } else
+
 
         if (this._orderConfig.groupBy !== "genres") {
-            if (this._orderConfig.directionDescending) {
+            if (this._showTorrents) {
+                newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x.id);
+            } else if (this._orderConfig.directionDescending) {
                 newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
             } else {
                 newList = linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
@@ -358,7 +357,19 @@ export class RoosterX extends LitElement {
             } else {
                 const linqList = new List<IMetaDataExtended>([...mediaArray]);
                 const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
-                result = grouped;
+
+                if (this._orderConfig.directionDescending) {
+                    // reverse the order of the groups
+                    const keys = Object.keys(grouped);
+                    keys.reverse();
+                    const sortedResult = {};
+                    for (const key of keys) {
+                        sortedResult[key] = grouped[key];
+                    }
+                    result = sortedResult;
+                } else {
+                    result = grouped;
+                }
             }
         }
 
@@ -455,6 +466,13 @@ export class RoosterX extends LitElement {
         return html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`;
     }
 
+    private toggleGroup(e) {
+        const group = e.target.closest(".group");
+        if (group) {
+            group.classList.toggle("open");
+        }
+    }
+
     private getVideoCards() {
         if (!this._filteredMedia) {
             return;
@@ -490,8 +508,8 @@ export class RoosterX extends LitElement {
             const getGroupTitle = getGroupTitleFunc(this._orderConfig);
             for (let i = keys.length - 1; i >= 0; i--) {
                 const key = keys[i];
-                result.push(html`<div class="group">
-                    <h2>${getGroupTitle(key)}</h2>
+                result.push(html`<div class="group open">
+                    <h2 @click="${this.toggleGroup}">${getGroupTitle(key)}</h2>
                     <div class="group-videos">
                         ${this._filteredMedia[key].map(v => 
                             html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
