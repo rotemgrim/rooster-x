@@ -11,7 +11,10 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/models"
+	"io"
 	"log"
+	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -530,4 +533,56 @@ func transmitPromiseReject(c *websocket.Conn, req PayloadRequest, data interface
 	if err != nil {
 		log.Println("Error writing message:", err)
 	}
+}
+
+func (s *Server) GetTrailer(c *websocket.Conn, req PayloadRequest) {
+	title := req.Data.(map[string]interface{})["title"].(string)
+	year := int(req.Data.(map[string]interface{})["year"].(float64))
+	metaDataId := int64(req.Data.(map[string]interface{})["metaDataId"].(float64))
+	trailer, err := getYouTubeTrailer(title, year)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get trailer %s", err))
+		return
+	}
+
+	// update trailer in db
+	meta, err := models.FindMetaDatumG(context.Background(), null.Int64From(metaDataId))
+	if err == nil {
+		meta.Trailer = null.StringFrom(trailer)
+		_, _ = meta.UpdateG(context.Background(), boil.Infer())
+	}
+	transmitPromiseResponse(c, req, trailer)
+}
+
+func getYouTubeTrailer(title string, year int) (string, error) {
+	url := fmt.Sprintf("https://www.youtube.com/results?search_query=%s+%d+trailer", title, year)
+	// url encode
+	url = strings.ReplaceAll(url, " ", "+")
+
+	// get the page with fetch
+	response, err := http.Get(url)
+	if err != nil {
+		log.Println("Error fetching youtube page:", err)
+		return "", err
+	}
+	defer response.Body.Close()
+
+	// convert to string
+	text, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Println("Error reading youtube page:", err)
+		return "", err
+	}
+
+	fmt.Printf("response url %s", url)
+	fmt.Printf("response text for trailer %s", text)
+
+	// do the same with go
+	regex := regexp.MustCompile(`"videoId":"(.*?)"`)
+	match := regex.FindStringSubmatch(string(text))
+	if len(match) < 2 {
+		log.Println("No Youtube trailer found")
+		return "", fmt.Errorf("No Youtube trailer found")
+	}
+	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", match[1]), nil
 }

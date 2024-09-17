@@ -83,7 +83,18 @@ export class VideoDetails extends LitElement {
 
     protected firstUpdated(): void {
         this.reloadVideo();
-        console.log("firstUpdateed");
+        console.log("firstUpdateed", this.video);
+        if (!this.video.trailer) {
+            IpcService.getYouTubeTrailer(this.video.id, this.video.title, this.video.year)
+                .then((res) => {
+                    if (res) {
+                        console.log("trailer", res);
+                        this.video.trailer = res as string;
+                        this.requestUpdate();
+                    }
+                }
+            ).catch(console.log);
+        }
     }
 
     public async connectedCallback() {
@@ -367,11 +378,15 @@ export class VideoDetails extends LitElement {
                     </div>` : ""}
                 <br><br>
                 <p>Actors: <small title="${this.video.actors}">${this.video.actors?.slice(0, 80)}...</small></p>
+                <br>
+                <p>Made in ${this.video.country} | Released at ${this.video.released}</p>
                 <br><br>
-                <p>Made in ${this.video.country}</p>
-                <br><br>
-                <p>Released at ${this.video.released}</p>
-                ${this.rooster.user.isAdmin ? html`<br><br>
+                <div class="trailer">${this.video.trailer ? 
+                    html`<iframe width="560" height="315" src="${this.video.trailer.replace("watch?v=", "embed/")}"
+                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+                ` : ""}</div>
+                ${!this.rooster.user.isAdmin ? html`<br><br>
                 <input type="text" style="font-size: 26px;"
                     @input=${(e) => this.searchTitle = e.target.value}
                     @keypress=${this.searchKeyPress}

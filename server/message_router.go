@@ -28,6 +28,8 @@ func (s *Server) SetRoutes() {
 	s.on("get-meta-data-by-file-id", s.GetMetaDataByFileId)
 	s.on("reprocess-genres", s.ReprocessGenresRequest)
 	s.on("get-all-genres", s.GetAllGenres)
+
+	s.on("get-trailer", s.GetTrailer)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {

@@ -217,4 +217,53 @@ export class IpcService {
             promiseIpc.send("update-meta-data-by-id", payload).then(resolve).catch(reject);
         });
     }
+
+    public static async getIMDBRating(imdbID: string) {
+        const url = `https://www.imdb.com/title/${imdbID}/`;
+        try {
+            const response = await fetch(url, { mode: 'no-cors'});
+            const text = await response.text();
+
+            // create dom parser to parse the html
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            // @ts-ignore
+            const ratingStr = doc.querySelector("[aria-label='View User Ratings']").innerText;
+            const tmp = ratingStr.split("\n/10\\n");
+            const ratingMatch = tmp[0];
+            const votesMatch = tmp[1];
+
+            console.log("rateingStr", ratingStr);
+            console.log("ratingMatch", ratingMatch);
+            console.log("votesMatch", votesMatch);
+
+        } catch (error) {
+            console.error('Error fetching IMDb rating:', error);
+        }
+    }
+
+    public static async getYouTubeTrailer(metaDataId: number, title: string, year?: number) {
+         return new Promise((resolve, reject) => {
+            const payload = {metaDataId, title, year};
+            promiseIpc.send("get-trailer", payload).then(resolve).catch(reject);
+        });
+        // const url = `"https://www.youtube.com/results?search_query=${title} ${year} trailer"`;
+        // try {
+        //     const response = await fetch(url, { mode: 'no-cors'});
+        //     const text = await response.text();
+        //
+        //     // find the first youtube video with regex
+        //     const regex = /"videoId":"(.*?)"/g;
+        //     const match = regex.exec(text);
+        //     if (!match) {
+        //         console.error('No Youtube trailer found');
+        //         return;
+        //     }
+        //     const videoId = match[1];
+        //     console.log("videoId", videoId);
+        // } catch (error) {
+        //     console.error('Error fetching Youtube trailer:', error);
+        // }
+    }
 }
+
