@@ -37,6 +37,7 @@ func (tf *TorrentFetcher) FullSweep() {
 	tf.GetMetaDataFromInternet()
 
 	tf.server.BroadcastMessage("Finished fetching torrents and metadata :)")
+	tf.server.BroadcastMessage("reload-torrents")
 }
 
 func (tf *TorrentFetcher) GetMetaDataFromInternet() {

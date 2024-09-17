@@ -73,13 +73,13 @@ export class TopBar extends LitElement {
         this.rooster.openSideBar("filters");
     }
 
-    private showTorrents() {
+    public showTorrents() {
         this.rooster.showTorrents();
         this._toggleTorrents = true;
         this.requestUpdate();
     }
 
-    private showFolders() {
+    public showFolders() {
         this._toggleTorrents = false;
         this.rooster.showFolders();
         this.requestUpdate();

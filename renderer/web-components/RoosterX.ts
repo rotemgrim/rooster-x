@@ -1,6 +1,6 @@
 
 import {LitElement, html, TemplateResult} from "lit";
-import {customElement, property} from "lit/decorators.js";
+import {customElement, property, query} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import "./TopBar";
 import "./VideoCard";
@@ -16,6 +16,7 @@ import * as _ from "lodash";
 import {type MediaFile} from "../entity/MediaFile";
 import {type TorrentFile} from "../entity/TorrentFile";
 import {VideoCard} from "./VideoCard";
+import {TopBar} from "./TopBar";
 
 
 export function isStringContains(str, items) {
@@ -62,7 +63,8 @@ export class RoosterX extends LitElement {
     };
     @property() public _sweepStatus: string = "";
     @property() public _sweepCount: string = "";
-    @property() public _showTorrents: boolean = false;
+    @property() public _showTorrents: boolean = false
+    @query("top-bar") private topBar: TopBar;
     private msgTimeout: number;
 
     public createRenderRoot() {
@@ -134,6 +136,11 @@ export class RoosterX extends LitElement {
 
     set showMsg(value: string) {
         this._sweepStatus = value;
+        if (value === "reload") {
+            this.topBar.showFolders();
+        } else if (value === "reload-torrents") {
+            this.topBar.showTorrents();
+        }
         clearTimeout(this.msgTimeout);
         this.msgTimeout = setTimeout(() => {
             this._sweepStatus = "";

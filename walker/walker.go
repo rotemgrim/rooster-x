@@ -296,6 +296,7 @@ func (w *Walker) Sweep(paths []string) {
 		file.Status = null.StringFrom("scanned")
 		_, _ = file.UpdateG(context.Background(), boil.Infer())
 	}
+	w.server.BroadcastMessage("reload")
 }
 
 func (w *Walker) FullSweep() {
