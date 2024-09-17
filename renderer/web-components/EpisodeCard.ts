@@ -106,7 +106,7 @@ export class EpisodeCard extends LitElement {
     public render() {
         return html`<div class="episode ${this.episode.isWatched ? `watched` : ``}">
             <span class="title" alt="${this.getPlotTitle()}">
-                ${this.episode.season}.${this.episode.episode} - ${this.episode.title}
+                S${this.episode.season!.toString().padStart(2, "0")}-E${this.episode.episode.toString().padStart(2, "0")} - ${this.episode.title}
             </span>
             <div class="watch-btn" @click=${this.setWatch}
                     ?checked=${this.episode.isWatched}

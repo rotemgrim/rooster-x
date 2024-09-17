@@ -65,11 +65,11 @@ func main() {
 
 	app.Walker.StartWatch()
 	go app.Server.Start(WalkerInstance, TorrentsFetcher)
-	app.Scheduler.Schedule("0 09 * * *", app.Walker.FullSweep)             // every day at 09:00
+	app.Scheduler.Init()
+	app.Scheduler.Schedule("41 0 * * *", app.Walker.FullSweep)             // every day at 09:00
 	app.Scheduler.Schedule("0 19 * * *", app.Walker.FullSweep)             // every day at 19:00
 	app.Scheduler.Schedule("0 10 * * *", app.TorrentsFetcher.GetTorrents)  // every day at 10:00
 	app.Scheduler.Schedule("30 19 * * *", app.TorrentsFetcher.GetTorrents) // every day at 19:30
-
 	// create a channel to listen for signals
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)

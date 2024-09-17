@@ -5,7 +5,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-var Cron *cron.Cron
+//var Cron *cron.Cron
 
 type Scheduler struct {
 	Cron *cron.Cron
@@ -17,16 +17,16 @@ func NewScheduler() *Scheduler {
 	}
 }
 
-func (sc Scheduler) Init() *cron.Cron {
-	Cron = cron.New()
+func (sc *Scheduler) Init() *cron.Cron {
+	sc.Cron = cron.New()
 	// Start the scheduler
-	Cron.Start()
-	return Cron
+	sc.Cron.Start()
+	return sc.Cron
 }
 
 // Schedule adds a new task to the global cron instance
-func (sc Scheduler) Schedule(spec string, callback func()) {
-	_, err := Cron.AddFunc(spec, callback)
+func (sc *Scheduler) Schedule(spec string, callback func()) {
+	_, err := sc.Cron.AddFunc(spec, callback)
 	if err != nil {
 		fmt.Printf("Error adding task: %v\n", err)
 	}

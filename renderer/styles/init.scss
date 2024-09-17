@@ -14,6 +14,7 @@
   margin: 0;
 }
 
+:not(:root):fullscreen::backdrop,
 body {
   background-color: #000;
   font-family: $bodyFontFamily;
@@ -65,6 +66,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 2.4rem;
+  padding-top: 2.4rem;
+  box-sizing: border-box;
 
   .group {
       position: relative;
