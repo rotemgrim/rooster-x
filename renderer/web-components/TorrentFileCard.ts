@@ -19,7 +19,7 @@ export class TorrentFileCard extends LitElement {
     }
 
     public downLoadTorrent() {
-        IpcService.openExternal(`magnet:?xt=urn:btih:${this.torrentFile.magnet}&dn=${this.torrentFile.raw}`);
+        IpcService.openExternal(this.torrentFile.magnet);
     }
 
     public static fileOptions(file: TorrentFile) {
