@@ -329,9 +329,7 @@ export class VideoDetails extends LitElement {
                     <span class="rating">${this.video.rating}</span>
                     <span class="votes">${this.formatNumber(this.video.votes)} <small>/ votes</small></span>
                 </div>
-                ${this.video.imdbId ?
-                    html`<div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
-                <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
+
                 <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
                 <div class="subs" @click=${this.subsSearch}>Subs</div>
             </div>
@@ -386,6 +384,10 @@ export class VideoDetails extends LitElement {
                     frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowfullscreen></iframe>
                 ` : ""}</div>
+                ${this.video.imdbId ?
+                        html`<div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
+                <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
+                
                 ${!this.rooster.user.isAdmin ? html`<br><br>
                 <input type="text" style="font-size: 26px;"
                     @input=${(e) => this.searchTitle = e.target.value}
