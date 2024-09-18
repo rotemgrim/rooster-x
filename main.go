@@ -152,7 +152,12 @@ func openBrowserInKiosk(index int) {
 	// URL to open in kiosk mode
 	url := "http://localhost:5173"
 	// Command to run Chrome in kiosk mode
-	cmd := exec.Command(chromePathArr[index], "--new-window", "--kiosk", "--user-data-dir=C:\\Temp\\ChromeKiosk", url)
+	cmd := exec.Command(chromePathArr[index],
+		"--new-window",
+		"--kiosk",
+		"--user-data-dir=C:\\Temp\\ChromeKiosk",
+		"--remote-debugging-port=9222",
+		url)
 	// Start the command
 	err := cmd.Start()
 	if err != nil {

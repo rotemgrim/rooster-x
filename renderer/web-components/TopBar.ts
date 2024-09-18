@@ -90,7 +90,7 @@ export class TopBar extends LitElement {
     }
 
     private search(e?: any) {
-        // this.rooster._filteredMedia = [...this.rooster._media];
+        this.rooster._filteredMedia = [...this.rooster._media];
         if (e && e.target.value) {
             const searchTerm = e.target.value;
             this.rooster._filteredMedia = this.rooster._filteredMedia.filter((v) => {
@@ -125,7 +125,8 @@ export class TopBar extends LitElement {
     }
 
     private static close() {
-        IpcService.hideMe();
+        // IpcService.hideMe();
+        window.open('javascript:window.open("", "_self", "");window.close();', '_self');
     }
 
     private logout() {
