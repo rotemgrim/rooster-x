@@ -1,9 +1,14 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	m "go-poc/models"
 	"io"
 	"log"
 	"net/http"
@@ -145,4 +150,39 @@ func GetImdbRatingsFromImdb(imdbId string) (ImdbRating, error) {
 		Score: score,
 		Votes: votes,
 	}, nil
+}
+
+func ImdbRatingPoll() {
+	// Get all movies without imdb ratings
+	metaData, err := m.MetaData(
+		qm.Where("imdbId IS NOT NULL AND rating IS NULL"),
+		qm.OrderBy("id DESC"),
+	).OneG(context.Background())
+	if err != nil {
+		return
+	}
+
+	// Get the ratings
+	rating, err := GetImdbRatingsFromImdb(metaData.ImdbId.String)
+	if err != nil {
+		// update the movie with the rating
+		metaData.Rating = null.Float64From(-2)
+		metaData.Votes = null.Int64From(-2)
+		_, err = metaData.UpdateG(context.Background(), boil.Whitelist("rating", "votes"))
+		if err != nil {
+			log.Println("Error updating metaData with imdb rating:", err)
+		}
+		return
+	}
+
+	// Update the movie with the rating
+	metaData.Rating = null.Float64From(rating.Score)
+	metaData.Votes = null.Int64From(rating.Votes)
+	_, err = metaData.UpdateG(context.Background(), boil.Whitelist("rating", "votes"))
+	if err != nil {
+		log.Println("Error updating movie with imdb rating:", err)
+		return
+	}
+
+	log.Println("Updated metaData with imdb rating for:", metaData.Title.String, "rating:", rating.Score, "votes:", rating.Votes)
 }

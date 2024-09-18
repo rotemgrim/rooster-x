@@ -95,6 +95,7 @@ func onReady() {
 	app.Scheduler.Schedule("30 19 * * *", app.TorrentsFetcher.GetTorrents) // every day at 19:30
 
 	// schedule the imdb ratings fetcher
+	app.Scheduler.Schedule("* * * * *", server.ImdbRatingPoll)
 
 	// create a channel to listen for signals
 	sigChan := make(chan os.Signal, 1)
@@ -117,6 +118,7 @@ func trayInitialize() {
 	systray.SetTitle("RoosterX")
 	systray.SetTooltip("RoosterX")
 	mOpen := systray.AddMenuItem("Open", "Show the app")
+	systray.AddSeparator()
 	mSweep := systray.AddMenuItem("Sweep Files", "Run a full sweep on the file system")
 	mTorrentFetch := systray.AddMenuItem("Fetch Torrents", "Fetch torrents from pirate bay")
 	systray.AddSeparator()
