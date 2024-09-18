@@ -61,6 +61,9 @@ func onReady() {
 	// initialize the database
 	db.Init()
 
+	// initialize the config file
+	initializeConfig()
+
 	schedulerInstance := scheduler.NewScheduler()
 	ServerInstance := server.NewServer("static")
 	tmdbClient, err := tmdb.Init("REMOVED_TMDB_API_KEY")
@@ -95,7 +98,7 @@ func onReady() {
 	app.Scheduler.Schedule("30 19 * * *", app.TorrentsFetcher.GetTorrents) // every day at 19:30
 
 	// schedule the imdb ratings fetcher
-	app.Scheduler.Schedule("* * * * *", server.ImdbRatingPoll)
+	//app.Scheduler.Schedule("* * * * *", server.ImdbRatingPoll)
 
 	// create a channel to listen for signals
 	sigChan := make(chan os.Signal, 1)
@@ -109,6 +112,38 @@ func onReady() {
 	case _ = <-sigChan:
 		onExit()
 	}
+}
+
+func initializeConfig() {
+	// check if config file exists
+	if _, err := os.Stat("config.yaml"); os.IsNotExist(err) {
+		// create a new config file
+		file, err := os.Create("config.yaml")
+		if err != nil {
+			fmt.Println("Error creating config file")
+			return
+		}
+		defer file.Close()
+
+		defaultConfig := []byte(
+			`
+app_name: "MyApp"
+port: 8080
+db:
+	user: "admin"
+	password: "secret"
+	host: "localhost"
+	name: "mydb"
+`)
+
+		// write the default config to the file
+		_, err = file.WriteString(string(defaultConfig))
+		if err != nil {
+			fmt.Println("Error writing to config file")
+			panic(fmt.Errorf("Error writing to config file", err))
+		}
+	}
+
 }
 
 func trayInitialize() {
