@@ -51,7 +51,7 @@ func Init() {
 	//defer stmt.Close()
 	//
 	//for stmt.Step() {
-	//	fmt.Println(stmt.ColumnInt(0), stmt.ColumnText(1))
+	//	log.Println(stmt.ColumnInt(0), stmt.ColumnText(1))
 	//}
 	//if err := stmt.Err(); err != nil {
 	//	log.Fatal(err)

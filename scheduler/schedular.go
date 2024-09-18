@@ -1,8 +1,8 @@
 package scheduler
 
 import (
-	"fmt"
 	"github.com/robfig/cron/v3"
+	"log"
 )
 
 //var Cron *cron.Cron
@@ -28,6 +28,8 @@ func (sc *Scheduler) Init() *cron.Cron {
 func (sc *Scheduler) Schedule(spec string, callback func()) {
 	_, err := sc.Cron.AddFunc(spec, callback)
 	if err != nil {
-		fmt.Printf("Error adding task: %v\n", err)
+		log.Printf("Error adding task: %v\n", err)
+		return
 	}
+	log.Printf("Task added: %v\n", spec)
 }

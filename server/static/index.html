@@ -1,52 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Ping Pong</title>
-</head>
-<body>
-<h1>WebSocket Ping Pong</h1>
-<button id="pingButton">Send Ping</button>
-<button id="sweepButton">Sweep</button>
-<script>
-    let socket = null;
-    function connectToWs() {
-        // Connect to the WebSocket server
-        socket = new WebSocket('ws://localhost:8080/ws');
-
-        // Connection opened
-        socket.addEventListener('open', function (event) {
-            console.log('Connected to WebSocket server');
-        });
-
-        // Connection closed
-        socket.addEventListener('close', function (event) {
-            console.log('Disconnected from WebSocket server, reconnecting in 3 second');
-            setTimeout(connectToWs, 3000);
-        });
-
-        // Listen for messages
-        socket.addEventListener('message', function (event) {
-            console.log('Message from server:', event.data);
-        });
-    }
-
-    connectToWs();
-
-    // Send a ping message when the button is clicked
-    document.getElementById('pingButton').addEventListener('click', () => {
-        if (socket) {
-            socket && socket.send('ping');
-            console.log('Sent: ping');
-        }
-    });
-    document.getElementById('sweepButton').addEventListener('click', () => {
-        if (socket) {
-            socket.send('sweep');
-            console.log('Sent: sweep');
-        }
-    });
-</script>
-</body>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rooster X</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-QirjxSN_.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CdmfmRP1.css">
+  </head>
+  <body>
+    <rooster-x-wrapper></rooster-x-wrapper>
+  </body>
 </html>

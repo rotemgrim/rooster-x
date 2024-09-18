@@ -3,7 +3,6 @@ package server
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"io/fs"
 	"log"
@@ -54,7 +53,7 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 
 	//go func() {
 	//	for {
-	//		fmt.Println("broadcasting to all clients")
+	//		log.Println("broadcasting to all clients")
 	//		// Example: broadcast a message every 9 seconds
 	//		s.BroadcastMessage("Hello, clients!")
 	//		time.Sleep(9 * time.Second)
@@ -78,7 +77,7 @@ func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	// Add the new connection to the clients map
 	s.mutex.Lock()
 	s.clients[conn] = true
-	fmt.Println("Adding new client to clients map", len(s.clients))
+	log.Println("Adding new client to clients map", len(s.clients))
 	s.mutex.Unlock()
 
 	for {
@@ -100,7 +99,7 @@ func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	// Remove the connection from the clients map when done
 	s.mutex.Lock()
 	delete(s.clients, conn)
-	fmt.Println("Removing client from clients map", len(s.clients))
+	log.Println("Removing client from clients map", len(s.clients))
 	s.mutex.Unlock()
 }
 

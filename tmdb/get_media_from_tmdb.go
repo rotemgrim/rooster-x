@@ -9,6 +9,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	m "go-poc/models"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -46,7 +47,7 @@ func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.Meta
 		qm.Where("episode = ?", tor.Episode),
 	).OneG(context.Background())
 	if err == nil {
-		fmt.Println("using cached episode metadata")
+		log.Println("using cached episode metadata")
 		return tmpEpMd, nil
 	}
 
@@ -85,7 +86,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	// check if metadata is already in cache
 	tmdbSearchResult := TMDB_TV_SEARCH_CACHE[tor.Title]
 	if tmdbSearchResult == nil {
-		fmt.Println("searching TMDB TV for %s", tor.Title)
+		log.Println("searching TMDB TV for %s", tor.Title)
 
 		options := map[string]string{}
 		options["language"] = LANG
@@ -102,7 +103,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 		TMDB_TV_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
 		tmdbSearchResult = tmpTmdbSearchResult
 	} else {
-		fmt.Println("using cached for TMDB TV search: %s", tor.Title)
+		log.Println("using cached for TMDB TV search: %s", tor.Title)
 	}
 
 	if tmdbSearchResult.TotalResults == 0 {
@@ -119,7 +120,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 		"language":           LANG,
 		"append_to_response": "external_ids,genres,episodes,credits",
 	}
-	fmt.Println("getting TMDB TV details for %s", tor.Title)
+	log.Println("getting TMDB TV details for %s", tor.Title)
 	tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbSearchResult.Results[0].ID), detailsOptions)
 	if err != nil {
 		return nil, err
@@ -174,7 +175,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	// check if metadata is already in cache
 	var tmdbSearchResult = TMDB_MOVIE_SEARCH_CACHE[tor.Title]
 	if tmdbSearchResult == nil {
-		fmt.Println("searching TMDB MOVIE for %s", tor.Title)
+		log.Println("searching TMDB MOVIE for %s", tor.Title)
 
 		options := map[string]string{}
 		options["language"] = LANG
@@ -191,7 +192,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 		TMDB_MOVIE_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
 		tmdbSearchResult = tmpTmdbSearchResult
 	} else {
-		fmt.Println("using cached for TMDB MOVIE search: %s", tor.Title)
+		log.Println("using cached for TMDB MOVIE search: %s", tor.Title)
 	}
 
 	if tmdbSearchResult.TotalResults == 0 {
@@ -208,7 +209,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 		"language":           LANG,
 		"append_to_response": "external_ids,genres,credits,release_dates",
 	}
-	fmt.Println("getting TMDB MOVIE details for %s", tor.Title)
+	log.Println("getting TMDB MOVIE details for %s", tor.Title)
 	tmdbDetails, err := tmdbClient.GetMovieDetails(int(tmdbSearchResult.Results[0].ID), detailsOptions)
 	if err != nil {
 		return nil, err
@@ -259,7 +260,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 
 func HandleMetaDataGettingErr(file m.MediaFile, err error) bool {
 	if err != nil {
-		fmt.Println("handle metadata error:", err)
+		log.Println("handle metadata error:", err)
 		// update file row in db
 		file.MetaDataId = null.Int64From(0)
 		file.Status = null.StringFrom("error")
@@ -273,7 +274,7 @@ func HandleMetaDataGettingErr(file m.MediaFile, err error) bool {
 
 func HandleMetaDataGettingErr2(file m.TorrentFile, err error) bool {
 	if err != nil {
-		fmt.Println("handle metadata error:", err)
+		log.Println("handle metadata error:", err)
 		// update file row in db
 		file.MetaDataId = null.Int64From(0)
 		file.Status = null.StringFrom("error")

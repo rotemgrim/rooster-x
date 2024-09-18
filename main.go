@@ -11,11 +11,22 @@ import (
 	"go-poc/server"
 	"go-poc/torrents"
 	"go-poc/walker"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"gopkg.in/yaml.v3"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
 )
+
+type Config struct {
+	TmdbApiKey           string   `yaml:"tmdb_api_key"`
+	Directories          []string `yaml:"directories"`
+	FullDirectoriesSweep []string `yaml:"full_directories_sweep"`
+	TorrentsSweep        []string `yaml:"torrents_sweep"`
+	ImdbRatingPoll       string   `yaml:"imdb_rating_poll"`
+}
 
 type App struct {
 	Scheduler       *scheduler.Scheduler
@@ -27,6 +38,14 @@ type App struct {
 var app *App
 
 func main() {
+	logger := &lumberjack.Logger{
+		Filename:   "rooster.log",
+		MaxSize:    5, // megabytes
+		MaxBackups: 3,
+		MaxAge:     28, //days
+		//Compress:   true, // disabled by default
+	}
+	log.SetOutput(logger)
 	systray.Run(onReady, onExit)
 }
 
@@ -42,7 +61,7 @@ func listenForIncomingMessages() {
 	go func() {
 		for {
 			req := EventBus.ReceiveData()
-			fmt.Println("Received data:", req.Event)
+			log.Println("Received data:", req.Event)
 			if req.Event == "sweep-done" {
 				systray.SetIcon(RoosterIcon)
 			} else if req.Event == "get-imdb-ratings" {
@@ -62,22 +81,18 @@ func onReady() {
 	db.Init()
 
 	// initialize the config file
-	initializeConfig()
+	config := initializeConfig()
 
 	schedulerInstance := scheduler.NewScheduler()
 	ServerInstance := server.NewServer("static")
 	tmdbClient, err := tmdb.Init("REMOVED_TMDB_API_KEY")
 	if err != nil {
-		fmt.Println("Error initializing tmdb client")
+		log.Println("Error initializing tmdb client")
 		return
 	}
 
 	// directories array to walk
-	dirs := []string{
-		//"B:\\downloads\\complete",
-		"C:\\Users\\rotem\\Downloads",
-		//"B:\\dekel",
-	}
+	dirs := config.Directories
 	WalkerInstance := walker.NewWalker(dirs, ServerInstance, tmdbClient)
 	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org", ServerInstance, tmdbClient)
 
@@ -92,13 +107,19 @@ func onReady() {
 	app.Walker.StartWatch()
 	go app.Server.Start(WalkerInstance, TorrentsFetcher)
 	app.Scheduler.Init()
-	app.Scheduler.Schedule("41 0 * * *", app.Walker.FullSweep)             // every day at 09:00
-	app.Scheduler.Schedule("0 19 * * *", app.Walker.FullSweep)             // every day at 19:00
-	app.Scheduler.Schedule("0 10 * * *", app.TorrentsFetcher.GetTorrents)  // every day at 10:00
-	app.Scheduler.Schedule("30 19 * * *", app.TorrentsFetcher.GetTorrents) // every day at 19:30
+
+	for _, schedule := range config.FullDirectoriesSweep {
+		app.Scheduler.Schedule(schedule, app.Walker.FullSweep)
+	}
+
+	for _, schedule := range config.TorrentsSweep {
+		app.Scheduler.Schedule(schedule, app.TorrentsFetcher.GetTorrents)
+	}
 
 	// schedule the imdb ratings fetcher
-	//app.Scheduler.Schedule("* * * * *", server.ImdbRatingPoll)
+	if config.ImdbRatingPoll != "" {
+		app.Scheduler.Schedule(config.ImdbRatingPoll, server.ImdbRatingPoll)
+	}
 
 	// create a channel to listen for signals
 	sigChan := make(chan os.Signal, 1)
@@ -114,36 +135,60 @@ func onReady() {
 	}
 }
 
-func initializeConfig() {
+func initializeConfig() Config {
 	// check if config file exists
 	if _, err := os.Stat("config.yaml"); os.IsNotExist(err) {
 		// create a new config file
 		file, err := os.Create("config.yaml")
 		if err != nil {
-			fmt.Println("Error creating config file")
-			return
+			log.Println("Error creating config file")
+			panic(fmt.Errorf("Error creating config file", err))
 		}
 		defer file.Close()
 
 		defaultConfig := []byte(
 			`
-app_name: "MyApp"
-port: 8080
-db:
-	user: "admin"
-	password: "secret"
-	host: "localhost"
-	name: "mydb"
+tmdb_api_key: "REMOVED_TMDB_API_KEY"
+
+directories:
+    - "B:\\downloads\\complete"
+    - "B:\\dekel"
+
+full_directories_sweep:
+    - "0 9 * * *" # Every day at 09:00
+    - "0 19 * * *" # Every day at 19:00
+
+torrents_sweep:
+    - "0 10 * * *" # Every day at 10:00
+    - "30 19 * * *" # Every day at 19:30
+
+imdb_rating_poll: "* * * * *" # Every minute
 `)
 
 		// write the default config to the file
 		_, err = file.WriteString(string(defaultConfig))
 		if err != nil {
-			fmt.Println("Error writing to config file")
+			log.Println("Error writing to config file")
 			panic(fmt.Errorf("Error writing to config file", err))
 		}
 	}
 
+	// read the config file
+	configData, err := os.ReadFile("config.yaml")
+	if err != nil {
+		log.Println("Error reading config file")
+		panic(fmt.Errorf("Error reading config file", err))
+	}
+
+	// unmarshal the config file
+	var cfg Config
+	err = yaml.Unmarshal(configData, &cfg)
+	if err != nil {
+		panic(fmt.Errorf("Error unmarshalling config file", err))
+	}
+
+	//spew.Dump(cfg)
+	return cfg
 }
 
 func trayInitialize() {
@@ -186,12 +231,12 @@ func openBrowserInKiosk(index int) {
 	}
 
 	if index >= len(chromePathArr) {
-		fmt.Println("Chrome not found")
+		log.Println("Chrome not found")
 		return
 	}
 
 	// URL to open in kiosk mode
-	url := "http://localhost:5173"
+	url := "http://localhost:8080"
 	// Command to run Chrome in kiosk mode
 	cmd := exec.Command(chromePathArr[index],
 		"--new-window",

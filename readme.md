@@ -21,3 +21,8 @@ run this to generate models:
 ```bash
 sqlboiler sqlite3 --add-global-variants --add-panic-variants
 ```
+
+### Building
+```bash
+go build -ldflags="-H windowsgui" -o roosterx.exe
+```

@@ -154,7 +154,7 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	}
 	query := models.NewQuery(queryMods...)
 	text, _ := queries.BuildQuery(query)
-	fmt.Printf(text)
+	log.Printf(text)
 	transmitPromiseResponse(c, data, media)
 }
 

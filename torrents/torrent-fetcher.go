@@ -13,6 +13,7 @@ import (
 	"go-poc/server"
 	tmdb2 "go-poc/tmdb"
 	"go-poc/torrents/tpb"
+	"log"
 	"time"
 )
 
@@ -46,7 +47,7 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 	// get all missing metadata for files and query TMDB
 	torrentsWithoutMetaData, err := m.TorrentFiles(qm.Where(`metaDataId IS NULL`)).AllG(context.Background())
 	if err != nil {
-		fmt.Println("no torrents without metadata found, skipping")
+		log.Println("no torrents without metadata found, skipping")
 		return
 	}
 
@@ -77,7 +78,7 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 			// check if newMd is already saved
 			if !newMd.ID.Valid {
 				// save the metadata to the db
-				fmt.Println("inserting metadata to DB")
+				log.Println("inserting metadata to DB")
 				err = newMd.InsertG(context.Background(), boil.Infer())
 				if tmdb2.HandleMetaDataGettingErr2(*file, err) {
 					continue
@@ -90,7 +91,7 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 		if md.Series.Valid && md.Series.Bool {
 
 			// try getting episode from DB
-			fmt.Println("Getting episode metadata")
+			log.Println("Getting episode metadata")
 			title := getTitle(md, tor, file)
 			msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, title, tor.Season,
 				tor.Episode)
@@ -102,7 +103,7 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 
 			if !epMd.ID.Valid {
 				// save the episode metadata to the db
-				fmt.Println("inserting episode to DB")
+				log.Println("inserting episode to DB")
 				err = epMd.InsertG(context.Background(), boil.Infer())
 				if tmdb2.HandleMetaDataGettingErr2(*file, err) {
 					continue
@@ -138,7 +139,7 @@ func fetchTorrentsFromSearch(search string) {
 	// Fetch the torrent from the pirate bay link
 	torrents, err := tpb.Lookup(search, time.Second*30)
 	if err != nil {
-		fmt.Println("Error fetching torrents: ", err)
+		log.Println("Error fetching torrents: ", err)
 		return
 	}
 

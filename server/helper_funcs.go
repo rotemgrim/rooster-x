@@ -71,8 +71,8 @@ func GetYouTubeTrailer(title string, year int) (string, error) {
 		return "", err
 	}
 
-	//fmt.Printf("response url %s", url)
-	//fmt.Printf("response text for trailer %s", text)
+	//log.Printf("response url %s", url)
+	//log.Printf("response text for trailer %s", text)
 
 	// do the same with go
 	regex := regexp.MustCompile(`"videoId":"(.*?)"`)
@@ -117,8 +117,8 @@ func GetImdbRatingsFromImdb(imdbId string) (ImdbRating, error) {
 		return ImdbRating{}, err
 	}
 
-	//fmt.Printf("imdb url %s\n", url)
-	//fmt.Printf("response text for imdb %s\n", text)
+	//log.Printf("imdb url %s\n", url)
+	//log.Printf("response text for imdb %s\n", text)
 
 	ratingValuePattern := regexp.MustCompile(`"aggregateRating":\{"@type":"AggregateRating".*?"ratingValue":(\d+(\.\d+)?)`)
 	ratingCountPattern := regexp.MustCompile(`"aggregateRating":\{"@type":"AggregateRating".*?"ratingCount":(\d+)`)

@@ -10,7 +10,7 @@ func main() {
 	// Open the .ico file
 	file, err := os.Open("icon.ico")
 	if err != nil {
-		fmt.Println("Error opening file:", err)
+		log.Println("Error opening file:", err)
 		return
 	}
 	defer file.Close()
@@ -18,7 +18,7 @@ func main() {
 	// Read the file into a byte slice
 	byteArray, err := io.ReadAll(file)
 	if err != nil {
-		fmt.Println("Error reading file:", err)
+		log.Println("Error reading file:", err)
 		return
 	}
 
@@ -30,7 +30,7 @@ func main() {
 	// Create the Go file
 	err = saveToFile("rooster-icon.go", formatted)
 	if err != nil {
-		fmt.Println("Error saving file:", err)
+		log.Println("Error saving file:", err)
 	}
 }
 
