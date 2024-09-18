@@ -10,6 +10,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/db"
+	EventBus "go-poc/event-bus"
 	m "go-poc/models"
 	"go-poc/server"
 	tmdb2 "go-poc/tmdb"
@@ -164,6 +165,7 @@ func (w *Walker) releaseLock(msg string) {
 		w.server.BroadcastMessage(msg)
 	}
 	_ = os.Remove("sweep.lock")
+	EventBus.SendData("sweep-done")
 }
 
 func (w *Walker) GetEntriesFromPaths(paths []string) []m.MediaFile {

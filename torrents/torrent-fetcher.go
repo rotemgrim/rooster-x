@@ -8,6 +8,7 @@ import (
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	EventBus "go-poc/event-bus"
 	m "go-poc/models"
 	"go-poc/server"
 	tmdb2 "go-poc/tmdb"
@@ -38,6 +39,7 @@ func (tf *TorrentFetcher) FullSweep() {
 
 	tf.server.BroadcastMessage("Finished fetching torrents and metadata :)")
 	tf.server.BroadcastMessage("reload-torrents")
+	EventBus.SendData("sweep-done")
 }
 
 func (tf *TorrentFetcher) GetMetaDataFromInternet() {
