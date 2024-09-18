@@ -220,28 +220,32 @@ export class IpcService {
         });
     }
 
-    public static async getIMDBRating(imdbID: string) {
-        const url = `https://www.imdb.com/title/${imdbID}/`;
-        try {
-            const response = await fetch(url, { mode: 'no-cors'});
-            const text = await response.text();
-
-            // create dom parser to parse the html
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/html');
-            // @ts-ignore
-            const ratingStr = doc.querySelector("[aria-label='View User Ratings']").innerText;
-            const tmp = ratingStr.split("\n/10\\n");
-            const ratingMatch = tmp[0];
-            const votesMatch = tmp[1];
-
-            console.log("rateingStr", ratingStr);
-            console.log("ratingMatch", ratingMatch);
-            console.log("votesMatch", votesMatch);
-
-        } catch (error) {
-            console.error('Error fetching IMDb rating:', error);
-        }
+    public static async getIMDBRating(id: number, imdbId: string | undefined) {
+        return new Promise((resolve, reject) => {
+            const payload = {metaDataId: id, imdbId};
+            promiseIpc.send("get-imdb-rating", payload).then(resolve).catch(reject);
+        });
+        // const url = `https://www.imdb.com/title/${imdbID}/`;
+        // try {
+        //     const response = await fetch(url, { mode: 'no-cors'});
+        //     const text = await response.text();
+        //
+        //     // create dom parser to parse the html
+        //     const parser = new DOMParser();
+        //     const doc = parser.parseFromString(text, 'text/html');
+        //     // @ts-ignore
+        //     const ratingStr = doc.querySelector("[aria-label='View User Ratings']").innerText;
+        //     const tmp = ratingStr.split("\n/10\\n");
+        //     const ratingMatch = tmp[0];
+        //     const votesMatch = tmp[1];
+        //
+        //     console.log("ratingStr", ratingStr);
+        //     console.log("ratingMatch", ratingMatch);
+        //     console.log("votesMatch", votesMatch);
+        //
+        // } catch (error) {
+        //     console.error('Error fetching IMDb rating:', error);
+        // }
     }
 
     public static async getYouTubeTrailer(metaDataId: number, title: string, year?: number) {

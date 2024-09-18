@@ -165,7 +165,7 @@ func (w *Walker) releaseLock(msg string) {
 		w.server.BroadcastMessage(msg)
 	}
 	_ = os.Remove("sweep.lock")
-	EventBus.SendData("sweep-done")
+	EventBus.SendEvent("sweep-done", nil)
 }
 
 func (w *Walker) GetEntriesFromPaths(paths []string) []m.MediaFile {

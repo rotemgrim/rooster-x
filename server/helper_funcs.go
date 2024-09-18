@@ -1,0 +1,148 @@
+package server
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/gorilla/websocket"
+	"io"
+	"log"
+	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+func transmitPromiseResponse(c *websocket.Conn, req PayloadRequest, data interface{}) {
+	response := PayloadResponse{
+		ReplyChannel: req.ReplyChannel,
+		Status:       StatusSuccess,
+		Data:         data,
+	}
+	jsonResult, err := json.Marshal(response)
+	if err != nil {
+		log.Println("Error marshalling result:", err)
+		return
+	}
+	err = c.WriteMessage(websocket.TextMessage, jsonResult)
+	if err != nil {
+		log.Println("Error writing message:", err)
+	}
+}
+
+func transmitPromiseReject(c *websocket.Conn, req PayloadRequest, data interface{}) {
+	response := PayloadResponse{
+		ReplyChannel: req.ReplyChannel,
+		Status:       StatusFailure,
+		Data:         data,
+	}
+	jsonResult, err := json.Marshal(response)
+	if err != nil {
+		log.Println("Error marshalling result:", err)
+		return
+	}
+	err = c.WriteMessage(websocket.TextMessage, jsonResult)
+	if err != nil {
+		log.Println("Error writing message:", err)
+	}
+}
+
+func GetYouTubeTrailer(title string, year int) (string, error) {
+	url := fmt.Sprintf("https://www.youtube.com/results?search_query=%s+%d+trailer", title, year)
+	// url encode
+	url = strings.ReplaceAll(url, " ", "+")
+
+	// get the page with fetch
+	response, err := http.Get(url)
+	if err != nil {
+		log.Println("Error fetching youtube page:", err)
+		return "", err
+	}
+	defer response.Body.Close()
+
+	// convert to string
+	text, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Println("Error reading youtube page:", err)
+		return "", err
+	}
+
+	//fmt.Printf("response url %s", url)
+	//fmt.Printf("response text for trailer %s", text)
+
+	// do the same with go
+	regex := regexp.MustCompile(`"videoId":"(.*?)"`)
+	match := regex.FindStringSubmatch(string(text))
+	if len(match) < 2 {
+		log.Println("No Youtube trailer found")
+		return "", fmt.Errorf("No Youtube trailer found")
+	}
+	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", match[1]), nil
+}
+
+type ImdbRating struct {
+	Score float64
+	Votes int64
+}
+
+func GetImdbRatingsFromImdb(imdbId string) (ImdbRating, error) {
+	url := fmt.Sprintf("https://www.imdb.com/title/%s/", imdbId)
+
+	// Create a new request
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Println("Error creating request:", err)
+		return ImdbRating{}, err
+	}
+
+	// Set the User-Agent header
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36")
+
+	// Perform the request
+	client := &http.Client{}
+	response, err := client.Do(req)
+	if err != nil {
+		log.Println("Error fetching imdb page:", err)
+		return ImdbRating{}, err
+	}
+	defer response.Body.Close()
+
+	text, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Println("Error reading imdb page:", err)
+		return ImdbRating{}, err
+	}
+
+	//fmt.Printf("imdb url %s\n", url)
+	//fmt.Printf("response text for imdb %s\n", text)
+
+	ratingValuePattern := regexp.MustCompile(`"aggregateRating":\{"@type":"AggregateRating".*?"ratingValue":(\d+(\.\d+)?)`)
+	ratingCountPattern := regexp.MustCompile(`"aggregateRating":\{"@type":"AggregateRating".*?"ratingCount":(\d+)`)
+
+	// Find matches
+	ratingValueMatch := ratingValuePattern.FindStringSubmatch(string(text))
+	ratingCountMatch := ratingCountPattern.FindStringSubmatch(string(text))
+
+	// Extract values if matches are found
+	var ratingValue, ratingCount string
+	if len(ratingValueMatch) > 1 {
+		ratingValue = ratingValueMatch[1]
+	}
+	if len(ratingCountMatch) > 1 {
+		ratingCount = ratingCountMatch[1]
+	}
+
+	score, err := strconv.ParseFloat(ratingValue, 63)
+	if err != nil {
+		score = -1
+	}
+
+	votes, err := strconv.ParseInt(ratingCount, 10, 64)
+	if err != nil {
+		votes = -1
+	}
+
+	return ImdbRating{
+		Score: score,
+		Votes: votes,
+	}, nil
+}

@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/skratchdot/open-golang/open"
@@ -11,10 +10,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/models"
-	"io"
 	"log"
-	"net/http"
-	"regexp"
 	"strings"
 )
 
@@ -485,61 +481,11 @@ func (s *Server) RouteNotFound(c *websocket.Conn, data PayloadRequest) {
 	transmitPromiseReject(c, data, "Route not found")
 }
 
-func transmitMessage(c *websocket.Conn, data interface{}) {
-	response := MsgResponse{
-		Status: StatusMsg,
-		Data:   data,
-	}
-	jsonResult, err := json.Marshal(response)
-	if err != nil {
-		log.Println("Error marshalling message:", err)
-		return
-	}
-	err = c.WriteMessage(websocket.TextMessage, jsonResult)
-	if err != nil {
-		log.Println("Error writing message:", err)
-	}
-}
-
-func transmitPromiseResponse(c *websocket.Conn, req PayloadRequest, data interface{}) {
-	response := PayloadResponse{
-		ReplyChannel: req.ReplyChannel,
-		Status:       StatusSuccess,
-		Data:         data,
-	}
-	jsonResult, err := json.Marshal(response)
-	if err != nil {
-		log.Println("Error marshalling result:", err)
-		return
-	}
-	err = c.WriteMessage(websocket.TextMessage, jsonResult)
-	if err != nil {
-		log.Println("Error writing message:", err)
-	}
-}
-
-func transmitPromiseReject(c *websocket.Conn, req PayloadRequest, data interface{}) {
-	response := PayloadResponse{
-		ReplyChannel: req.ReplyChannel,
-		Status:       StatusFailure,
-		Data:         data,
-	}
-	jsonResult, err := json.Marshal(response)
-	if err != nil {
-		log.Println("Error marshalling result:", err)
-		return
-	}
-	err = c.WriteMessage(websocket.TextMessage, jsonResult)
-	if err != nil {
-		log.Println("Error writing message:", err)
-	}
-}
-
 func (s *Server) GetTrailer(c *websocket.Conn, req PayloadRequest) {
 	title := req.Data.(map[string]interface{})["title"].(string)
 	year := int(req.Data.(map[string]interface{})["year"].(float64))
 	metaDataId := int64(req.Data.(map[string]interface{})["metaDataId"].(float64))
-	trailer, err := getYouTubeTrailer(title, year)
+	trailer, err := GetYouTubeTrailer(title, year)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not get trailer %s", err))
 		return
@@ -554,35 +500,23 @@ func (s *Server) GetTrailer(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, trailer)
 }
 
-func getYouTubeTrailer(title string, year int) (string, error) {
-	url := fmt.Sprintf("https://www.youtube.com/results?search_query=%s+%d+trailer", title, year)
-	// url encode
-	url = strings.ReplaceAll(url, " ", "+")
+func (s *Server) GetImdbRating(c *websocket.Conn, req PayloadRequest) {
+	imdbId := req.Data.(map[string]interface{})["imdbId"].(string)
+	metaDataId := int64(req.Data.(map[string]interface{})["metaDataId"].(float64))
 
-	// get the page with fetch
-	response, err := http.Get(url)
+	rating, err := GetImdbRatingsFromImdb(imdbId)
 	if err != nil {
-		log.Println("Error fetching youtube page:", err)
-		return "", err
-	}
-	defer response.Body.Close()
-
-	// convert to string
-	text, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Println("Error reading youtube page:", err)
-		return "", err
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get imdb rating %s", err))
+		return
 	}
 
-	fmt.Printf("response url %s", url)
-	fmt.Printf("response text for trailer %s", text)
-
-	// do the same with go
-	regex := regexp.MustCompile(`"videoId":"(.*?)"`)
-	match := regex.FindStringSubmatch(string(text))
-	if len(match) < 2 {
-		log.Println("No Youtube trailer found")
-		return "", fmt.Errorf("No Youtube trailer found")
+	// update rating in db
+	meta, err := models.FindMetaDatumG(context.Background(), null.Int64From(metaDataId))
+	if err == nil {
+		meta.Votes = null.Int64From(rating.Votes)
+		meta.Rating = null.Float64From(rating.Score)
+		_, _ = meta.UpdateG(context.Background(), boil.Infer())
 	}
-	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", match[1]), nil
+
+	transmitPromiseResponse(c, req, rating)
 }

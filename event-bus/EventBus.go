@@ -1,13 +1,21 @@
 package EventBus
 
 var (
-	DataChannel = make(chan string, 100) // Buffered channel with capacity of 100
+	dataChannel = make(chan Request, 4000) // Buffered channel with capacity of 4000
 )
 
-func SendData(data string) {
-	DataChannel <- data
+type Request struct {
+	Event    string
+	Data     interface{}
+	Response chan interface{}
 }
 
-func ReceiveData() string {
-	return <-DataChannel
+func SendEvent(event string, data interface{}) interface{} {
+	responseChan := make(chan interface{})
+	dataChannel <- Request{Event: event, Data: data, Response: responseChan}
+	return <-responseChan
+}
+
+func ReceiveData() Request {
+	return <-dataChannel
 }

@@ -30,6 +30,7 @@ func (s *Server) SetRoutes() {
 	s.on("get-all-genres", s.GetAllGenres)
 
 	s.on("get-trailer", s.GetTrailer)
+	s.on("get-imdb-rating", s.GetImdbRating)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {

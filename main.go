@@ -41,12 +41,13 @@ func onExit() {
 func listenForIncomingMessages() {
 	go func() {
 		for {
-			select {
-			case data := <-EventBus.DataChannel:
-				fmt.Println("Received data:", data)
-				if data == "sweep-done" {
-					systray.SetIcon(RoosterIcon)
-				}
+			req := EventBus.ReceiveData()
+			fmt.Println("Received data:", req.Event)
+			if req.Event == "sweep-done" {
+				systray.SetIcon(RoosterIcon)
+			} else if req.Event == "get-imdb-ratings" {
+				// mock the response
+				//req.Response <- server.GetImdbRatings(req.Data.(string))
 			}
 		}
 	}()
@@ -92,6 +93,9 @@ func onReady() {
 	app.Scheduler.Schedule("0 19 * * *", app.Walker.FullSweep)             // every day at 19:00
 	app.Scheduler.Schedule("0 10 * * *", app.TorrentsFetcher.GetTorrents)  // every day at 10:00
 	app.Scheduler.Schedule("30 19 * * *", app.TorrentsFetcher.GetTorrents) // every day at 19:30
+
+	// schedule the imdb ratings fetcher
+
 	// create a channel to listen for signals
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)

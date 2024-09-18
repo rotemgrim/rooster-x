@@ -95,6 +95,17 @@ export class VideoDetails extends LitElement {
                 }
             ).catch(console.log);
         }
+        if (!this.video.rating) {
+            IpcService.getIMDBRating(this.video.id, this.video.imdbId)
+                .then((res) => {
+                        if (res) {
+                            this.video.rating = (res as {Score: number}).Score;
+                            this.video.votes = (res as {Votes: number}).Votes;
+                            this.requestUpdate();
+                        }
+                    }
+                ).catch(console.log);
+        }
     }
 
     public async connectedCallback() {
