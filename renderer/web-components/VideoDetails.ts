@@ -218,7 +218,7 @@ export class VideoDetails extends LitElement {
                 IpcService.getMetaDataByFileId({id: mediaFile.id})
                     .then((metaData: MetaData|Episode) => {
                         if (metaData) {
-                            console.log("metaData", metaData);
+                            console.log(`metaData from mediaFile`, metaData);
                             this.didYouWatched = metaData;
                             this.requestUpdate();
                         }

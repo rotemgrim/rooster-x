@@ -152,9 +152,9 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		//transmitPromiseReject(c, data, fmt.Sprintf("could not get media %s", err))
 		return
 	}
-	query := models.NewQuery(queryMods...)
-	text, _ := queries.BuildQuery(query)
-	log.Printf(text)
+	//query := models.NewQuery(queryMods...)
+	//text, _ := queries.BuildQuery(query)
+	//log.Printf(text)
 	transmitPromiseResponse(c, data, media)
 }
 
@@ -296,6 +296,7 @@ md.*, ue.isWatched as isWatched`),
 			transmitPromiseReject(c, req, fmt.Sprintf("could not find episode in db %s", err))
 			return
 		}
+		tmp.Id = null.Int64From(mediaFile.EpisodeId.Int64)
 		//tmp["userEpisode"] = episode
 		//tmp["isAlreadyWatched"] = episode.isWatched.Bool
 		//tmp["isAlreadyWatched"] = episode.(*models.Episode).R.EpisodeIdUserEpisodes[0].IsWatched.Bool

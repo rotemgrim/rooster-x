@@ -96,11 +96,12 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
             const replyChannel = `${route}#${uuid()}`;
             this.queue[replyChannel] = {success: resolve, failure: reject};
 
+            console.log(`Sending message to server: ${route}`, payload);
             // ipcRenderer will send a message back to replyChannel when it finishes calculating
             this.socket.send(RendererPromiseIpc.prepareDataForSend(replyChannel, route, payload));
 
             setTimeout(() => {
-                console.error("Renderer PromiseIpc times out after " + (this.maxTimeoutMs / 1000) + " seconds");
+                console.error(`Renderer PromiseIpc times out after ${(this.maxTimeoutMs / 1000)} seconds for: ${route}`);
                 reject(new Error(`${route} timed out.`));
             }, this.maxTimeoutMs);
         });

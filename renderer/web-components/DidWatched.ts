@@ -116,7 +116,7 @@ export class DidWatched extends LitElement {
 
         return html`<div class="did-you-watched">
             ${data.poster ?
-                html`<img src="${data.poster}" alt="${data.title}" />` :
+                html`<img src="https://image.tmdb.org/t/p/w300${data.poster}" alt="${data.title}" />` :
                 html`<div class="img-missing"><span>${data.title}</span></div>`}
             <div class="main">
                 <h2>Mark as watched?</h2>
