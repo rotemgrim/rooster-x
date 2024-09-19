@@ -325,7 +325,9 @@ export class RoosterX extends LitElement {
         let mediaArray = newList.ToArray();
         let result;
         if (this._orderConfig.showUnwatchedFirst) {
-            mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
+            // sort by watched boolean
+            mediaArray = _.orderBy(mediaArray, [(m)=>m.isWatched ? 0 : 1], "desc");
+            // mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
         }
         result = mediaArray;
 
