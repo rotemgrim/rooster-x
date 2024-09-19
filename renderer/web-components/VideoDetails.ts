@@ -345,7 +345,7 @@ export class VideoDetails extends LitElement {
                 <div class="subs" @click=${this.subsSearch}>Subs</div>
             </div>
             <div class="main-details" tabindex="0">
-                <h1>${this.video.name}</h1>
+                <h1>${this.video.title}</h1>
                 <p>${this.video.plot}</p>
                 <div class="small-details">
                     <div class="genres">${this.video.genres}</div> ${VideoDetails.getSep()}

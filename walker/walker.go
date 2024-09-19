@@ -289,6 +289,17 @@ func (w *Walker) Sweep(paths []string) {
 				if tmdb2.HandleMetaDataGettingErr(*file, err) {
 					continue
 				}
+
+				// check if user watched the metadata
+				umd, err := m.UserMetaData(
+					qm.Where("userId = ?", 1),
+					qm.Where("metaDataId = ?", md.ID),
+				).OneG(context.Background())
+				if err == nil && umd.IsWatched.Bool {
+					// mark the user metadata as unwatched
+					umd.IsWatched = null.BoolFrom(false)
+					_, _ = umd.UpdateG(context.Background(), boil.Infer())
+				}
 			}
 
 			file.EpisodeId = epMd.ID

@@ -63,7 +63,9 @@ export class IpcService {
 
     public static openExternal(url: string) {
         // url encode the url
-        url = encodeURI(url);
+        if (url.startsWith("magnet:")) {
+            url = encodeURI(url);
+        }
         ipcRenderer.send("open-external", {url});
     }
 
