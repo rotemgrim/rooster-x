@@ -238,7 +238,7 @@ export class VideoDetails extends LitElement {
 
     public subsSearch() {
         if (this.video.type === "series") {
-            const eps = _.filter(this._episodes, (o => o.mediaFiles.length > 0));
+            const eps = _.filter(this._episodes, (o => o.mediaFiles?.length > 0));
             const episodeMax = _.maxBy(eps, ["season", "episode"]);
             IpcService.openExternal(
                 `https://www.google.com/search?q=site:subscene.com`
@@ -265,7 +265,7 @@ export class VideoDetails extends LitElement {
         const title = this.video.title.replace(" ", "+");
         if (this.video.type === "series") {
             // get latest episode
-            const eps = _.filter(this._episodes, (o => o.mediaFiles.length > 0));
+            const eps = _.filter(this._episodes, (o => o.mediaFiles?.length > 0));
             const episodeMax = _.maxBy(eps, ["season", "episode"]);
             const se = VideoDetails.getSeriesStringFromEpisode(episodeMax, 1);
             sLink += `${title}${se}/TV/seeders/desc/1/`;

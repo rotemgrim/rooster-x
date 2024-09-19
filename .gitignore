@@ -1,1 +1,6 @@
 db.sqlite
+/config.yaml
+/rooster.log
+/roosterx.exe
+/renderer/dist/
+/renderer/pnpm-lock.yaml

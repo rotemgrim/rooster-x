@@ -435,6 +435,23 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 		}
 	}
 
+	// update series watched status
+	umd, err := models.UserMetaData(
+		qm.Where("metaDataId = ?", episode.MetaDataId.Int64),
+		qm.Where("userId = ?", 1),
+	).OneG(context.Background())
+	if err == nil {
+		umd.IsWatched = null.BoolFrom(isSeriesWatched)
+		_, _ = umd.UpdateG(context.Background(), boil.Infer())
+	} else {
+		newUmd := &models.UserMetaDatum{
+			UserId:     null.Int64From(1),
+			MetaDataId: episode.MetaDataId,
+			IsWatched:  null.BoolFrom(isSeriesWatched),
+		}
+		_ = newUmd.InsertG(context.Background(), boil.Infer())
+	}
+
 	res := response{
 		IsSeriesWatched: isSeriesWatched,
 	}

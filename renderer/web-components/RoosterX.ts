@@ -362,8 +362,15 @@ export class RoosterX extends LitElement {
                 result = sortedResult;
 
             } else {
-                const linqList = new List<IMetaDataExtended>([...mediaArray]);
-                const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
+                let linqList = new List<IMetaDataExtended>([...mediaArray]);
+
+                let grouped;
+                if (this._orderConfig.groupBy === "rating") {
+                    linqList = linqList.OrderBy((x: IMetaDataExtended) => parseFloat(x[this._orderConfig.groupBy]));
+                    grouped = linqList.GroupBy((x: IMetaDataExtended) => parseFloat(x[this._orderConfig.groupBy])) as Record<string, IMetaDataExtended[]>;
+                } else {
+                    grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
+                }
 
                 if (this._orderConfig.directionDescending) {
                     // reverse the order of the groups
@@ -488,6 +495,9 @@ export class RoosterX extends LitElement {
         if (!this._filteredMedia.length) {
 
             const getGroupTitleFunc = (oc: OrderConfig): (group: string)=>string => {
+                if (oc.groupBy === "rating") {
+                    return (group) => group ? group : "N/A";
+                }
                 if (oc.groupBy === "genres") {
                     return (group) => group ? group : "N/A";
                 }
