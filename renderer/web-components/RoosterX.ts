@@ -366,26 +366,23 @@ export class RoosterX extends LitElement {
             } else {
                 let linqList = new List<IMetaDataExtended>([...mediaArray]);
 
-                let grouped;
-                if (this._orderConfig.groupBy === "rating") {
-                    linqList = linqList.OrderBy((x: IMetaDataExtended) => parseFloat(x[this._orderConfig.groupBy]));
-                    grouped = linqList.GroupBy((x: IMetaDataExtended) => parseFloat(x[this._orderConfig.groupBy])) as Record<string, IMetaDataExtended[]>;
-                } else {
-                    grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
-                }
+                const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
 
+                // sort the groups
+                const keys = Object.keys(grouped).sort((a, b) => a > b ? 1 : -1);
+                console.log("keys", keys);
                 if (this._orderConfig.directionDescending) {
-                    // reverse the order of the groups
-                    const keys = Object.keys(grouped);
                     keys.reverse();
-                    const sortedResult = {};
-                    for (const key of keys) {
-                        sortedResult[key] = grouped[key];
-                    }
-                    result = sortedResult;
-                } else {
-                    result = grouped;
                 }
+                console.log("keys2", keys);
+                const sortedResult = {};
+                for (const i in keys) {
+                    if (keys[i] !== "null") {
+                        sortedResult[i + " Score: " + keys[i]] = grouped[keys[i]];
+                    }
+                }
+                sortedResult["N/A"] = grouped["null"];
+                result = sortedResult;
             }
         }
 
