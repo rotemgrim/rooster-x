@@ -17,6 +17,7 @@ import {type MediaFile} from "../entity/MediaFile";
 import {type TorrentFile} from "../entity/TorrentFile";
 import {VideoCard} from "./VideoCard";
 import {TopBar} from "./TopBar";
+import {fromNow} from "../common/commonUtils";
 
 
 export function isStringContains(str, items) {
@@ -43,7 +44,7 @@ export class RoosterX extends LitElement {
 
     @property() public _media: MetaData[] = [];
     @property() public _torrents: MetaData[] = [];
-    @property() public _filteredMedia: IMetaDataExtended[] | Record<string, IMetaDataExtended[]> = [];
+    @property() public _filteredMedia: IMetaDataExtended[] | Map<string, IMetaDataExtended[]> = [];
     @property() public _sideBar: boolean = false;
     @property() public _panel: string = "";
     @property() public user: User;
@@ -58,7 +59,8 @@ export class RoosterX extends LitElement {
     @property() public _orderConfig: OrderConfig = {
         directionDescending: true,
         orderBy: "latestChange",
-        groupBy: "none",
+        // groupBy: "none",
+        groupBy: "year",
         showUnwatchedFirst: false,
     };
     @property() public _sweepStatus: string = "";
@@ -184,10 +186,108 @@ export class RoosterX extends LitElement {
             this._filteredMedia = this.filterMedia(this._filteredMedia);
         }
 
-        this._filteredMedia = this.sortMedia(this._filteredMedia);
+        let tmpMediaArray: IMetaDataExtended[] | Map<string, IMetaDataExtended[]> = [...this._filteredMedia];
+
+        // group media
+        if (this._orderConfig.groupBy && this._orderConfig.groupBy !== "none") {
+            tmpMediaArray = this.groupBy(tmpMediaArray, this._orderConfig.groupBy);
+            console.log("grouped:", tmpMediaArray);
+        }
+
+        // check if grouped media is a map
+        if (tmpMediaArray instanceof Map) {
+            // sort media for each group
+            for (const [key, arr] of tmpMediaArray) {
+                tmpMediaArray.set(key, this.sortMedia(arr));
+            }
+        } else {
+             // sort media
+            tmpMediaArray = this.sortMedia(tmpMediaArray);
+        }
+
+        console.log("grouped 2:", tmpMediaArray);
+        this._filteredMedia = tmpMediaArray;
+
         console.log("sorted:", this._filteredMedia);
         this.requestUpdate();
     }
+
+    groupBy(mediaArray: IMetaDataExtended[], groupBy: string): Map<string, IMetaDataExtended[]> {
+        const result: Map<string, IMetaDataExtended[]> = new Map();
+        if (groupBy === "genres") {
+            const tmpResult = {};
+            // for each media, split the genres
+            for (const media of mediaArray) {
+                if (media.genres) {
+                    if (media.genres.includes(",")) {
+                        const genres = media.genres.split(",");
+                        for (const genre of genres) {
+                            if (!tmpResult[genre]) {
+                                tmpResult[genre] = [];
+                            }
+                            tmpResult[genre].push(media);
+                        }
+                    } else {
+                        if (!tmpResult[media.genres]) {
+                            tmpResult[media.genres] = [];
+                        }
+                        tmpResult[media.genres].push(media);
+                    }
+                }
+            }
+            // sort the groups by most media
+            const keys = Object.keys(tmpResult);
+            keys.sort((a, b) => tmpResult[a].length - tmpResult[b].length);
+            for (const key of keys) {
+                result.set(key + ` (${tmpResult[key].length})`, tmpResult[key]);
+            }
+        } else {
+            let linqList = new List<IMetaDataExtended>([...mediaArray]);
+
+            const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[groupBy]) as Record<string, IMetaDataExtended[]>;
+
+            // sort the groups
+            const keys = Object.keys(grouped).sort((a, b) => a > b ? 1 : -1);
+            console.log("keys", keys);
+            if (this._orderConfig.directionDescending) {
+                keys.reverse();
+            }
+            console.log("keys2", keys);
+            for (const i in keys) {
+                if (keys[i] !== "null") {
+                    result.set(keys[i], grouped[keys[i]]);
+                }
+            }
+            result.set("N/A", grouped["null"]);
+        }
+        return result;
+    }
+
+    private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
+        if (!list) {
+            return [];
+        }
+        const linqList = new List<IMetaDataExtended>([...list]);
+        let newList: List<IMetaDataExtended>;
+
+        if (this._orderConfig.directionDescending) {
+            newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+        } else {
+            newList = linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
+        }
+
+        let mediaArray = newList.ToArray();
+        let result;
+        if (this._orderConfig.showUnwatchedFirst) {
+            // sort by watched boolean
+            mediaArray = _.orderBy(mediaArray, [(m)=>m.isWatched ? 0 : 1], "desc");
+            // mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
+        }
+        result = mediaArray;
+
+        return result;
+    }
+
 
     private prepareMedia(metaDataList: MetaData[]): IMetaDataExtended[] {
         if (!metaDataList) {
@@ -304,90 +404,6 @@ export class RoosterX extends LitElement {
         return list;
     }
 
-    private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] | Record<string, IMetaDataExtended[]> {
-        const linqList = new List<IMetaDataExtended>([...list]);
-        let newList: List<IMetaDataExtended>;
-        console.log("orderBy", this._orderConfig);
-
-
-        if (this._orderConfig.groupBy !== "genres") {
-            if (this._showTorrents) {
-                newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x.id);
-            } else if (this._orderConfig.directionDescending) {
-                newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
-            } else {
-                newList = linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
-            }
-        } else {
-            newList = linqList;
-        }
-
-        let mediaArray = newList.ToArray();
-        let result;
-        if (this._orderConfig.showUnwatchedFirst) {
-            // sort by watched boolean
-            mediaArray = _.orderBy(mediaArray, [(m)=>m.isWatched ? 0 : 1], "desc");
-            // mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
-        }
-        result = mediaArray;
-
-        // group by
-        if (this._orderConfig.groupBy && this._orderConfig.groupBy !== "none") {
-            if (this._orderConfig.groupBy === "genres") {
-                const tmpResult = {};
-                // for each media, split the genres
-                for (const media of mediaArray) {
-                    if (media.genres) {
-                        if (media.genres.includes(",")) {
-                            const genres = media.genres.split(",");
-                            for (const genre of genres) {
-                                if (!tmpResult[genre]) {
-                                    tmpResult[genre] = [];
-                                }
-                                tmpResult[genre].push(media);
-                            }
-                        } else {
-                            if (!tmpResult[media.genres]) {
-                                tmpResult[media.genres] = [];
-                            }
-                            tmpResult[media.genres].push(media);
-                        }
-                    }
-                }
-                // sort the groups by most media
-                const keys = Object.keys(tmpResult);
-                keys.sort((a, b) => tmpResult[a].length - tmpResult[b].length);
-                const sortedResult = {};
-                for (const key of keys) {
-                    sortedResult[key + ` (${tmpResult[key].length})`] = tmpResult[key];
-                }
-                result = sortedResult;
-
-            } else {
-                let linqList = new List<IMetaDataExtended>([...mediaArray]);
-
-                const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[this._orderConfig.groupBy]) as Record<string, IMetaDataExtended[]>;
-
-                // sort the groups
-                const keys = Object.keys(grouped).sort((a, b) => a > b ? 1 : -1);
-                console.log("keys", keys);
-                if (this._orderConfig.directionDescending) {
-                    keys.reverse();
-                }
-                console.log("keys2", keys);
-                const sortedResult = {};
-                for (const i in keys) {
-                    if (keys[i] !== "null") {
-                        sortedResult[i + " Score: " + keys[i]] = grouped[keys[i]];
-                    }
-                }
-                sortedResult["N/A"] = grouped["null"];
-                result = sortedResult;
-            }
-        }
-
-        return result;
-    }
 
     public showTorrents() {
         this._showTorrents = true;
@@ -480,7 +496,7 @@ export class RoosterX extends LitElement {
     }
 
     private toggleGroup(e) {
-        const group = e.target.closest(".group");
+        const group = e.target.closest(".group-header")?.nextElementSibling as HTMLElement;
         if (group) {
             group.classList.toggle("open");
         }
@@ -491,7 +507,7 @@ export class RoosterX extends LitElement {
             return;
         }
 
-        if (!this._filteredMedia.length) {
+        if (this._filteredMedia instanceof Map) {
 
             const getGroupTitleFunc = (oc: OrderConfig): (group: string)=>string => {
                 if (oc.groupBy === "rating") {
@@ -501,7 +517,14 @@ export class RoosterX extends LitElement {
                     return (group) => group ? group : "N/A";
                 }
                 if (oc.groupBy === "uploadedDate") {
-                    return (group) => group === "null" ? "N/A" : group ? group : "N/A";
+                    return (group) => {
+                        if (group === "null") {
+                            return "N/A";
+                        }
+
+                        const title =  group ? fromNow(group) : "N/A";
+                        return title;
+                    }
                 }
                 if (oc.groupBy === "downloadedDate") {
                     return (group) => group === "null" ? "N/A" : group ? new Date(group).toLocaleDateString() : "N/A";
@@ -518,19 +541,49 @@ export class RoosterX extends LitElement {
                 return (v) => "";
             }
 
+            setTimeout(() => {
+                const groupHeaders = document.querySelectorAll(".group-header");
+                // add intersection observer for all the sticky group-headers
+                // if its above half the screen, add a class to make it z-index: 1
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        console.log("observer entry:", entry);
+                        const target = entry.target as HTMLElement;
+                        // trigger only if the group-header is above half the screen
+                        if (entry.intersectionRatio > 0.5) {
+                            target.classList.add("top-layer");
+                            // target.style.zIndex = "" + groupHeaders.length;
+                        } else {
+                            target.classList.remove("top-layer");
+                            // target.style.zIndex = "1";
+                        }
+                    });
+                }, {
+                    root: null,
+                    rootMargin: "0px 0px -200px 0px",
+                    threshold: 0.5,
+                });
+                groupHeaders.forEach(groupHeader => {
+                    observer.observe(groupHeader);
+                });
+            }, 5000);
+
             // this is a record
             const result: TemplateResult[] = [];
-            const keys = Object.keys(this._filteredMedia);
             const getGroupTitle = getGroupTitleFunc(this._orderConfig);
-            for (let i = keys.length - 1; i >= 0; i--) {
-                const key = keys[i];
-                result.push(html`<div class="group open">
-                    <h2 @click="${this.toggleGroup}">${getGroupTitle(key)}</h2>
-                    <div class="group-videos">
-                        ${this._filteredMedia[key].map(v => 
-                            html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
+            let index = this._filteredMedia.size;
+            for (const [key, arr] of this._filteredMedia) {
+                index--;
+                result.push(html`
+                    <div class="group-header" style="z-index: ${index}">
+                        <a href="#${key}">${getGroupTitle(key)}</a> <div @click="${this.toggleGroup}">+</div>
                     </div>
-                </div>`);
+                    <div id="${key}" class="group open">
+                        <div class="group-videos">
+                            ${arr.map(v => 
+                                html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
+                        </div>
+                    </div>`);
             }
             return result;
         } else {

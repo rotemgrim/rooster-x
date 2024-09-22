@@ -241,13 +241,13 @@ export class VideoDetails extends LitElement {
             const eps = _.filter(this._episodes, (o => o.mediaFiles?.length > 0));
             const episodeMax = _.maxBy(eps, ["season", "episode"]);
             IpcService.openExternal(
-                `https://www.google.com/search?q=site:subscene.com`
-                + `+Subtitles+for+${this.video.title}`
+                `https://www.opensubtitles.org/en/search2/sublanguageid-all/moviename-`
+                + `${this.video.title}`
                 + `+${VideoDetails.getSeriesStringFromEpisode(episodeMax)}`);
         } else {
             IpcService.openExternal(
-                `https://www.google.com/search?q=site:subscene.com`
-                + `+Subtitles+for+${this.video.title}+${this.video.year}`);
+                `https://www.opensubtitles.org/en/search2/sublanguageid-all/moviename-`
+                + `${this.video.title}+${this.video.year}`);
         }
     }
 
