@@ -59,8 +59,8 @@ export class RoosterX extends LitElement {
     @property() public _orderConfig: OrderConfig = {
         directionDescending: true,
         orderBy: "latestChange",
-        // groupBy: "none",
-        groupBy: "year",
+        groupBy: "none",
+        // groupBy: "year",
         showUnwatchedFirst: false,
     };
     @property() public _sweepStatus: string = "";

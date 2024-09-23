@@ -32,6 +32,7 @@ export class RoosterXWrapper extends LitElement {
             this.isLoggedIn = true;
             this.config.userId = user.id;
             this.config.isAdmin = user.isAdmin;
+            IpcService.setUserId(user.id);
         }
 
         this.checkStatus();
