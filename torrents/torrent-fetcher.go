@@ -34,13 +34,6 @@ func NewTorrentFetcher(link string, s *server.Server, tmdbClient *tmdb.Client) *
 func (tf *TorrentFetcher) FullSweep() {
 	// Fetch the torrent from the pirate bay link
 	tf.GetTorrents()
-
-	// Get metadata from the internet
-	tf.GetMetaDataFromInternet()
-
-	tf.server.BroadcastMessage("Finished fetching torrents and metadata :)")
-	tf.server.BroadcastMessage("reload-torrents")
-	EventBus.SendEvent("sweep-done", nil)
 }
 
 func (tf *TorrentFetcher) GetMetaDataFromInternet() {
@@ -132,6 +125,7 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 }
 
 func (tf *TorrentFetcher) GetTorrents() {
+	log.Println("started fetching torrents")
 	listOfSearches := []string{
 		"top100:48h_211", // movies trending in the last 48 hours 2160p
 		"top100:48h_212", // series trending in the last 48 hours 2160p
@@ -144,6 +138,13 @@ func (tf *TorrentFetcher) GetTorrents() {
 		tf.server.BroadcastMessage(msg)
 		fetchTorrentsFromSearch(search)
 	}
+
+	// Get metadata from the internet
+	tf.GetMetaDataFromInternet()
+
+	tf.server.BroadcastMessage("Finished fetching torrents and metadata :)")
+	tf.server.BroadcastMessage("reload-torrents")
+	EventBus.SendEvent("sweep-done", nil)
 }
 
 func fetchTorrentsFromSearch(search string) {
@@ -189,8 +190,10 @@ func fetchTorrentsFromSearch(search string) {
 		}
 		err = dbTor.InsertG(context.Background(), boil.Infer())
 		if err != nil {
+			log.Printf("skipping (%s): %s", tor.Title, err)
 			continue
 		}
+		log.Println("Adding to DB: ", tor.Title)
 	}
 }
 

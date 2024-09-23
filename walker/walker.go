@@ -206,13 +206,18 @@ func (w *Walker) removeDeletedMediaFilesByMetaDataId(id float64) {
 
 func (w *Walker) removeDeletedMediaFiles(mediaFiles []*m.MediaFile) {
 	// delete all media files that are not in the file system
+	count := 0
 	for _, mediaFile := range mediaFiles {
 
 		// check if file not exists
 		if _, err := os.Stat(mediaFile.Path.String); os.IsNotExist(err) {
-			_, _ = mediaFile.DeleteG(context.Background())
+			_, err = mediaFile.DeleteG(context.Background())
+			if err == nil {
+				count++
+			}
 		}
 	}
+	log.Printf("Deleted [%d] files removed", count)
 }
 
 func (w *Walker) Sweep(paths []string) {
@@ -330,8 +335,6 @@ func (w *Walker) FullSweep() {
 	err := w.removeAllDeletedMediaFiles()
 	if err != nil {
 		log.Println("Error removing deleted files", err)
-	} else {
-		log.Println("Deleted files removed")
 	}
 
 	// generate genres
@@ -513,7 +516,7 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 	}
 
 	// print the number of torrents found
-	log.Println("\rNumber of torrents found: ", len(result))
+	log.Println("\rNumber of files found: ", len(result))
 	w.server.BroadcastMessage(fmt.Sprintf("total files found: %d", len(result)))
 	return result, nil
 }

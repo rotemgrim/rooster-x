@@ -547,7 +547,7 @@ export class RoosterX extends LitElement {
                 // if its above half the screen, add a class to make it z-index: 1
                 const observer = new IntersectionObserver((entries) => {
                     entries.forEach(entry => {
-                        console.log("observer entry:", entry);
+                        // console.log("observer entry:", entry);
                         const target = entry.target as HTMLElement;
                         // trigger only if the group-header is above half the screen
                         if (entry.intersectionRatio > 0.5) {

@@ -74,6 +74,8 @@ func listenForIncomingMessages() {
 
 func onReady() {
 
+	log.Println("RoosterX has started ======================")
+
 	// initialize system tray
 	trayInitialize()
 
@@ -211,10 +213,10 @@ func trayInitialize() {
 				openBrowserInKiosk(0)
 			case <-mSweep.ClickedCh:
 				systray.SetIcon(icon.Data)
-				app.Walker.FullSweep()
+				go app.Walker.FullSweep()
 			case <-mTorrentFetch.ClickedCh:
 				systray.SetIcon(icon.Data)
-				app.TorrentsFetcher.GetTorrents()
+				go app.TorrentsFetcher.GetTorrents()
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				return

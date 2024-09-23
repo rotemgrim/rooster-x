@@ -137,5 +137,6 @@ func (s Server) BroadcastMessage(message string) {
 			client.Close()
 			delete(s.clients, client)
 		}
+		log.Printf("broadcasted message: %s\n", message)
 	}
 }
