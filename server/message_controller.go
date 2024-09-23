@@ -276,7 +276,7 @@ func (s *Server) GetMetaDataByFileId(c *websocket.Conn, req PayloadRequest) {
 	err = models.NewQuery(
 		qm.Select("md.*, umd.isWatched as isWatched"),
 		qm.From("metaData as md"),
-		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = 1"),
+		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = ?", req.UserId),
 		qm.Where("id = ?", mediaFile.MetaDataId.Int64)).BindG(context.Background(), &tmp)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not find meta data in db %s", err))
@@ -290,9 +290,8 @@ ep.title as episodeTitle,
 md.*, ue.isWatched as isWatched`),
 			qm.From("episode as ep"),
 			qm.Where("ep.id = ?", mediaFile.EpisodeId.Int64),
-			qm.LeftOuterJoin("userEpisode as ue on ue.episodeId = ep.id and ue.userId = 1"),
+			qm.LeftOuterJoin("userEpisode as ue on ue.episodeId = ep.id and ue.userId = ?", req.UserId),
 			qm.LeftOuterJoin("metaData as md on md.id = ep.metaDataId"),
-			//qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes, qm.Where("userId = ?", 1)),
 		).BindG(context.Background(), &tmp)
 		if err != nil {
 			transmitPromiseReject(c, req, fmt.Sprintf("could not find episode in db %s", err))

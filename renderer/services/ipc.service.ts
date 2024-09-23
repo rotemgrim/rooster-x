@@ -10,6 +10,10 @@ const ipcRenderer = promiseIpc.IpcRenderer();
 
 export class IpcService {
 
+    public static setUserId(userId: number) {
+        promiseIpc.setUserId(userId);
+    }
+
     public static simpleSignal(channel: string, data?: any) {
         if (data) {
             ipcRenderer.send(channel, data);

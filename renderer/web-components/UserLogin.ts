@@ -58,6 +58,7 @@ export class UserLogin extends LitElement {
         // save user to localstorage
         localStorage.setItem("user", JSON.stringify(user));
 
+        IpcService.setUserId(user.id);
         IpcService.saveConfig(config)
             .then(() => this.checkLoggedIn(user))
             .catch(console.log);

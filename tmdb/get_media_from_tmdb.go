@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	tmdb "github.com/cyruzin/golang-tmdb"
+	"github.com/davecgh/go-spew/spew"
 	ptn "github.com/middelink/go-parse-torrent-name"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -292,18 +293,19 @@ func HandleMetaDataGettingErr(file interface{}, err error) bool {
 		log.Println("handle metadata error:", err)
 		// update file row in db
 		switch f := file.(type) {
-		case *m.MediaFile:
+		case m.MediaFile:
 			f.MetaDataId = null.Int64From(0)
 			f.Status = null.StringFrom("error")
 			f.ScanError = null.StringFrom(err.Error())
 			_, _ = f.UpdateG(context.Background(), boil.Infer())
-		case *m.TorrentFile:
+		case m.TorrentFile:
 			f.MetaDataId = null.Int64From(0)
 			f.Status = null.StringFrom("error")
 			f.ScanError = null.StringFrom(err.Error())
 			_, _ = f.UpdateG(context.Background(), boil.Infer())
 		default:
-			log.Println("unsupported file type")
+			log.Println("unsupported file type", file)
+			spew.Dump(file)
 			return false
 		}
 		return true
@@ -365,16 +367,10 @@ func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *serve
 				return
 			}
 
-			// check if user watched the metadata
-			umd, err := m.UserMetaData(
-				qm.Where("userId = ?", 1),
+			// update the user metadata for all users
+			_, _ = m.UserMetaData(
 				qm.Where("metaDataId = ?", md.ID),
-			).OneG(context.Background())
-			if err == nil && umd.IsWatched.Bool {
-				// mark the user metadata as unwatched
-				umd.IsWatched = null.BoolFrom(false)
-				_, _ = umd.UpdateG(context.Background(), boil.Infer())
-			}
+			).UpdateAllG(context.Background(), m.M{"isWatched": false})
 		}
 
 		file.EpisodeId = epMd.ID
@@ -440,16 +436,10 @@ func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *se
 				return
 			}
 
-			// check if user watched the metadata
-			umd, err := m.UserMetaData(
-				qm.Where("userId = ?", 1),
+			// update the user metadata for all users
+			_, _ = m.UserMetaData(
 				qm.Where("metaDataId = ?", md.ID),
-			).OneG(context.Background())
-			if err == nil && umd.IsWatched.Bool {
-				// mark the user metadata as unwatched
-				umd.IsWatched = null.BoolFrom(false)
-				_, _ = umd.UpdateG(context.Background(), boil.Infer())
-			}
+			).UpdateAllG(context.Background(), m.M{"isWatched": false})
 		}
 
 		file.EpisodeId = epMd.ID
