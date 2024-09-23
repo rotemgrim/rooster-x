@@ -130,13 +130,16 @@ export class TopBar extends LitElement {
     }
 
     private logout() {
-        this.rooster.config.userId = 0;
-        IpcService.saveConfig(this.rooster.config)
-            .then(() => {
-                delete this.rooster.user;
-                this.rooster.wrapper.isLoggedIn = false;
-            })
-            .catch(console.log);
+        // this.rooster.config.userId = 0;
+        localStorage.removeItem("user");
+        location.reload();
+
+        // IpcService.saveConfig(this.rooster.config)
+        //     .then(() => {
+        //         delete this.rooster.user;
+        //         this.rooster.wrapper.isLoggedIn = false;
+        //     })
+        //     .catch(console.log);
     }
 
     public render() {

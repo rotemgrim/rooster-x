@@ -1,7 +1,8 @@
 
 export class AbstractPromiseIpc {
-    protected static prepareDataForSend(replyChannel: string, route: string, data?: object): string {
+    protected static prepareDataForSend(userId: number, replyChannel: string, route: string, data?: object): string {
         let payload = {
+            userId: userId,
             replyChannel: replyChannel,
             route: route,
             data: data,

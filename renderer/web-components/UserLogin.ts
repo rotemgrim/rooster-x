@@ -54,6 +54,10 @@ export class UserLogin extends LitElement {
     public login(user: User) {
         const config = this.wrapper.config;
         config.userId = user.id;
+
+        // save user to localstorage
+        localStorage.setItem("user", JSON.stringify(user));
+
         IpcService.saveConfig(config)
             .then(() => this.checkLoggedIn(user))
             .catch(console.log);

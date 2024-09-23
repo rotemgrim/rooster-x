@@ -99,6 +99,7 @@ func (s *Server) GetAllUsers(c *websocket.Conn, data PayloadRequest) {
 }
 
 func (s *Server) SaveConfig(c *websocket.Conn, request PayloadRequest) {
+	// do nothing for now
 	transmitPromiseResponse(c, request, "Config saved")
 }
 
@@ -110,6 +111,7 @@ func (s *Server) GetAllMedia(c *websocket.Conn, req PayloadRequest) {
 
 func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string) {
 	var media []MediaDataExtended
+	var userId int = data.UserId
 	queryMods := []qm.QueryMod{
 		qm.Select("md.*, umd.isWatched as isWatched, " +
 			"max(IFNULL(CAST(SUBSTR(sub.resolution, 0) AS int), 0)) as resolution, " +
@@ -117,7 +119,7 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		qm.From("metaData as md"),
 		//qm.Where("sub.metaDataId != 0"),
 		//qm.LeftOuterJoin("metaData as md on md.id = sub.metaDataId"),
-		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = 1"),
+		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = ?", userId),
 		qm.GroupBy("md.id"),
 	}
 
@@ -168,7 +170,7 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 		qm.Where("metaDataId = ?", p),
 		qm.Load(models.EpisodeRels.MetaDataIdMetaDatum),
 		qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes,
-			qm.Where("userId = ?", 1),
+			qm.Where("userId = ?", req.UserId),
 		),
 		qm.Load(models.EpisodeRels.EpisodeIdMediaFiles),
 		qm.Load(models.EpisodeRels.EpisodeIdTorrentFiles),
@@ -395,7 +397,7 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 	// Check if userEpisode already exists
 	uep, err := models.UserEpisodes(
 		qm.Where("episodeId = ?", entityId),
-		qm.Where("userId = ?", 1),
+		qm.Where("userId = ?", req.UserId),
 	).OneG(context.Background())
 	if err == nil {
 		// update existing
@@ -421,7 +423,7 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 	eps, err := models.Episodes(
 		qm.Where("metaDataId = ?", episode.MetaDataId.Int64),
 		qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes,
-			qm.Where("userId = ?", 1),
+			qm.Where("userId = ?", req.UserId),
 		),
 	).AllG(context.Background())
 
@@ -439,7 +441,7 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 	// update series watched status
 	umd, err := models.UserMetaData(
 		qm.Where("metaDataId = ?", episode.MetaDataId.Int64),
-		qm.Where("userId = ?", 1),
+		qm.Where("userId = ?", req.UserId),
 	).OneG(context.Background())
 	if err == nil {
 		umd.IsWatched = null.BoolFrom(isSeriesWatched)
@@ -469,7 +471,7 @@ func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId 
 	// Check if userMetaDatum already exists
 	umd, err := models.UserMetaData(
 		qm.Where("metaDataId = ?", entityId),
-		qm.Where("userId = ?", 1),
+		qm.Where("userId = ?", req.UserId),
 	).OneG(context.Background())
 	if err == nil {
 		// update existing

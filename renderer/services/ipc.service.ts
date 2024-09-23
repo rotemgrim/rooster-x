@@ -44,12 +44,7 @@ export class IpcService {
             promiseIpc.send("get-config")
                 .then(tmpConfig => {
                     const config: IConfig = Object.assign({}, tmpConfig);
-                    config.serverUrl = new URL(tmpConfig.serverUrl);
-                    config.keepWindowsAlive = tmpConfig.keepWindowsAlive !== undefined ?
-                        tmpConfig.keepWindowsAlive : true;
-                    if (tmpConfig.proxySettings) {
-                        config.proxySettings = tmpConfig.proxySettings;
-                    }
+                    // config.serverUrl = new URL(tmpConfig.serverUrl);
                     resolve(config);
                 }).catch(e => {
                     console.log("error getting config", e);

@@ -9,6 +9,7 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
     private isSocketConnected: boolean = false;
     private reconnectTimeout: number = 3000;
     private queue: Record<string, {success: CallableFunction, failure: CallableFunction}> = {};
+    private userId: number = 0;
 
     constructor(opts: { maxTimeoutMs?: number, reconnectTimeout?: number }) {
         super();
@@ -17,6 +18,10 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
             this.reconnectTimeout = opts.reconnectTimeout || this.reconnectTimeout;
         }
         this.connectToWs();
+    }
+
+    setUserId(userId: number) {
+        this.userId = userId;
     }
 
     IpcRenderer() {
@@ -98,7 +103,7 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
 
             console.log(`Sending message to server: ${route}`, payload);
             // ipcRenderer will send a message back to replyChannel when it finishes calculating
-            this.socket.send(RendererPromiseIpc.prepareDataForSend(replyChannel, route, payload));
+            this.socket.send(RendererPromiseIpc.prepareDataForSend(this.userId, replyChannel, route, payload));
 
             setTimeout(() => {
                 console.error(`Renderer PromiseIpc times out after ${(this.maxTimeoutMs / 1000)} seconds for: ${route}`);

@@ -1,4 +1,4 @@
-package tmdb
+package gtmdb
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	m "go-poc/models"
+	"go-poc/server"
 	"log"
 	"strconv"
 	"strings"
@@ -258,30 +259,204 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 //	UpdateG(ctx context.Context, columns boil.Columns) (int64, error)
 //}
 
-func HandleMetaDataGettingErr(file m.MediaFile, err error) bool {
+//func HandleMetaDataGettingErr(file m.MediaFile, err error) bool {
+//	if err != nil {
+//		log.Println("handle metadata error:", err)
+//		// update file row in db
+//		file.MetaDataId = null.Int64From(0)
+//		file.Status = null.StringFrom("error")
+//		file.ScanError = null.StringFrom(err.Error())
+//		_, _ = file.UpdateG(context.Background(), boil.Infer())
+//		return true
+//	} else {
+//		return false
+//	}
+//}
+//
+//func HandleMetaDataGettingErr2(file m.TorrentFile, err error) bool {
+//	if err != nil {
+//		log.Println("handle metadata error:", err)
+//		// update file row in db
+//		file.MetaDataId = null.Int64From(0)
+//		file.Status = null.StringFrom("error")
+//		file.ScanError = null.StringFrom(err.Error())
+//		_, _ = file.UpdateG(context.Background(), boil.Infer())
+//		return true
+//	} else {
+//		return false
+//	}
+//}
+
+func HandleMetaDataGettingErr(file interface{}, err error) bool {
 	if err != nil {
 		log.Println("handle metadata error:", err)
 		// update file row in db
-		file.MetaDataId = null.Int64From(0)
-		file.Status = null.StringFrom("error")
-		file.ScanError = null.StringFrom(err.Error())
-		_, _ = file.UpdateG(context.Background(), boil.Infer())
+		switch f := file.(type) {
+		case *m.MediaFile:
+			f.MetaDataId = null.Int64From(0)
+			f.Status = null.StringFrom("error")
+			f.ScanError = null.StringFrom(err.Error())
+			_, _ = f.UpdateG(context.Background(), boil.Infer())
+		case *m.TorrentFile:
+			f.MetaDataId = null.Int64From(0)
+			f.Status = null.StringFrom("error")
+			f.ScanError = null.StringFrom(err.Error())
+			_, _ = f.UpdateG(context.Background(), boil.Infer())
+		default:
+			log.Println("unsupported file type")
+			return false
+		}
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
-func HandleMetaDataGettingErr2(file m.TorrentFile, err error) bool {
-	if err != nil {
-		log.Println("handle metadata error:", err)
-		// update file row in db
-		file.MetaDataId = null.Int64From(0)
-		file.Status = null.StringFrom("error")
-		file.ScanError = null.StringFrom(err.Error())
-		_, _ = file.UpdateG(context.Background(), boil.Infer())
-		return true
-	} else {
-		return false
+func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *server.Server, i int, totalFiles int) {
+
+	tor, err := ptn.Parse(file.Raw.String)
+	if HandleMetaDataGettingErr(*file, err) {
+		return
 	}
+
+	// try getting metadata from DB
+	var md = &m.MetaDatum{}
+	if file.MetaDataId.Valid && !file.MetaDataId.IsZero() {
+		md, err = m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).OneG(context.Background())
+		if HandleMetaDataGettingErr(*file, err) {
+			return
+		}
+	} else {
+		s.BroadcastMessage(fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, tor.Title))
+		newMd, err := GetMediaFromTMDB(tmdbClient, *tor)
+		if HandleMetaDataGettingErr(*file, err) {
+			return
+		}
+
+		// check if newMd is already saved
+		if !newMd.ID.Valid {
+			// save the metadata to the db
+			log.Println("inserting metadata to DB")
+			err = newMd.InsertG(context.Background(), boil.Infer())
+			if HandleMetaDataGettingErr(*file, err) {
+				return
+			}
+		}
+		md = newMd
+	}
+
+	// if it's a series get the episode
+	if md.Series.Valid && md.Series.Bool {
+
+		// try getting episode from DB
+		log.Println("Getting episode metadata")
+		msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, md.Title.String, tor.Season,
+			tor.Episode)
+		s.BroadcastMessage(msg)
+		epMd, err := GetEpisodeFromTMDB(tmdbClient, *tor, md)
+		if HandleMetaDataGettingErr(*file, err) {
+			return
+		}
+
+		if !epMd.ID.Valid {
+			// save the episode metadata to the db
+			log.Println("inserting episode to DB")
+			err = epMd.InsertG(context.Background(), boil.Infer())
+			if HandleMetaDataGettingErr(*file, err) {
+				return
+			}
+
+			// check if user watched the metadata
+			umd, err := m.UserMetaData(
+				qm.Where("userId = ?", 1),
+				qm.Where("metaDataId = ?", md.ID),
+			).OneG(context.Background())
+			if err == nil && umd.IsWatched.Bool {
+				// mark the user metadata as unwatched
+				umd.IsWatched = null.BoolFrom(false)
+				_, _ = umd.UpdateG(context.Background(), boil.Infer())
+			}
+		}
+
+		file.EpisodeId = epMd.ID
+	}
+
+	// update file foreignKey in db row
+	file.MetaDataId = md.ID
+	file.Status = null.StringFrom("scanned")
+	_, _ = file.UpdateG(context.Background(), boil.Infer())
+}
+
+func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *server.Server, i int, totalFiles int) {
+
+	tor, err := ptn.Parse(file.Raw.String)
+	if HandleMetaDataGettingErr(*file, err) {
+		return
+	}
+
+	// try getting metadata from DB
+	var md = &m.MetaDatum{}
+	if file.MetaDataId.Valid && !file.MetaDataId.IsZero() {
+		md, err = m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).OneG(context.Background())
+		if HandleMetaDataGettingErr(*file, err) {
+			return
+		}
+	} else {
+		s.BroadcastMessage(fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, tor.Title))
+		newMd, err := GetMediaFromTMDB(tmdbClient, *tor)
+		if HandleMetaDataGettingErr(*file, err) {
+			return
+		}
+
+		// check if newMd is already saved
+		if !newMd.ID.Valid {
+			// save the metadata to the db
+			log.Println("inserting metadata to DB")
+			err = newMd.InsertG(context.Background(), boil.Infer())
+			if HandleMetaDataGettingErr(*file, err) {
+				return
+			}
+		}
+		md = newMd
+	}
+
+	// if it's a series get the episode
+	if md.Series.Valid && md.Series.Bool {
+
+		// try getting episode from DB
+		log.Println("Getting episode metadata")
+		msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, md.Title.String, tor.Season,
+			tor.Episode)
+		s.BroadcastMessage(msg)
+		epMd, err := GetEpisodeFromTMDB(tmdbClient, *tor, md)
+		if HandleMetaDataGettingErr(*file, err) {
+			return
+		}
+
+		if !epMd.ID.Valid {
+			// save the episode metadata to the db
+			log.Println("inserting episode to DB")
+			err = epMd.InsertG(context.Background(), boil.Infer())
+			if HandleMetaDataGettingErr(*file, err) {
+				return
+			}
+
+			// check if user watched the metadata
+			umd, err := m.UserMetaData(
+				qm.Where("userId = ?", 1),
+				qm.Where("metaDataId = ?", md.ID),
+			).OneG(context.Background())
+			if err == nil && umd.IsWatched.Bool {
+				// mark the user metadata as unwatched
+				umd.IsWatched = null.BoolFrom(false)
+				_, _ = umd.UpdateG(context.Background(), boil.Infer())
+			}
+		}
+
+		file.EpisodeId = epMd.ID
+	}
+
+	// update file foreignKey in db row
+	file.MetaDataId = md.ID
+	file.Status = null.StringFrom("scanned")
+	_, _ = file.UpdateG(context.Background(), boil.Infer())
 }
