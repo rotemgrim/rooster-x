@@ -65,6 +65,7 @@ type MediaDataExtended struct {
 	Resolution     null.String  `boil:"resolution" json:"resolution,omitempty"`
 	UploadedDate   null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
 	DownloadedDate null.String  `boil:"downloadedDate" json:"downloadedDate,omitempty"`
+	Velocity       null.Int     `boil:"velocity" json:"velocity,omitempty"`
 }
 
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
@@ -128,7 +129,10 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		queryMods = append(queryMods, qm.LeftOuterJoin("torrentFile as sub on sub.metaDataId = md.id"))
 		queryMods = append(queryMods, qm.Select("max(sub.uploadedAt) as uploadedAt, "+
 			"DATE(SUBSTR(uploadedAt, 1, 19)) as uploadedDate,"+
-			"count(sub.id) as mediaFiles"))
+			"count(sub.id) as mediaFiles,"+
+			""))
+		queryMods = append(queryMods, qm.Where("sub.episodeId = (select id from episode where metaDataId = md."+
+			"id order by season desc, episode desc limit 1) or sub.episodeId is null"))
 		queryMods = append(queryMods, qm.Where("sub.magnet is not null"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.uploadedAt) DESC"))
 	} else {
@@ -154,9 +158,9 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		//transmitPromiseReject(c, data, fmt.Sprintf("could not get media %s", err))
 		return
 	}
-	//query := models.NewQuery(queryMods...)
-	//text, _ := queries.BuildQuery(query)
-	//log.Printf(text)
+	query := models.NewQuery(queryMods...)
+	text, _ := queries.BuildQuery(query)
+	log.Printf(text)
 	transmitPromiseResponse(c, data, media)
 }
 
