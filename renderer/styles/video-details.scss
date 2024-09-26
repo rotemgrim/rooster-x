@@ -111,7 +111,9 @@ video-details {
       font-size: 2em;
       text-align: center;
       width: 100%;
-      display: block;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       margin-top: -0.5em;
       color: #e8b708;
       small {
@@ -175,6 +177,16 @@ video-details {
       outline: none;
     }
 
+    .header {
+        display: flex;
+            padding-bottom: 2rem;
+        & > div:first-child {
+          padding-right: 2rem;
+        }
+        .trailer {
+            padding-top: 1rem;
+        }
+    }
     .searchResultDiv {
       margin-bottom: 2em;
       img {
@@ -190,7 +202,8 @@ video-details {
   h1 {
     font-size: 6em;
     font-family: $titleFontFamily;
-    padding-right: 0.5em;
+    /* padding-right: 0.5em; */
+    padding-bottom: 0.1em;
   }
   p {
     font-size: 2em;
@@ -219,6 +232,9 @@ video-details {
     //flex-wrap: wrap;
     clear: both;
     overflow: hidden;
+        gap: 2rem;
+        display: flex;
+        flex-wrap: wrap;
   }
   .episode {
     width: $posterWidth;
@@ -278,9 +294,7 @@ video-details {
 }
 
 episode-card {
-  margin-bottom: 1.7em;
   float: left;
-  margin-right: 2.7vw;
 }
 
 media-file-card, torrent-file-card {

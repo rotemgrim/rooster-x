@@ -406,7 +406,7 @@ func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *se
 		// check if newMd is already saved
 		if !newMd.ID.Valid {
 			// save the metadata to the db
-			log.Println("inserting metadata to DB")
+			log.Printf("inserting metadata to DB: %s\n", newMd.Title.String)
 			err = newMd.InsertG(context.Background(), boil.Infer())
 			if HandleMetaDataGettingErr(*file, err) {
 				return
@@ -419,7 +419,6 @@ func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *se
 	if md.Series.Valid && md.Series.Bool {
 
 		// try getting episode from DB
-		log.Println("Getting episode metadata")
 		msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, md.Title.String, tor.Season,
 			tor.Episode)
 		s.BroadcastMessage(msg)
@@ -430,11 +429,13 @@ func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *se
 
 		if !epMd.ID.Valid {
 			// save the episode metadata to the db
-			log.Println("inserting episode to DB")
+			log.Printf("inserting episode to DB: %s S%dE%d\n", md.Title.String, tor.Season, tor.Episode)
 			err = epMd.InsertG(context.Background(), boil.Infer())
 			if HandleMetaDataGettingErr(*file, err) {
 				return
 			}
+
+			log.Printf("updating user metadata for %s\n", md.Title.String)
 
 			// update the user metadata for all users
 			_, _ = m.UserMetaData(

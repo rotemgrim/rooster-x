@@ -39,7 +39,7 @@ var app *App
 
 func main() {
 	logger := &lumberjack.Logger{
-		Filename:   "rooster.log",
+		Filename:   "tmp/rooster.log",
 		MaxSize:    5, // megabytes
 		MaxBackups: 3,
 		MaxAge:     28, //days

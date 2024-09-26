@@ -96,15 +96,7 @@ export class VideoDetails extends LitElement {
             ).catch(console.log);
         }
         if (!this.video.rating) {
-            IpcService.getIMDBRating(this.video.id, this.video.imdbId)
-                .then((res) => {
-                        if (res) {
-                            this.video.rating = (res as {Score: number}).Score;
-                            this.video.votes = (res as {Votes: number}).Votes;
-                            this.requestUpdate();
-                        }
-                    }
-                ).catch(console.log);
+            this.getIMDBRatingVotes();
         }
     }
 
@@ -122,6 +114,18 @@ export class VideoDetails extends LitElement {
     public disconnectedCallback() {
         this.mainDetailsEl.removeEventListener("blur", this.setMainDetailsFocus);
         super.disconnectedCallback();
+    }
+
+    private getIMDBRatingVotes() {
+        IpcService.getIMDBRating(this.video.id, this.video.imdbId)
+            .then((res) => {
+                    if (res) {
+                        this.video.rating = (res as {Score: number}).Score;
+                        this.video.votes = (res as {Votes: number}).Votes;
+                        this.requestUpdate();
+                    }
+                }
+            ).catch(console.log);
     }
 
     private setMainDetailsFocus(event) {
@@ -315,107 +319,135 @@ export class VideoDetails extends LitElement {
     }
 
     public render() {
-        return html`<did-watched .rooster=${this.rooster} .videoDetails=${this}
-                .didYouWatched=${this.didYouWatched}></did-watched>
-        <div class="video-details">
-            <div class="aside">
-                <div class="close" @click="${this.close}">
-                    <i class="material-icons">arrow_back</i> BACK
-                </div>
-                ${this.isLoading ? html`<div class="isLoading">
-                    <i class="material-icons rotate-center">sync</i>
-                </div>` : ``}
-                <div class="poster ${this.video.isWatched ? "watched" : ""}">
-                    <div class="filter"></div>
-                    <div class="watch-btn" @click=${this.setWatch}
-                        ?checked=${this.video.isWatched}
-                        title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
-                    ${this.video.poster ?
-                        html`<img src="${this.video.poster}" alt="${this.video.title}" class="video-poster-card-trans" />
-                        <img src="${this.video.poster.replace("/w300/","/original/")}" alt="${this.video.title}" class="original-poster" />` :
-                        html`<div class="img-missing"><span>${this.video.title}</span></div>`}
-
-                </div>
-                <div class="score">
-                    <span class="rating">${this.video.rating}</span>
-                    <span class="votes">${this.formatNumber(this.video.votes)} <small>/ votes</small></span>
-                </div>
-
-                <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
-                <div class="subs" @click=${this.subsSearch}>Subs</div>
-            </div>
-            <div class="main-details" tabindex="0">
-                <h1>${this.video.title}</h1>
-                <p>${this.video.plot}</p>
-                <div class="small-details">
-                    <div class="genres">${this.video.genres}</div> ${VideoDetails.getSep()}
-                    <div>
-                        ${VideoDetails.getRuntime(this.video)}
-                        ${VideoDetails.getYear(this.video)}
-                        ${this.video.languages}
+        return html`
+            <did-watched .rooster=${this.rooster} .videoDetails=${this}
+                         .didYouWatched=${this.didYouWatched}></did-watched>
+            <div class="video-details">
+                <div class="aside">
+                    <div class="close" @click="${this.close}">
+                        <i class="material-icons">arrow_back</i> BACK
                     </div>
+                    ${this.isLoading ? html`
+                        <div class="isLoading">
+                            <i class="material-icons rotate-center">sync</i>
+                        </div>` : ``}
+                    <div class="poster ${this.video.isWatched ? "watched" : ""}">
+                        <div class="filter"></div>
+                        <div class="watch-btn" @click=${this.setWatch}
+                             ?checked=${this.video.isWatched}
+                             title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
+                        ${this.video.poster ?
+                                html`<img src="${this.video.poster}" alt="${this.video.title}"
+                                          class="video-poster-card-trans"/>
+                                <img src="${this.video.poster.replace("/w300/", "/original/")}"
+                                     alt="${this.video.title}" class="original-poster"/>` :
+                                html`
+                                    <div class="img-missing"><span>${this.video.title}</span></div>`}
+
+                    </div>
+                    <div class="score">
+                        <span class="rating">${this.video.rating}</span>
+                        <span class="votes">
+                            ${this.formatNumber(this.video.votes)} 
+                            <small>/ votes </small>
+                            &nbsp <i class="material-icons" @click="${this.getIMDBRatingVotes}">refresh</i>
+                        </span>
+                    </div>
+
+                    <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
+                    <div class="subs" @click=${this.subsSearch}>Subs</div>
                 </div>
-                ${this.video.type === "series" && this._episodes
-                    && this._episodes.length > 0 ?
-                    html`<div class="episodes">
-                        ${this._episodes.map(ep => {
-                            return html`<episode-card
-                                @playMedia=${this.playMedia}
-                                .episode=${ep}
-                                .videoDetails=${this}>
-                            </episode-card>`;
-                        })}
-                    </div>` : ""}
-                ${this.video.type === "movie" && this.video.mediaFiles
-                    && this.video.mediaFiles.length > 0 ?
-                    html`<div class="media-files">
-                        ${this.video.mediaFiles.map(mf => {
-                            return html`<media-file-card
-                                @playMedia=${this.playMedia}
-                                .mediaFile=${mf}>
-                            </media-file-card>`;
-                        })}
-                    </div>` : ""}
-                ${this.video.type === "movie" && this.video.torrentFiles
-                    && this.video.torrentFiles.length > 0 ?
-                    html`<div class="media-files">
-                        ${this.video.torrentFiles.map(mf => {
-                            return html`<torrent-file-card
-                                .torrentFile=${mf}>
-                            </torrent-file-card>`;
-                        })}
-                    </div>` : ""}
-                <br><br>
-                <p>Actors: <small title="${this.video.actors}">${this.video.actors?.slice(0, 80)}...</small></p>
-                <br>
-                <p>Made in ${this.video.country} | Released at ${this.video.released}</p>
-                <br><br>
-                <div class="trailer">${this.video.trailer ? 
-                    html`<iframe width="560" height="315" src="${this.video.trailer.replace("watch?v=", "embed/")}"
-                    frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen></iframe>
-                ` : ""}</div>
-                ${this.video.imdbId ?
-                        html`<div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
-                <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
-                
-                ${!this.rooster.user.isAdmin ? html`<br><br>
-                <input type="text" style="font-size: 26px;"
-                    @input=${(e) => this.searchTitle = e.target.value}
-                    @keypress=${this.searchKeyPress}
-                    value="${this.video.title}" />
-                <button @click="${this.reSearch}" style="font-size: 26px; cursor: pointer;">
-                    Research video in internet database
-                </button>` : ""}
-                ${this.rooster.user.isAdmin ?
-                    this._searchResults.map(m =>
-                        html`<div class="searchResultDiv" @click=${() => this.onSelectSearchOption(m)}>
-                        <div class="title">${m.Title} | ${m.Year} | ${m.Type}</div>
-                        <div class="poster">
-                            <img src="${m.Poster}" alt="${m.Title}">
+                <div class="main-details" tabindex="0">
+                    <div class="header">
+                        <div class="left">
+                            <h1>${this.video.title}</h1>
+                            <p>${this.video.plot}</p>
+                            <div class="small-details">
+                                <div class="genres">${this.video.genres}</div>
+                                ${VideoDetails.getSep()}
+                                <div>
+                                    ${VideoDetails.getRuntime(this.video)}
+                                    ${VideoDetails.getYear(this.video)}
+                                    ${this.video.languages}
+                                </div>
+                            </div>
                         </div>
-                    </div>`) : ""}
-            </div>
-        </div>`;
+                        <div class="trailer">${this.video.trailer ?
+                                html`
+                                    <iframe width="560" height="315"
+                                            src="${this.video.trailer.replace("watch?v=", "embed/")}"
+                                            frameborder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowfullscreen></iframe>
+                                ` : ""}
+                        </div>
+                    </div>
+
+                    ${this.video.type === "series" && this._episodes
+                    && this._episodes.length > 0 ?
+                            html`
+                                <div class="episodes">
+                                    ${this._episodes.map(ep => {
+                                        return html`
+                                            <episode-card
+                                                    @playMedia=${this.playMedia}
+                                                    .episode=${ep}
+                                                    .videoDetails=${this}>
+                                            </episode-card>`;
+                                    })}
+                                </div>` : ""}
+                    ${this.video.type === "movie" && this.video.mediaFiles
+                    && this.video.mediaFiles.length > 0 ?
+                            html`
+                                <div class="media-files">
+                                    ${this.video.mediaFiles.map(mf => {
+                                        return html`
+                                            <media-file-card
+                                                    @playMedia=${this.playMedia}
+                                                    .mediaFile=${mf}>
+                                            </media-file-card>`;
+                                    })}
+                                </div>` : ""}
+                    ${this.video.type === "movie" && this.video.torrentFiles
+                    && this.video.torrentFiles.length > 0 ?
+                            html`
+                                <div class="media-files">
+                                    ${this.video.torrentFiles.map(mf => {
+                                        return html`
+                                            <torrent-file-card
+                                                    .torrentFile=${mf}>
+                                            </torrent-file-card>`;
+                                    })}
+                                </div>` : ""}
+                    <br><br>
+                    <p>Actors: <small title="${this.video.actors}">${this.video.actors?.slice(0, 80)}...</small></p>
+                    <br>
+                    <p>Made in ${this.video.country} | Released at ${this.video.released}</p>
+                    <br><br>
+
+                    ${this.video.imdbId ?
+                            html`
+                                <div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
+                    <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
+
+                    ${!this.rooster.user.isAdmin ? html`<br><br>
+                    <input type="text" style="font-size: 26px;"
+                           @input=${(e) => this.searchTitle = e.target.value}
+                           @keypress=${this.searchKeyPress}
+                           value="${this.video.title}"/>
+                    <button @click="${this.reSearch}" style="font-size: 26px; cursor: pointer;">
+                        Research video in internet database
+                    </button>` : ""}
+                    ${this.rooster.user.isAdmin ?
+                            this._searchResults.map(m =>
+                                    html`
+                                        <div class="searchResultDiv" @click=${() => this.onSelectSearchOption(m)}>
+                                            <div class="title">${m.Title} | ${m.Year} | ${m.Type}</div>
+                                            <div class="poster">
+                                                <img src="${m.Poster}" alt="${m.Title}">
+                                            </div>
+                                        </div>`) : ""}
+                </div>
+            </div>`;
     }
 }
