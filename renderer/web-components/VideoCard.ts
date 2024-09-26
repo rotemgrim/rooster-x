@@ -30,7 +30,7 @@ export class VideoCard extends LitElement {
         console.log("showDetails", this.video.id);
         // window.addEventListener('popstate', this.closeDetails.bind(this), {once: true});
         this.toggleViewTransition(true);
-        document.body.style.overflow = "hidden";
+        document.body.classList.add("no-scroll");
         document.startViewTransition(() => {
             this.toggleViewTransition(false);
             this.isShowDetails = true;
@@ -41,7 +41,7 @@ export class VideoCard extends LitElement {
         if (!skipHistory) {
             history.pushState({}, "", "/");
         }
-        document.body.style.overflow = "auto";
+        document.body.classList.remove("no-scroll");
         RoosterX.setFocusToVideos();
         document.startViewTransition(() => {
             this.isShowDetails = false;

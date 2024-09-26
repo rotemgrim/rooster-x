@@ -19,7 +19,12 @@ body {
   background-color: #000;
   font-family: $bodyFontFamily;
   font-size: $bodyFontSize;
+  overflow: auto;
   @extend %background-gradient;
+}
+
+body.no-scroll {
+  overflow: hidden;
 }
 
 .status-wrap {
@@ -119,6 +124,11 @@ body {
             }
         }
   }
+}
+
+body.no-scroll .videos .group-header {
+    opacity: 0;
+    pointer-events: none;
 }
 
 video-card {
