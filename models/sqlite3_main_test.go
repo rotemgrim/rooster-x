@@ -56,14 +56,14 @@ func (s *sqliteTester) setup() error {
 	}
 
 	if err = dumpCmd.Wait(); err != nil {
-		log.Println(err)
+		fmt.Println(err)
 		return errors.Wrap(err, "failed to wait for sqlite3 dump command")
 	}
 
 	w.Close() // After dumpCmd is done, close the write end of the pipe
 
 	if err = createCmd.Wait(); err != nil {
-		log.Println(err)
+		fmt.Println(err)
 		return errors.Wrap(err, "failed to wait for sqlite3 create command")
 	}
 

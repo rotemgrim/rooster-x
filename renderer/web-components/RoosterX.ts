@@ -1,6 +1,8 @@
 
 import {LitElement, html, TemplateResult} from "lit";
 import {customElement, property, query} from "lit/decorators.js";
+import {keyed} from "lit/directives/keyed.js";
+import {repeat} from "lit/directives/repeat.js";
 import {IpcService} from "../services/ipc.service";
 import "./TopBar";
 import "./VideoCard";
@@ -58,10 +60,10 @@ export class RoosterX extends LitElement {
     };
     @property() public _orderConfig: OrderConfig = {
         directionDescending: true,
-        orderBy: "latestChange",
+        orderBy: "trendingCount",
         groupBy: "none",
         // groupBy: "year",
-        showUnwatchedFirst: false,
+        showUnwatchedFirst: true,
     };
     @property() public _sweepStatus: string = "";
     @property() public _sweepCount: string = "";
@@ -580,8 +582,9 @@ export class RoosterX extends LitElement {
                     </div>
                     <div id="${key}" class="group open">
                         <div class="group-videos">
-                            ${arr.map(v => 
-                                html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
+                            ${repeat(arr, (v) => v.id, (v, i) => html`
+                                <video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`
+                            )}
                         </div>
                     </div>`);
             }

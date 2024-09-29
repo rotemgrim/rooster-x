@@ -65,7 +65,7 @@ type MediaDataExtended struct {
 	Resolution     null.String  `boil:"resolution" json:"resolution,omitempty"`
 	UploadedDate   null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
 	DownloadedDate null.String  `boil:"downloadedDate" json:"downloadedDate,omitempty"`
-	Velocity       null.Int     `boil:"velocity" json:"velocity,omitempty"`
+	TrendingCount  null.Int     `boil:"trendingCount" json:"trendingCount,omitempty"`
 }
 
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
@@ -114,14 +114,18 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	var media []MediaDataExtended
 	var userId int = data.UserId
 	queryMods := []qm.QueryMod{
-		qm.Select("md.*, umd.isWatched as isWatched, " +
-			"max(IFNULL(CAST(SUBSTR(sub.resolution, 0) AS int), 0)) as resolution, " +
-			"rtrim(replace(group_concat(DISTINCT sub.quality||','), ',,', ','), ',') as quality"),
+		qm.Select("md.*, umd.isWatched as isWatched"),
+		qm.Select("max(IFNULL(CAST(SUBSTR(sub.resolution, 0) AS int), 0)) as resolution"),
+		qm.Select("rtrim(replace(group_concat(DISTINCT sub.quality||','), ',,', ','), ',') as quality"),
+
+		qm.Select("(SELECT COUNT(*) FROM torrentFile as tf WHERE tf.metaDataId = md.id AND tf.seenAt > strftime('%s', 'now', '-48 hours')) as trendingCount"),
+
 		qm.From("metaData as md"),
 		//qm.Where("sub.metaDataId != 0"),
 		//qm.LeftOuterJoin("metaData as md on md.id = sub.metaDataId"),
 		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = ?", userId),
 		qm.GroupBy("md.id"),
+		qm.OrderBy("trendingCount DESC"),
 	}
 
 	if isTorrents {
@@ -130,9 +134,6 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		queryMods = append(queryMods, qm.Select("max(sub.uploadedAt) as uploadedAt, "+
 			"DATE(SUBSTR(uploadedAt, 1, 19)) as uploadedDate,"+
 			"count(sub.id) as mediaFiles"))
-		//queryMods = append(queryMods, qm.Where("sub.episodeId = (select id from episode where metaDataId = md."+
-		//	"id order by season desc, episode desc limit 1) or sub.episodeId is null"))
-		queryMods = append(queryMods, qm.Where("sub.magnet is not null"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.uploadedAt) DESC"))
 	} else {
 		//queryMods = append(queryMods, qm.From("mediaFile as sub"))
@@ -142,6 +143,7 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 			"count(sub.id) as mediaFiles"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.downloadedAt) DESC"))
 	}
+	queryMods = append(queryMods, qm.OrderBy("md.id DESC"))
 
 	if filter == "movies" {
 		queryMods = append(queryMods, qm.Where("md.series = false"))

@@ -48,6 +48,7 @@ export class VideoCard extends LitElement {
             this.toggleViewTransition(true);
             setTimeout(() => {
                 this.toggleViewTransition(false);
+                this.rooster.refreshMedia();
             })
         });
     }
@@ -66,7 +67,7 @@ export class VideoCard extends LitElement {
             <div class="poster ${this.video.isWatched ? "watched" : ""}">
                 <div class="filter"></div>
                 <div class="watch-btn" tabindex="-1" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
-<!--                <span style="color: white;">${this.video.mediaFiles}</span>-->
+<!--                <span style="color: white;">${this.video.trendingCount}</span>-->
                 ${this.video.poster ?
                     html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
                     html`<div class="img-missing"><span>${this.video.title}</span></div>`}

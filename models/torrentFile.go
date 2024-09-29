@@ -47,6 +47,7 @@ type TorrentFile struct {
 	Repack     null.Bool   `boil:"repack" json:"repack,omitempty" toml:"repack" yaml:"repack,omitempty"`
 	WideScreen null.Bool   `boil:"wideScreen" json:"wideScreen,omitempty" toml:"wideScreen" yaml:"wideScreen,omitempty"`
 	UploadedAt null.Time   `boil:"uploadedAt" json:"uploadedAt,omitempty" toml:"uploadedAt" yaml:"uploadedAt,omitempty"`
+	SeenAt     null.Int64  `boil:"seenAt" json:"seenAt,omitempty" toml:"seenAt" yaml:"seenAt,omitempty"`
 
 	R *torrentFileR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L torrentFileL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -76,6 +77,7 @@ var TorrentFileColumns = struct {
 	Repack     string
 	WideScreen string
 	UploadedAt string
+	SeenAt     string
 }{
 	ID:         "id",
 	Raw:        "raw",
@@ -100,6 +102,7 @@ var TorrentFileColumns = struct {
 	Repack:     "repack",
 	WideScreen: "wideScreen",
 	UploadedAt: "uploadedAt",
+	SeenAt:     "seenAt",
 }
 
 var TorrentFileTableColumns = struct {
@@ -126,6 +129,7 @@ var TorrentFileTableColumns = struct {
 	Repack     string
 	WideScreen string
 	UploadedAt string
+	SeenAt     string
 }{
 	ID:         "torrentFile.id",
 	Raw:        "torrentFile.raw",
@@ -150,6 +154,7 @@ var TorrentFileTableColumns = struct {
 	Repack:     "torrentFile.repack",
 	WideScreen: "torrentFile.wideScreen",
 	UploadedAt: "torrentFile.uploadedAt",
+	SeenAt:     "torrentFile.seenAt",
 }
 
 // Generated where
@@ -178,6 +183,7 @@ var TorrentFileWhere = struct {
 	Repack     whereHelpernull_Bool
 	WideScreen whereHelpernull_Bool
 	UploadedAt whereHelpernull_Time
+	SeenAt     whereHelpernull_Int64
 }{
 	ID:         whereHelpernull_Int64{field: "\"torrentFile\".\"id\""},
 	Raw:        whereHelpernull_String{field: "\"torrentFile\".\"raw\""},
@@ -202,6 +208,7 @@ var TorrentFileWhere = struct {
 	Repack:     whereHelpernull_Bool{field: "\"torrentFile\".\"repack\""},
 	WideScreen: whereHelpernull_Bool{field: "\"torrentFile\".\"wideScreen\""},
 	UploadedAt: whereHelpernull_Time{field: "\"torrentFile\".\"uploadedAt\""},
+	SeenAt:     whereHelpernull_Int64{field: "\"torrentFile\".\"seenAt\""},
 }
 
 // TorrentFileRels is where relationship names are stored.
@@ -242,9 +249,9 @@ func (r *torrentFileR) GetMetaDataIdMetaDatum() *MetaDatum {
 type torrentFileL struct{}
 
 var (
-	torrentFileAllColumns            = []string{"id", "raw", "title", "magnet", "size", "status", "scanError", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "uploadedAt"}
+	torrentFileAllColumns            = []string{"id", "raw", "title", "magnet", "size", "status", "scanError", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "uploadedAt", "seenAt"}
 	torrentFileColumnsWithoutDefault = []string{}
-	torrentFileColumnsWithDefault    = []string{"id", "raw", "title", "magnet", "size", "status", "scanError", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "uploadedAt"}
+	torrentFileColumnsWithDefault    = []string{"id", "raw", "title", "magnet", "size", "status", "scanError", "metaDataId", "episodeId", "year", "resolution", "quality", "codec", "audio", "group", "region", "language", "extended", "hardcoded", "proper", "repack", "wideScreen", "uploadedAt", "seenAt"}
 	torrentFilePrimaryKeyColumns     = []string{"id"}
 	torrentFileGeneratedColumns      = []string{"id"}
 )

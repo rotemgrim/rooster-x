@@ -6,6 +6,7 @@ export interface IMetaDataExtended extends MetaData {
     stringScore?: number;
     isWatched?: boolean;
     latestChange?: number;
+    trendingCount?: number;
 }
 
 export interface IEpisodeExtended extends Episode {

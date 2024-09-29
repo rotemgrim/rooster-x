@@ -35,7 +35,7 @@ type tester interface {
 
 func TestMain(m *testing.M) {
 	if dbMain == nil {
-		log.Println("no dbMain tester interface was ready")
+		fmt.Println("no dbMain tester interface was ready")
 		os.Exit(-1)
 	}
 
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 	// Load configuration
 	err = initViper()
 	if err != nil {
-		log.Println("unable to load config file")
+		fmt.Println("unable to load config file")
 		os.Exit(-2)
 	}
 
@@ -56,13 +56,13 @@ func TestMain(m *testing.M) {
 	boil.DebugMode = *flagDebugMode
 
 	if err = dbMain.setup(); err != nil {
-		log.Println("Unable to execute setup:", err)
+		fmt.Println("Unable to execute setup:", err)
 		os.Exit(-4)
 	}
 
 	conn, err := dbMain.conn()
 	if err != nil {
-		log.Println("failed to get connection:", err)
+		fmt.Println("failed to get connection:", err)
 	}
 
 	var code int
@@ -70,7 +70,7 @@ func TestMain(m *testing.M) {
 	code = m.Run()
 
 	if err = dbMain.teardown(); err != nil {
-		log.Println("Unable to execute teardown:", err)
+		fmt.Println("Unable to execute teardown:", err)
 		os.Exit(-5)
 	}
 

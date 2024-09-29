@@ -114,6 +114,7 @@ func fetchTorrentsFromSearch(search string) {
 			Repack:     null.BoolFrom(tor.Repack),
 			WideScreen: null.BoolFrom(tor.Widescreen),
 			UploadedAt: null.TimeFrom(uploadedAt),
+			SeenAt:     null.Int64From(time.Now().Unix()),
 		}
 		err = dbTor.InsertG(context.Background(), boil.Infer())
 		if err != nil {

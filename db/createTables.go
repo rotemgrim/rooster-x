@@ -92,8 +92,8 @@ func createEpisodeTable(db *sql.DB) {
 );  CREATE INDEX IF NOT EXISTS idx_metaDataId ON episode(metaDataId);
 	CREATE INDEX IF NOT EXISTS idx_tmdbSeriesId ON episode(tmdbSeriesId);
 	CREATE INDEX IF NOT EXISTS idx_imdbSeriesId ON episode(imdbSeriesId);
-	CREATE INDEX IF NOT EXISTS idx_season ON episode(season);
-	CREATE INDEX IF NOT EXISTS idx_episode ON episode(episode);
+	CREATE INDEX IF NOT EXISTS idx_season ON episode(season DESC);
+	CREATE INDEX IF NOT EXISTS idx_episode ON episode(episode DESC);
 `)
 	if err != nil {
 		log.Fatal(err)
@@ -172,9 +172,16 @@ func createTorrentFileTable(db *sql.DB) {
 		repack BOOLEAN DEFAULT 0,
 		wideScreen BOOLEAN DEFAULT 0,
 		uploadedAt DATETIME,
+		seenAt INTEGER,
 		FOREIGN KEY (metaDataId) REFERENCES metaData(id),
   		FOREIGN KEY (episodeId) REFERENCES episode(id)
-	)`)
+	);
+		CREATE INDEX IF NOT EXISTS idx_metaDataId ON torrentFile(metaDataId);
+		CREATE INDEX IF NOT EXISTS idx_seenAt ON torrentFile(seenAt DESC);
+		CREATE INDEX IF NOT EXISTS idx_episodeId ON torrentFile(episodeId DESC);
+		CREATE INDEX IF NOT EXISTS idx_uploadedAt ON torrentFile(uploadedAt DESC);
+`)
+
 	if err != nil {
 		log.Fatal(err)
 	}

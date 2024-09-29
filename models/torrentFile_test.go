@@ -908,7 +908,7 @@ func testTorrentFilesSelect(t *testing.T) {
 }
 
 var (
-	torrentFileDBTypes = map[string]string{`ID`: `INTEGER`, `Raw`: `TEXT`, `Title`: `TEXT`, `Magnet`: `TEXT`, `Size`: `INTEGER`, `Status`: `VARCHAR(10)`, `ScanError`: `TEXT`, `MetaDataId`: `INTEGER`, `EpisodeId`: `INTEGER`, `Year`: `INTEGER`, `Resolution`: `VARCHAR(40)`, `Quality`: `VARCHAR(40)`, `Codec`: `VARCHAR(40)`, `Audio`: `VARCHAR(40)`, `Group`: `VARCHAR(40)`, `Region`: `VARCHAR(40)`, `Language`: `VARCHAR(40)`, `Extended`: `BOOLEAN`, `Hardcoded`: `BOOLEAN`, `Proper`: `BOOLEAN`, `Repack`: `BOOLEAN`, `WideScreen`: `BOOLEAN`, `UploadedAt`: `DATETIME`}
+	torrentFileDBTypes = map[string]string{`ID`: `INTEGER`, `Raw`: `TEXT`, `Title`: `TEXT`, `Magnet`: `TEXT`, `Size`: `INTEGER`, `Status`: `VARCHAR(10)`, `ScanError`: `TEXT`, `MetaDataId`: `INTEGER`, `EpisodeId`: `INTEGER`, `Year`: `INTEGER`, `Resolution`: `VARCHAR(40)`, `Quality`: `VARCHAR(40)`, `Codec`: `VARCHAR(40)`, `Audio`: `VARCHAR(40)`, `Group`: `VARCHAR(40)`, `Region`: `VARCHAR(40)`, `Language`: `VARCHAR(40)`, `Extended`: `BOOLEAN`, `Hardcoded`: `BOOLEAN`, `Proper`: `BOOLEAN`, `Repack`: `BOOLEAN`, `WideScreen`: `BOOLEAN`, `UploadedAt`: `DATETIME`, `SeenAt`: `INTEGER`}
 	_                  = bytes.MinRead
 )
 

@@ -87,6 +87,8 @@ export class FiltersPage extends LitElement {
                         <li>
                             <h3>Order by</h3>
                             <select @change=${this.orderByChange} id="orderBy">
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "trendingCount"}
+                                    value="trendingCount">Trending</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "latestChange"}
                                     value="latestChange">Download Date</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "rating"}
