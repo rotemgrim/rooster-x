@@ -79,8 +79,15 @@ export function fromNow(date, nowDate = Date.now(), rft = new Intl.RelativeTimeF
     const diff = now - (typeof date === 'object' ? date : new Date(date)).getTime();
     const diffAbs = Math.abs(diff);
     for (const interval of intervals) {
+        if (diffAbs < DAY) {
+            return "today";
+        } else if (diffAbs < 2 * DAY) {
+            return "yesterday";
+        } else if (diffAbs < 3 * DAY) {
+
+        }
         if (diffAbs >= interval.ge) {
-            const x = Math.round(Math.abs(diff) / interval.divisor);
+            const x = Math.floor(Math.abs(diff) / interval.divisor);
             const isFuture = diff < 0;
             return interval.unit ? rft.format(isFuture ? x : -x, interval.unit) : interval.text;
         }

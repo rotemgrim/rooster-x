@@ -498,8 +498,10 @@ export class RoosterX extends LitElement {
     }
 
     private toggleGroup(e) {
-        const group = e.target.closest(".group-header")?.nextElementSibling as HTMLElement;
+        const toggleWrapper = e.target.closest(".group-header") as HTMLElement;
+        const group = toggleWrapper?.nextElementSibling as HTMLElement;
         if (group) {
+            toggleWrapper.classList.toggle("open");
             group.classList.toggle("open");
         }
     }
@@ -577,14 +579,17 @@ export class RoosterX extends LitElement {
             for (const [key, arr] of this._filteredMedia) {
                 index--;
                 result.push(html`
-                    <div class="group-header" style="z-index: ${index}">
-                        <a href="#${key}">${getGroupTitle(key)}</a> <div @click="${this.toggleGroup}">+</div>
+                    <div class="group-header open" style="z-index: ${index}">
+                        <div @click="${this.toggleGroup}" class="material-icons mini">keyboard_arrow_down</div>
+                        <div @click="${this.toggleGroup}" class="material-icons maxi">chevron_right</div>
+                        &nbsp;
+                        <a href="#${key}">${getGroupTitle(key)}</a>
                     </div>
                     <div id="${key}" class="group open">
                         <div class="group-videos">
                             ${repeat(arr, (v) => v.id, (v, i) => html`
                                 <video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`
-                            )}
+                )}
                         </div>
                     </div>`);
             }
