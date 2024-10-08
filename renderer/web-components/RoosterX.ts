@@ -650,6 +650,10 @@ export class RoosterX extends LitElement {
             ${this._panel === "filters" ? html`<filters-page .rooster=${this}></filters-page>` : ""}
             ${this._panel === "settings" ? html`<settings-page .rooster=${this}></settings-page>` : ""}
         </div>` : ""}
+        ${this.isLoading ? html`<div class="loading">
+            <div class="spinner"><div></div></div>
+            Loading
+        </div>` : ""}
         <div class="videos" tabindex="0" ?hidden="${this.isLoading}">
             ${this.getVideoCards()}
             <button class="goTop" @click="${this.goToTop}">
