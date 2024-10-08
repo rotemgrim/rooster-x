@@ -1,6 +1,6 @@
 
 import {LitElement, html, TemplateResult} from "lit";
-import {customElement, property, query} from "lit/decorators.js";
+import {customElement, property, query, state} from "lit/decorators.js";
 import {keyed} from "lit/directives/keyed.js";
 import {repeat} from "lit/directives/repeat.js";
 import {IpcService} from "../services/ipc.service";
@@ -69,7 +69,12 @@ export class RoosterX extends LitElement {
     @property() public _sweepCount: string = "";
     @property() public _showTorrents: boolean = false
     @query("top-bar") private topBar: TopBar;
+    @query(".videos") public videos: HTMLElement;
+    @state() public isLoading: boolean = false;
     private msgTimeout: number;
+
+    private torrentsViewScrollPos: number = 0;
+    private foldersViewScrollPos: number = 0;
 
     public createRenderRoot() {
         window["RoosterX"] = this;
@@ -408,6 +413,8 @@ export class RoosterX extends LitElement {
 
 
     public showTorrents() {
+        this.foldersViewScrollPos = this.videos.scrollTop;
+        this.isLoading = true;
         this._showTorrents = true;
         IpcService.getMedia({
             filter: "all",
@@ -415,18 +422,30 @@ export class RoosterX extends LitElement {
         }).then(torrents => {
             this._torrents = torrents;
             this.refreshMedia(this._torrents);
-            RoosterX.setFocusToVideos();
+            this.isLoading = false;
+            this.updateComplete.then(() => {
+                RoosterX.setFocusToVideos();
+                this.videos.scrollTo({top: this.torrentsViewScrollPos, behavior: "smooth"});
+            });
         });
         this.closeSideBar();
     }
 
     public showFolders() {
+        this.torrentsViewScrollPos = this.videos.scrollTop;
+        this.isLoading = true;
         this._showTorrents = false;
         IpcService.getMedia({
             filter: "all",
             isTorrents: this._showTorrents
-        }).then(media => this.media = media);
-        RoosterX.setFocusToVideos();
+        }).then(media => {
+            this.media = media;
+            this.isLoading = false;
+            this.updateComplete.then(() => {
+                RoosterX.setFocusToVideos();
+                this.videos.scrollTo({top: this.foldersViewScrollPos, behavior: "smooth"});
+            });
+        });
         this.closeSideBar && this.closeSideBar();
     }
 
@@ -587,9 +606,11 @@ export class RoosterX extends LitElement {
                     </div>
                     <div id="${key}" class="group open">
                         <div class="group-videos">
-                            ${repeat(arr, (v) => v.id, (v, i) => html`
-                                <video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`
-                )}
+                            ${repeat(
+                                arr, 
+                                (v) => "" + v.id + (this._showTorrents ? "-tor" : ""), 
+                                (v, i) => html`
+                                    <video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
                         </div>
                     </div>`);
             }
@@ -629,7 +650,7 @@ export class RoosterX extends LitElement {
             ${this._panel === "filters" ? html`<filters-page .rooster=${this}></filters-page>` : ""}
             ${this._panel === "settings" ? html`<settings-page .rooster=${this}></settings-page>` : ""}
         </div>` : ""}
-        <div class="videos" tabindex="0">
+        <div class="videos" tabindex="0" ?hidden="${this.isLoading}">
             ${this.getVideoCards()}
             <button class="goTop" @click="${this.goToTop}">
                 arrow_circle_up

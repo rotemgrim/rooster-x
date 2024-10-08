@@ -16,6 +16,8 @@ export class TopBar extends LitElement {
 
     @property() public hours: string = "";
     @property() public minutes: string = "";
+    private torrentsViewScrollPos: number = 0;
+    private foldersViewScrollPos: number = 0;
 
     public createRenderRoot() {
         return this;
@@ -74,9 +76,15 @@ export class TopBar extends LitElement {
     }
 
     public showTorrents() {
+        // save the current position of the scroll
+        this.foldersViewScrollPos = this.rooster.videos.scrollTop;
+
         this.rooster.showTorrents();
         this._toggleTorrents = true;
         this.requestUpdate();
+        this.updateComplete.then(() => {
+            this.rooster.videos.scrollTop = this.torrentsViewScrollPos;
+        });
     }
 
     public showFolders() {
