@@ -1,6 +1,6 @@
-
 import {LitElement, html} from "lit";
 import {customElement, property} from "lit/decorators.js";
+import {classMap} from "lit/directives/class-map.js";
 import "./VideoDetails";
 import {IMetaDataExtended} from "../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
@@ -48,7 +48,7 @@ export class VideoCard extends LitElement {
             this.toggleViewTransition(true);
             setTimeout(() => {
                 this.toggleViewTransition(false);
-                this.rooster.refreshMedia();
+                // this.rooster.refreshMedia();
             })
         });
     }
@@ -64,7 +64,12 @@ export class VideoCard extends LitElement {
 
     public render() {
         return html`<div class="video" tabindex="0" @click="${this.showDetails}">
-            <div class="poster ${this.video.isWatched ? "watched" : ""}">
+            <div class="${classMap({
+            "poster": true,
+                "watched": !!this.video.isWatched,
+                // @ts-ignore
+                "k4": this.video.resolution.includes("2160"),
+            })}" ${this.video.isWatched ? "watched" : ""}">
                 <div class="filter"></div>
                 <div class="watch-btn" tabindex="-1" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
 <!--                <span style="color: white;">${this.video.trendingCount}</span>-->

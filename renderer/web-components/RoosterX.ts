@@ -600,6 +600,11 @@ export class RoosterX extends LitElement {
         }
     }
 
+    public goToTop() {
+        const videos = document.querySelector(".videos") as HTMLElement;
+        videos.scrollTo({top: 0, behavior: "smooth"});
+    }
+
     public render() {
         return html`
         ${this._sweepStatus ?
@@ -626,6 +631,9 @@ export class RoosterX extends LitElement {
         </div>` : ""}
         <div class="videos" tabindex="0">
             ${this.getVideoCards()}
+            <button class="goTop" @click="${this.goToTop}">
+                arrow_circle_up
+            </button>
         </div>`;
     }
 }

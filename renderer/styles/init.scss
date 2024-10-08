@@ -197,6 +197,23 @@ video-card {
     position: relative;
     z-index: -1;
 
+    &.k4:before {
+        width: min-content;
+        height: min-content;
+        background: #b6840e;
+        z-index: 10;
+        content: "\e072";
+        display: block;
+        position: absolute;
+        bottom: 0.4rem;
+        font-size: 2rem;
+        font-family: "Material Icons";
+        left: 0.4rem;
+        mix-blend-mode: hard-light;
+        opacity: 0.8;
+        bottom: 0.4rem;
+    }
+
     img {
       width: 224px;
       height: 314px;
@@ -249,4 +266,25 @@ img:after {
   left: 0;
   width: 100%;
   text-align: center;
+}
+
+.goTop {
+    position: fixed;
+    bottom: 0.5rem;
+    right: 2rem;
+    z-index: 1000;
+    padding: 0.5rem;
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: "Material Icons";
+    font-size: 3rem;
+    background: transparent;
+    border: transparent;
+    color: bisque;
+    mix-blend-mode: hard-light;
+    opacity: 0.8;
+}
+.goTop:hover {
+    background: #00000069;
+    color: white;
 }

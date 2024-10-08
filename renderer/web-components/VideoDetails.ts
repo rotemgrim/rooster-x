@@ -375,7 +375,7 @@ export class VideoDetails extends LitElement {
                         <div class="trailer">${this.video.trailer ?
                                 html`
                                     <iframe width="560" height="315"
-                                            src="${this.video.trailer.replace(".com/watch?v=", "-nocookie.com/embed/")}?autoplay=1&mute=1&rel=0"
+                                            src="${this.video.trailer.replace(".com/watch?v=", ".com/embed/")}?autoplay=1&mute=1&rel=0"
                                             frameborder="0"
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                             allowfullscreen></iframe>
