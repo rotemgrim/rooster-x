@@ -138,8 +138,10 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	} else {
 		//queryMods = append(queryMods, qm.From("mediaFile as sub"))
 		queryMods = append(queryMods, qm.LeftOuterJoin("mediaFile as sub on sub.metaDataId = md.id"))
+		queryMods = append(queryMods, qm.LeftOuterJoin("torrentFile as tf on tf.metaDataId = md.id"))
 		queryMods = append(queryMods, qm.Select("max(sub.downloadedAt) as downloadedAt, "+
 			"DATE(SUBSTR(downloadedAt, 1, 19)) as downloadedDate,"+
+			"DATE(tf.seenAt, 'unixepoch') as uploadedDate,"+
 			"count(sub.id) as mediaFiles"))
 		queryMods = append(queryMods, qm.OrderBy(" max(sub.downloadedAt) DESC"))
 	}

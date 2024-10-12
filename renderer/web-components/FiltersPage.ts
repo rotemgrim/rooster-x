@@ -91,6 +91,8 @@ export class FiltersPage extends LitElement {
                                     value="trendingCount">Trending</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "latestChange"}
                                     value="latestChange">Download Date</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "uploadedDate"}
+                                    value="uploadedDate">Uploaded Date</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "rating"}
                                     value="rating">IMDB Score</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "votes"}
@@ -114,11 +116,10 @@ export class FiltersPage extends LitElement {
                                         value="year">Year</option>
                                 <option ?selected=${this.rooster._orderConfig.groupBy === "genres"}
                                         value="genres">Genres</option>
-                                ${this.rooster._showTorrents 
-                                    ? html`<option ?selected=${this.rooster._orderConfig.groupBy === "uploadedDate"}
-                                            value="uploadedDate">Uploaded Date</option>`
-                                    : html`<option ?selected=${this.rooster._orderConfig.groupBy === "downloadedDate"} 
-                                            value="downloadedDate">Download Date</option>`}
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "uploadedDate"}
+                                        value="uploadedDate">Uploaded Date</option>
+                                <option ?selected=${this.rooster._orderConfig.groupBy === "downloadedDate"} 
+                                        value="downloadedDate">Download Date</option>
                             </select>
                         </li>
                         <li>

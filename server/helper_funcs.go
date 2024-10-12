@@ -12,9 +12,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	url2 "net/url"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 func transmitPromiseResponse(c *websocket.Conn, req PayloadRequest, data interface{}) {
@@ -52,9 +52,9 @@ func transmitPromiseReject(c *websocket.Conn, req PayloadRequest, data interface
 }
 
 func GetYouTubeTrailer(title string, year int) (string, error) {
-	url := fmt.Sprintf("https://www.youtube.com/results?search_query=%s+%d+trailer", title, year)
-	// url encode
-	url = strings.ReplaceAll(url, " ", "+")
+	// escape special characters
+	query := url2.QueryEscape(fmt.Sprintf("%s+%d+trailer", title, year))
+	url := fmt.Sprintf("https://www.youtube.com/results?search_query=%s", query)
 
 	// get the page with fetch
 	response, err := http.Get(url)
