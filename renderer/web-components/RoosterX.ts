@@ -41,6 +41,14 @@ type OrderConfig = {
     showUnwatchedFirst: boolean;
 }
 
+interface FilterConfig {
+    unwatchedMedia: boolean;
+    noMediaWithoutFiles: boolean;
+    noMediaWithoutMetaData: boolean;
+    noMediaWithoutGenres: string[];
+}
+
+// @ts-ignore
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
 
@@ -143,6 +151,13 @@ export class RoosterX extends LitElement {
         // });
     }
 
+    connectedCallback() {
+        super.connectedCallback();
+        // load filter config from local storage
+        this._orderConfig = this.orderConfig || this._orderConfig;
+        this._filterConfig = this.filterConfig || this._filterConfig;
+    }
+
     set showMsg(value: string) {
         this._sweepStatus = value;
         if (value === "reload") {
@@ -164,18 +179,41 @@ export class RoosterX extends LitElement {
         this.refreshMedia(data);
     }
 
-    set filterConfig(data) {
+    set filterConfig(data: any) {
         this._filterConfig = data;
+        // save filter config to local storage
+        const localStorageKey = this.getLocalStorageKey("filterConfig");
+        localStorage.setItem(localStorageKey, JSON.stringify(data));
         this.media = this._media;
     }
 
-    set orderConfig(data) {
+    get filterConfig(): FilterConfig | undefined {
+        const localStorageKey = this.getLocalStorageKey("filterConfig");
+        const data = localStorage.getItem(localStorageKey);
+        return data ? JSON.parse(data) : undefined;
+    }
+
+    set orderConfig(data: any) {
         this._orderConfig = data;
+        // save order config to local storage
+        const localStorageKey = this.getLocalStorageKey("orderConfig");
+        localStorage.setItem(localStorageKey, JSON.stringify(data));
         this.media = this._media;
+    }
+    get orderConfig(): OrderConfig | undefined {
+        const localStorageKey = this.getLocalStorageKey("orderConfig");
+        const data = localStorage.getItem(localStorageKey);
+        return data ? JSON.parse(data) : undefined;
+    }
+
+    getLocalStorageKey(prefix: string): string {
+        return `${prefix}-${this._showTorrents ? "torr" : "down"}-${this.user.id}`;
     }
 
     public refreshMedia(data?) {
         console.log("refreshMedia", data);
+        this._orderConfig = this.orderConfig || this._orderConfig;
+        this._filterConfig = this.filterConfig || this._filterConfig;
         if (this._showTorrents) {
             if (data) {
                 this._filteredMedia = this.prepareMediaTorrents(data);
