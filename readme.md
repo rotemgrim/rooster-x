@@ -36,3 +36,12 @@ better to run the build-script.sh to include the client-side
 go build -ldflags="-H windowsgui" -o roosterx.exe
 ```
 
+## change executable icon
+
+```bash
+go install github.com/tc-hib/go-winres@latest
+go-winres simply --icon youricon.png
+
+# and build regularly
+go build -ldflags="-H windowsgui" -o roosterx.exe
+```
