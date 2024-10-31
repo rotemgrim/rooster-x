@@ -1,4 +1,3 @@
-
 import {LitElement, html, PropertyValues} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
@@ -12,7 +11,6 @@ import {type TorrentFile} from "../entity/TorrentFile";
 
 @customElement("episode-card")
 export class EpisodeCard extends LitElement {
-
     @property() public videoDetails: VideoDetails;
     @property() public episode: IEpisodeExtended;
     @property() public isShowPlayOptions: boolean;
@@ -32,8 +30,11 @@ export class EpisodeCard extends LitElement {
         if (this.episode && this.episode.mediaFiles && this.episode.mediaFiles.length > 1) {
             // show options for select
             this.isShowPlayOptions = !this.isShowPlayOptions;
-        } else if (this.episode && (!this.episode.mediaFiles || this.episode.mediaFiles?.length === 0)
-            && this.episode.torrentFiles?.length > 0) {
+        } else if (
+            this.episode &&
+            (!this.episode.mediaFiles || this.episode.mediaFiles?.length === 0) &&
+            this.episode.torrentFiles?.length > 0
+        ) {
             // show download options
             this.isShowDownloadOptions = !this.isShowDownloadOptions;
         } else {
@@ -105,28 +106,34 @@ export class EpisodeCard extends LitElement {
 
     public render() {
         return html`<div class="episode ${this.episode.isWatched ? `watched` : ``}">
-            <span class="title" alt="${this.getPlotTitle()}">
-                S${this.episode.season!.toString().padStart(2, "0")}-E${this.episode.episode.toString().padStart(2, "0")} - ${this.episode.title}
-            </span>
-            <div class="watch-btn" @click=${this.setWatch}
+                <span class="title" alt="${this.getPlotTitle()}">
+                    S${this.episode.season!.toString().padStart(2, "0")}-E${this.episode.episode
+                        .toString()
+                        .padStart(2, "0")}
+                    - ${this.episode.title}
+                </span>
+                <div
+                    class="watch-btn"
+                    @click=${this.setWatch}
                     ?checked=${this.episode.isWatched}
                     title="${this.episode.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
-            <div class="image" tabindex="0" @click=${this.playEpisode} title="${this.getTitle()}">
-                ${this.episode.mediaFiles?.length > 0 ?
-                    html`<i class="material-icons">play_circle_outline</i>` :
-                    html`${this.episode.torrentFiles?.length > 0 ?
-                        html`<i class="material-icons">cloud_download</i>` :
-                        html`<i class="material-icons">cancel</i>`}`}
-                ${this.episode.poster ?
-                    html`<img src="${this.episode.poster}" alt="${this.episode.title}" />` :
-                    html`<div class="img-missing"><span>${this.episode.title}</span></div>`}
+                <div class="image" tabindex="0" @click=${this.playEpisode} title="${this.getTitle()}">
+                    ${this.episode.mediaFiles?.length > 0
+                        ? html`<i class="material-icons">play_circle_outline</i>`
+                        : html`${this.episode.torrentFiles?.length > 0
+                              ? html`<i class="material-icons">cloud_download</i>`
+                              : html`<i class="material-icons">cancel</i>`}`}
+                    ${this.episode.poster
+                        ? html`<img
+                              src="https://image.tmdb.org/t/p/w300${this.episode.poster}"
+                              alt="${this.episode.title}" />`
+                        : html`<div class="img-missing"><span>${this.episode.title}</span></div>`}
+                </div>
+                <span class="plot">${this.episode.plot}</span>
             </div>
-            <span class="plot">${this.episode.plot}</span>
-        </div>
-        ${this.isShowPlayOptions ?
-            html`<br>${this.episode.mediaFiles.map(f => this.fileOptions(f))}` : ""}
-
-        ${this.isShowDownloadOptions ?
-            html`<br>${this.episode.torrentFiles.map(f => EpisodeCard.torrentFileOptions(f))}` : ""}`;
+            ${this.isShowPlayOptions ? html`<br />${this.episode.mediaFiles.map(f => this.fileOptions(f))}` : ""}
+            ${this.isShowDownloadOptions
+                ? html`<br />${this.episode.torrentFiles.map(f => EpisodeCard.torrentFileOptions(f))}`
+                : ""}`;
     }
 }

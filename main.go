@@ -2,26 +2,29 @@ package main
 
 import (
 	"fmt"
-	tmdb "github.com/cyruzin/golang-tmdb"
-	"github.com/getlantern/systray"
-	"github.com/getlantern/systray/example/icon"
 	"go-poc/db"
 	EventBus "go-poc/event-bus"
 	"go-poc/scheduler"
 	"go-poc/server"
+	gtmdb "go-poc/tmdb"
 	"go-poc/torrents"
 	"go-poc/walker"
-	"gopkg.in/natefinch/lumberjack.v2"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
+
+	tmdb "github.com/cyruzin/golang-tmdb"
+	"github.com/getlantern/systray"
+	"github.com/getlantern/systray/example/icon"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
 	TmdbApiKey           string   `yaml:"tmdb_api_key"`
+	Lang                 string   `yaml:"lang"`
 	Directories          []string `yaml:"directories"`
 	FullDirectoriesSweep []string `yaml:"full_directories_sweep"`
 	TorrentsSweep        []string `yaml:"torrents_sweep"`
@@ -42,8 +45,8 @@ func main() {
 		Filename:   "tmp/rooster.log",
 		MaxSize:    5, // megabytes
 		MaxBackups: 3,
-		MaxAge:     28, //days
-		//Compress:   true, // disabled by default
+		MaxAge:     28, // days
+		// Compress:   true, // disabled by default
 	}
 	log.SetOutput(logger)
 	systray.Run(onReady, onExit)
@@ -66,14 +69,13 @@ func listenForIncomingMessages() {
 				systray.SetIcon(RoosterIcon)
 			} else if req.Event == "get-imdb-ratings" {
 				// mock the response
-				//req.Response <- server.GetImdbRatings(req.Data.(string))
+				// req.Response <- server.GetImdbRatings(req.Data.(string))
 			}
 		}
 	}()
 }
 
 func onReady() {
-
 	log.Println("RoosterX has started ======================")
 
 	// initialize system tray
@@ -87,7 +89,9 @@ func onReady() {
 
 	schedulerInstance := scheduler.NewScheduler()
 	ServerInstance := server.NewServer("static")
-	tmdbClient, err := tmdb.Init("REMOVED_TMDB_API_KEY")
+	tmdbClient, err := tmdb.Init(config.TmdbApiKey)
+	gtmdb.SetLang(config.Lang)
+
 	if err != nil {
 		log.Println("Error initializing tmdb client")
 		return
@@ -151,6 +155,7 @@ func initializeConfig() Config {
 		defaultConfig := []byte(
 			`
 tmdb_api_key: "REMOVED_TMDB_API_KEY"
+lang: "en-US"
 
 directories:
     - "B:\\downloads\\complete"
@@ -189,12 +194,11 @@ imdb_rating_poll: "* * * * *" # Every minute
 		panic(fmt.Errorf("Error unmarshalling config file", err))
 	}
 
-	//spew.Dump(cfg)
+	// spew.Dump(cfg)
 	return cfg
 }
 
 func trayInitialize() {
-
 	// create a new system tray
 	systray.SetIcon(RoosterIcon)
 	systray.SetTitle("RoosterX")

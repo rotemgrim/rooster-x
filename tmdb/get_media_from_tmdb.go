@@ -3,31 +3,36 @@ package gtmdb
 import (
 	"context"
 	"fmt"
-	tmdb "github.com/cyruzin/golang-tmdb"
-	"github.com/davecgh/go-spew/spew"
-	ptn "github.com/middelink/go-parse-torrent-name"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	m "go-poc/models"
 	"go-poc/server"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	tmdb "github.com/cyruzin/golang-tmdb"
+	"github.com/davecgh/go-spew/spew"
+	ptn "github.com/middelink/go-parse-torrent-name"
+	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-var TMDB_TV_SEARCH_CACHE = make(map[string]*tmdb.SearchTVShows)
-var TMDB_MOVIE_SEARCH_CACHE = make(map[string]*tmdb.SearchMovies)
-var LANG = "en-US"
+var (
+	TMDB_TV_SEARCH_CACHE    = make(map[string]*tmdb.SearchTVShows)
+	TMDB_MOVIE_SEARCH_CACHE = make(map[string]*tmdb.SearchMovies)
+	LANG                    = "en-US"
+)
 
-//var LANG = "he-IL"
+// var LANG = "he-IL"
+func SetLang(lang string) {
+	LANG = lang
+}
 
 func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
-
 	// get metadata from internet
 	var newMd *m.MetaDatum
-	var err = error(nil)
+	err := error(nil)
 
 	if tor.Episode > 0 && tor.Season > 0 {
 		newMd, err = getSeriesMetaData(tmdbClient, tor)
@@ -41,7 +46,6 @@ func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 }
 
 func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.MetaDatum) (*m.Episode, error) {
-
 	// check if metadata is already in DB
 	tmpEpMd, err := m.Episodes(
 		qm.Where("tmdbSeriesId = ?", md.TMDBID),
@@ -54,7 +58,7 @@ func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.Meta
 	}
 
 	// get metadata from internet
-	var epMd = &m.Episode{}
+	epMd := &m.Episode{}
 	detailsOptions := map[string]string{
 		"language":           LANG,
 		"append_to_response": "external_ids",
@@ -84,7 +88,6 @@ func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.Meta
 }
 
 func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
-
 	// check if metadata is already in cache
 	tmdbSearchResult := TMDB_TV_SEARCH_CACHE[tor.Title]
 	if tmdbSearchResult == nil {
@@ -128,7 +131,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 		return nil, err
 	}
 
-	var newMd = &m.MetaDatum{}
+	newMd := &m.MetaDatum{}
 	newMd.Title = null.StringFrom(tmdbDetails.Name)
 	newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
 	newMd.Type = null.StringFrom("series")
@@ -169,13 +172,11 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	newMd.Country = null.StringFrom(strings.Join(countries, ","))
 
 	return newMd, nil
-
 }
 
 func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
-
 	// check if metadata is already in cache
-	var tmdbSearchResult = TMDB_MOVIE_SEARCH_CACHE[tor.Title]
+	tmdbSearchResult := TMDB_MOVIE_SEARCH_CACHE[tor.Title]
 	if tmdbSearchResult == nil {
 		log.Println("searching TMDB MOVIE for %s", tor.Title)
 
@@ -216,7 +217,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	if err != nil {
 		return nil, err
 	}
-	var newMd = &m.MetaDatum{}
+	newMd := &m.MetaDatum{}
 	newMd.Title = null.StringFrom(tmdbDetails.Title)
 	newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
 	newMd.Type = null.StringFrom("movie")
@@ -232,7 +233,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	newMd.Year = null.Int64From(year)
 	newMd.Plot = null.StringFrom(tmdbDetails.Overview)
 	newMd.Runtime = null.Int64From(int64(tmdbDetails.Runtime))
-	//newMd.Director = null.StringFrom(tmdbDetails.d)
+	// newMd.Director = null.StringFrom(tmdbDetails.d)
 	newMd.Released = null.StringFrom(tmdbDetails.ReleaseDate)
 
 	// convert date string like 2023-08-22 to unix timestamp
@@ -314,14 +315,13 @@ func HandleMetaDataGettingErr(file interface{}, err error) bool {
 }
 
 func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *server.Server, i int, totalFiles int) {
-
 	tor, err := ptn.Parse(file.Raw.String)
 	if HandleMetaDataGettingErr(*file, err) {
 		return
 	}
 
 	// try getting metadata from DB
-	var md = &m.MetaDatum{}
+	md := &m.MetaDatum{}
 	if file.MetaDataId.Valid && !file.MetaDataId.IsZero() {
 		md, err = m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).OneG(context.Background())
 		if HandleMetaDataGettingErr(*file, err) {
@@ -383,14 +383,13 @@ func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *serve
 }
 
 func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *server.Server, i int, totalFiles int) {
-
 	tor, err := ptn.Parse(file.Raw.String)
 	if HandleMetaDataGettingErr(*file, err) {
 		return
 	}
 
 	// try getting metadata from DB
-	var md = &m.MetaDatum{}
+	md := &m.MetaDatum{}
 	if file.MetaDataId.Valid && !file.MetaDataId.IsZero() {
 		md, err = m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).OneG(context.Background())
 		if HandleMetaDataGettingErr(*file, err) {
