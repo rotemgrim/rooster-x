@@ -1,4 +1,7 @@
+# RoosterX - Readme
+
 to run in watch mode:
+
 ```bash
 # install air
 go install github.com/air-verse/air@latest
@@ -7,9 +10,8 @@ go install github.com/air-verse/air@latest
 air
 ```
 
-
-
 make sure you have sqlboiler installed:
+
 ```bash
 go install github.com/volatiletech/sqlboiler/v4@latest
 
@@ -18,11 +20,19 @@ go install github.com/volatiletech/sqlboiler/v4/drivers/sqlboiler-sqlite3@latest
 ```
 
 run this to generate models:
+
 ```bash
 sqlboiler sqlite3 --add-global-variants --add-panic-variants
 ```
 
-### Building
+## Building
+
+better to run the build-script.sh to include the client-side
+
 ```bash
+
+./build-script.sh
+
 go build -ldflags="-H windowsgui" -o roosterx.exe
 ```
+

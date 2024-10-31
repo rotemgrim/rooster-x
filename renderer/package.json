@@ -1,26 +1,28 @@
 {
-  "name": "renderer",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "linqts": "^2.0.0",
-    "lit": "^3.2.0",
-    "lodash": "^4.17.21",
-    "sass": "^1.77.8",
-    "string-score": "^1.0.1",
-    "uuid": "^10.0.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.5.4",
-    "vite": "^5.4.0"
-  }
+    "name": "renderer",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "linqts": "^2.0.0",
+        "lit": "^3.2.0",
+        "lodash": "^4.17.21",
+        "sass": "^1.77.8",
+        "string-score": "^1.0.1",
+        "uuid": "^10.0.0"
+    },
+    "devDependencies": {
+        "ts-lit-plugin": "^2.0.2",
+        "tslib": "^2.8.0",
+        "typescript": "^5.5.4",
+        "vite": "^5.4.0"
+    }
 }
