@@ -467,12 +467,20 @@ func checkIfSweepIsRunning() bool {
 	return false
 }
 
-func stringInSlice(str string, extensions []string) bool {
-	for _, e := range extensions {
-		if strings.Contains(strings.ToLower(str), e) {
+func stringInSlice(haystack string, needles []string) bool {
+	for _, needle := range needles {
+		// Use regexp to find whole word matches
+		pattern := fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(needle))
+		re := regexp.MustCompile(pattern)
+		if re.MatchString(haystack) {
 			return true
 		}
 	}
+	//for _, e := range extensions {
+	//	if strings.Contains(strings.ToLower(str), e) {
+	//		return true
+	//	}
+	//}
 	return false
 }
 
