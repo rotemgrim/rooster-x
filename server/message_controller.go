@@ -11,6 +11,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/models"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -545,4 +546,15 @@ func (s *Server) GetImdbRating(c *websocket.Conn, req PayloadRequest) {
 	}
 
 	transmitPromiseResponse(c, req, rating)
+}
+
+func (s *Server) GetChannels(c *websocket.Conn, req PayloadRequest) {
+	// read the m3u_filtered.json file form the disk
+	file, err := os.ReadFile("m3u_filtered.json")
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get channels %s", err))
+		return
+	}
+
+	transmitPromiseResponse(c, req, string(file))
 }

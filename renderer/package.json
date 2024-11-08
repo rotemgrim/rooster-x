@@ -12,6 +12,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "hls.js": "^1.5.17",
         "linqts": "^2.0.0",
         "lit": "^3.2.0",
         "lodash": "^4.17.21",

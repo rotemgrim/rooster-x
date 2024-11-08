@@ -106,6 +106,12 @@ export class IpcService {
         });
     }
 
+    public static getChannels(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-channels").then(resolve).catch(reject);
+        });
+    }
+
     public static getMedia(payload?: {
         filter: "movies" | "series" | "all",
         isTorrents: boolean

@@ -8,6 +8,7 @@ import "./TopBar";
 import "./VideoCard";
 import "./FiltersPage";
 import "./SettingsPage";
+import "./Channels";
 import {type MetaData} from "../entity/MetaData";
 import {IMetaDataExtended} from "../common/models/IMetaDataExtended";
 import {type User} from "../entity/User";
@@ -80,6 +81,7 @@ export class RoosterX extends LitElement {
     @query(".videos") public videos: HTMLElement;
     @state() public isLoading: boolean = false;
     private msgTimeout: number;
+    @state() public view: "torrents" | "folders" | "channels" = "folders";
 
     private torrentsViewScrollPos: number = 0;
     private foldersViewScrollPos: number = 0;
@@ -449,11 +451,24 @@ export class RoosterX extends LitElement {
         return list;
     }
 
+    public showChannels() {
+        // this.isLoading = true;
+        // IpcService.getChannels().then(channels => {
+        //     console.log("channels", channels);
+        //     this.isLoading = false;
+        // });
+        this.view = "channels";
+        this._showTorrents = false;
+        this.closeSideBar();
+    }
 
     public showTorrents() {
-        this.foldersViewScrollPos = this.videos.scrollTop;
+        if (this.view === "folders") {
+            this.foldersViewScrollPos = this.videos.scrollTop;
+        }
         this.isLoading = true;
         this._showTorrents = true;
+        this.view = "torrents";
         IpcService.getMedia({
             filter: "all",
             isTorrents: this._showTorrents
@@ -470,9 +485,12 @@ export class RoosterX extends LitElement {
     }
 
     public showFolders() {
-        this.torrentsViewScrollPos = this.videos.scrollTop;
+        if (this.view === "torrents") {
+            this.torrentsViewScrollPos = this.videos.scrollTop;
+        }
         this.isLoading = true;
         this._showTorrents = false;
+        this.view = "folders";
         IpcService.getMedia({
             filter: "all",
             isTorrents: this._showTorrents
@@ -692,11 +710,12 @@ export class RoosterX extends LitElement {
             <div class="spinner"><div></div></div>
             Loading
         </div>` : ""}
+        ${this.view === "channels" ? html`<rooster-channels></rooster-channels>` : html`
         <div class="videos" tabindex="0" ?hidden="${this.isLoading}">
             ${this.getVideoCards()}
             <button class="goTop" @click="${this.goToTop}">
                 arrow_circle_up
             </button>
-        </div>`;
+        </div>`}`;
     }
 }

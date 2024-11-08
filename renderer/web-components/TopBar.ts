@@ -77,19 +77,25 @@ export class TopBar extends LitElement {
 
     public showTorrents() {
         // save the current position of the scroll
-        this.foldersViewScrollPos = this.rooster.videos.scrollTop;
+        // this.foldersViewScrollPos = this.rooster.videos.scrollTop;
 
         this.rooster.showTorrents();
         this._toggleTorrents = true;
         this.requestUpdate();
-        this.updateComplete.then(() => {
-            this.rooster.videos.scrollTop = this.torrentsViewScrollPos;
-        });
+        // this.updateComplete.then(() => {
+        //     this.rooster.videos.scrollTop = this.torrentsViewScrollPos;
+        // });
     }
 
     public showFolders() {
         this._toggleTorrents = false;
         this.rooster.showFolders();
+        this.requestUpdate();
+    }
+
+
+    public showChannels() {
+        this.rooster.showChannels();
         this.requestUpdate();
     }
 
@@ -155,11 +161,17 @@ export class TopBar extends LitElement {
         <div class="top-bar">
             <div>
                 <div class="logo" tabindex="0" @click="${this.toggleSideBar}"></div>
-                <div tabindex="0" class="filter ${this._toggleTorrents ? `` : `active`}" @click="${this.showFolders}">
+                <div tabindex="0" class="filter ${this.rooster.view === "folders" ? "active" : ""}" 
+                     @click="${this.showFolders}">
                     <i class="material-icons">folder</i>
                 </div>
-                <div tabindex="0" class="filter ${this._toggleTorrents ? `active` : ``}" @click="${this.showTorrents}">
+                <div tabindex="0" class="filter ${this.rooster.view === "torrents" ? "active" : ""}" 
+                     @click="${this.showTorrents}">
                     <i class="material-icons">cloud_download</i>
+                </div>
+                <div tabindex="0" class="filter ${this.rooster.view === "channels" ? "active" : ""}" 
+                     @click="${this.showChannels}">
+                    <i class="material-icons">live_tv</i>
                 </div>
                 <div tabindex="0" class="filter" @click="${this.showFilters}" style="display: block; color: white;">
                     <i class="material-icons">filter_list</i>
