@@ -83,7 +83,9 @@ class RoosterChannels extends LitElement {
         channelURI = channelURI.replace(":80/", ":80/live/");
         // const channelURI = "http://layerseventv.com:80/live/REMOVED_USERNAME/REMOVED_PASSWORD/832349.m3u8";
 
-        channelURI += ".m3u8";
+        // if (!channelURI.endsWith(".m3u8")) {
+        //     channelURI += ".m3u8";
+        // }
         console.log("channelURI", channelURI);
         const hls = new Hls();
         hls.on(Hls.Events.MEDIA_ATTACHED, () => {
@@ -119,7 +121,7 @@ class RoosterChannels extends LitElement {
 
     public focusOnChannels() {
         console.log("focusOnChannels");
-        this.list.focus();
+        this.list?.focus();
     }
 
     private loadChannels() {

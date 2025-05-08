@@ -2,7 +2,6 @@ package torrents
 
 import (
 	"context"
-	"fmt"
 	tmdb "github.com/cyruzin/golang-tmdb"
 	ptn "github.com/middelink/go-parse-torrent-name"
 	"github.com/volatiletech/null/v8"
@@ -53,18 +52,10 @@ func (tf *TorrentFetcher) GetMetaDataFromInternet() {
 
 func (tf *TorrentFetcher) GetTorrents() {
 	log.Println("started fetching torrents")
-	listOfSearches := []string{
-		"top100:48h_211", // movies trending in the last 48 hours 2160p
-		"top100:48h_212", // series trending in the last 48 hours 2160p
-		"top100:48h_207", // movies trending in the last 48 hours 1080p
-		"top100:48h_208", // series trending in the last 48 hours 1080p
-	}
+
 	tf.server.BroadcastMessage("Fetching torrents from pirate bay, Please wait...")
-	for i, search := range listOfSearches {
-		msg := fmt.Sprintf("Fetching torrents from pirate bay [%d/%d] %s", i, len(listOfSearches), search)
-		tf.server.BroadcastMessage(msg)
-		fetchTorrentsFromSearch(search)
-	}
+
+	fetchTorrentsFromSearch()
 
 	// Get metadata from the internet
 	tf.GetMetaDataFromInternet()
@@ -74,9 +65,10 @@ func (tf *TorrentFetcher) GetTorrents() {
 	EventBus.SendEvent("sweep-done", nil)
 }
 
-func fetchTorrentsFromSearch(search string) {
+func fetchTorrentsFromSearch() {
+
 	// Fetch the torrent from the pirate bay link
-	torrents, err := tpb.Lookup(search, time.Second*30)
+	torrents, err := tpb.Lookup(time.Second * 30)
 	if err != nil {
 		log.Println("Error fetching torrents: ", err)
 		return

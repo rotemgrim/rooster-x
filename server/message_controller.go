@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/jamesnetherton/m3u"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -548,7 +550,85 @@ func (s *Server) GetImdbRating(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, rating)
 }
 
+type Channel struct {
+	Name     string `json:"name"`
+	Uri      string `json:"uri"`
+	Category string `json:"category"`
+	Logo     string `json:"logo"`
+	Tags     []struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	} `json:"tags"`
+}
+type Channels struct {
+	Channels []Channel `json:"channels"`
+}
+
 func (s *Server) GetChannels(c *websocket.Conn, req PayloadRequest) {
+
+	if _, err := os.Stat("m3u_filtered.json"); os.IsNotExist(err) {
+		if _, err := os.Stat("streams.m3u"); os.IsNotExist(err) {
+			transmitPromiseReject(c, req, fmt.Sprintf("could not get channels %s", err))
+			return
+		}
+
+		playlist, err := m3u.Parse("streams.m3u")
+		if err == nil && len(playlist.Tracks) > 0 {
+
+			var channels Channels
+			var tmpChannels []Channel
+			for _, track := range playlist.Tracks {
+				channel := Channel{
+					Name:     track.Name,
+					Uri:      track.URI,
+					Category: "Live TV",
+					Logo:     "",
+				}
+				for _, tag := range track.Tags {
+					if tag.Name == "tvg-name" {
+						channel.Name = tag.Value
+					} else if tag.Name == "tvg-logo" {
+						channel.Logo = tag.Value
+					} else if tag.Name == "group-title" {
+						channel.Category = tag.Value
+					} else {
+						channel.Tags = append(channel.Tags, struct {
+							Key   string `json:"key"`
+							Value string `json:"value"`
+						}{
+							Key:   tag.Name,
+							Value: tag.Value,
+						})
+					}
+				}
+				tmpChannels = append(tmpChannels, channel)
+			}
+			channels.Channels = tmpChannels
+
+			// create json file from the playlist
+			file, err := os.Create("m3u_filtered.json")
+			if err != nil {
+				transmitPromiseReject(c, req, fmt.Sprintf("could not create file %s", err))
+				return
+			}
+			defer file.Close()
+			encoder := json.NewEncoder(file)
+			//encoder.SetIndent("", "  ")
+			err = encoder.Encode(channels)
+			if err != nil {
+				transmitPromiseReject(c, req, fmt.Sprintf("could not encode file %s", err))
+				return
+			}
+			fmt.Println("File created successfully")
+		}
+	}
+
+	// check if the file exists
+	if _, err := os.Stat("m3u_filtered.json"); os.IsNotExist(err) {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get channels %s", err))
+		return
+	}
+
 	// read the m3u_filtered.json file form the disk
 	file, err := os.ReadFile("m3u_filtered.json")
 	if err != nil {
