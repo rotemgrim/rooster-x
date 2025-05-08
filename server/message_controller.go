@@ -578,6 +578,11 @@ func (s *Server) GetChannels(c *websocket.Conn, req PayloadRequest) {
 			var channels Channels
 			var tmpChannels []Channel
 			for _, track := range playlist.Tracks {
+				if track.URI == "" ||
+					strings.Contains(track.URI, "series") ||
+					strings.Contains(track.URI, "movie") {
+					continue
+				}
 				channel := Channel{
 					Name:     track.Name,
 					Uri:      track.URI,
