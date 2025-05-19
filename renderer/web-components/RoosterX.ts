@@ -1,4 +1,3 @@
-
 import {LitElement, html, TemplateResult} from "lit";
 import {customElement, property, query, state} from "lit/decorators.js";
 import {keyed} from "lit/directives/keyed.js";
@@ -22,7 +21,6 @@ import {VideoCard} from "./VideoCard";
 import {TopBar} from "./TopBar";
 import {fromNow} from "../common/commonUtils";
 
-
 export function isStringContains(str, items) {
     if (str) {
         str = str.toLowerCase();
@@ -40,7 +38,7 @@ type OrderConfig = {
     orderBy: string;
     groupBy: string;
     showUnwatchedFirst: boolean;
-}
+};
 
 interface FilterConfig {
     unwatchedMedia: boolean;
@@ -52,7 +50,6 @@ interface FilterConfig {
 // @ts-ignore
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
-
     @property() public _media: MetaData[] = [];
     @property() public _torrents: MetaData[] = [];
     @property() public _filteredMedia: IMetaDataExtended[] | Map<string, IMetaDataExtended[]> = [];
@@ -76,7 +73,7 @@ export class RoosterX extends LitElement {
     };
     @property() public _sweepStatus: string = "";
     @property() public _sweepCount: string = "";
-    @property() public _showTorrents: boolean = false
+    @property() public _showTorrents: boolean = false;
     @query("top-bar") private topBar: TopBar;
     @query(".videos") public videos: HTMLElement;
     @state() public isLoading: boolean = false;
@@ -85,6 +82,9 @@ export class RoosterX extends LitElement {
 
     private torrentsViewScrollPos: number = 0;
     private foldersViewScrollPos: number = 0;
+
+    @state()
+    private videosOffset: number = 0;
 
     public createRenderRoot() {
         window["RoosterX"] = this;
@@ -97,13 +97,15 @@ export class RoosterX extends LitElement {
         this._panel = "";
         IpcService.getMedia({
             filter: "all",
-            isTorrents: this._showTorrents
-        }).then(media => this.media = media);
+            isTorrents: this._showTorrents,
+        }).then(media => (this.media = media));
         document.addEventListener("click", <HTMLElement>(e) => {
-            if (e && !e.target.closest(".side-bar")
-                && !e.target.closest(".top-bar")
-                && !e.target.closest(".page")
-                && !e.target.closest(".video-details")
+            if (
+                e &&
+                !e.target.closest(".side-bar") &&
+                !e.target.closest(".top-bar") &&
+                !e.target.closest(".page") &&
+                !e.target.closest(".video-details")
             ) {
                 if (this._sideBar) {
                     this._sideBar = false;
@@ -115,7 +117,7 @@ export class RoosterX extends LitElement {
         console.log("RoosterX sweep-update");
         console.log("RoosterX refresh-media");
 
-        window.addEventListener('popstate', (e) => {
+        window.addEventListener("popstate", e => {
             console.log("popstate", e.state);
 
             const id = e.state.id || "";
@@ -129,7 +131,7 @@ export class RoosterX extends LitElement {
                     card !== videoCard && card.closeDetails(true);
                 }
                 if (videoCard && !videoCard.isShowDetails) {
-                   videoCard.showDetails(false);
+                    videoCard.showDetails(false);
                 }
             } else {
                 // @ts-ignore
@@ -151,6 +153,60 @@ export class RoosterX extends LitElement {
         // ipcRenderer.on("refresh-media", (e, data) => {
         //     IpcService.getMedia().then(media => this.media = media);
         // });
+    }
+
+    private calculateHeightOffsetNoGroups() {
+        requestAnimationFrame(() => {
+            const videosInARow = this.getNumOfVideosInARow();
+            console.log("videosInARow", videosInARow);
+
+            const videoHeight = 314;
+            // @ts-ignore
+            const totalVideos = this._filteredMedia?.length || 0;
+            const videoRows = Math.ceil(totalVideos / videosInARow);
+            const height = videoRows * videoHeight + 22.4 * (videoRows - 1) + 44.8;
+            this.videos.style.height = `${height}px`;
+            console.log("height", height);
+
+            const scrollHeight = this.videos.parentElement?.scrollTop || 0;
+
+            console.log("scrollHeight", scrollHeight);
+
+            const rowHeight = height / videoRows;
+            const videosOffset = (Math.floor(scrollHeight / rowHeight) - 5) * videosInARow;
+            this.videosOffset = videosOffset;
+            console.log("videosOffset", videosOffset);
+
+            if (videosOffset > 0) {
+                this.videos.style.paddingTop = (videosOffset / videosInARow) * rowHeight + "px";
+            } else {
+                this.videos.style.paddingTop = "1.4rem";
+            }
+
+            this.videos.parentElement?.addEventListener(
+                "scroll",
+                () => {
+                    this.calculateHeightOffsetNoGroups();
+                },
+                {once: true},
+            );
+        });
+    }
+
+    private getNumOfVideosInARow(): number {
+        // globalThis.videosScrollPos = this.videos.scrollTop;
+        const width = window.innerWidth - 10;
+
+        // calculate how many videos fit in a row, include gaps between them
+        let videosInARow: number = Math.floor(width / 224);
+        const estimatedWidth = videosInARow * 224 + (videosInARow - 1) * 22.4;
+        if (width > estimatedWidth) {
+            return videosInARow;
+        } else if (estimatedWidth >= width) {
+            videosInARow--;
+        }
+
+        return videosInARow;
     }
 
     connectedCallback() {
@@ -248,7 +304,7 @@ export class RoosterX extends LitElement {
                 tmpMediaArray.set(key, this.sortMedia(arr));
             }
         } else {
-             // sort media
+            // sort media
             tmpMediaArray = this.sortMedia(tmpMediaArray);
         }
 
@@ -291,10 +347,13 @@ export class RoosterX extends LitElement {
         } else {
             let linqList = new List<IMetaDataExtended>([...mediaArray]);
 
-            const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[groupBy]) as Record<string, IMetaDataExtended[]>;
+            const grouped = linqList.GroupBy((x: IMetaDataExtended) => x[groupBy]) as Record<
+                string,
+                IMetaDataExtended[]
+            >;
 
             // sort the groups
-            const keys = Object.keys(grouped).sort((a, b) => a > b ? 1 : -1);
+            const keys = Object.keys(grouped).sort((a, b) => (a > b ? 1 : -1));
             console.log("keys", keys);
             if (this._orderConfig.directionDescending) {
                 keys.reverse();
@@ -327,7 +386,7 @@ export class RoosterX extends LitElement {
         let result;
         if (this._orderConfig.showUnwatchedFirst) {
             // sort by watched boolean
-            mediaArray = _.orderBy(mediaArray, [(m)=>m.isWatched ? 0 : 1], "desc");
+            mediaArray = _.orderBy(mediaArray, [m => (m.isWatched ? 0 : 1)], "desc");
             // mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
         }
         result = mediaArray;
@@ -335,14 +394,12 @@ export class RoosterX extends LitElement {
         return result;
     }
 
-
     private prepareMedia(metaDataList: MetaData[]): IMetaDataExtended[] {
         if (!metaDataList) {
             return [];
         }
         const newList: IMetaDataExtended[] = [...metaDataList];
         for (const me of newList) {
-
             // me.poster = me.poster ? `https://image.tmdb.org/t/p/original${me.poster}` : "";
             if (me.poster && !me.poster.startsWith("http")) {
                 me.poster = `https://image.tmdb.org/t/p/w300${me.poster}`;
@@ -354,11 +411,11 @@ export class RoosterX extends LitElement {
 
             let latestMedia: MediaFile | TorrentFile | undefined;
             if (this._showTorrents) {
-                latestMedia = _.maxBy(me.torrentFiles, (o) => {
+                latestMedia = _.maxBy(me.torrentFiles, o => {
                     return new Date(o.uploadedAt).getTime();
                 });
             } else {
-                latestMedia = _.maxBy(me.mediaFiles, (o) => {
+                latestMedia = _.maxBy(me.mediaFiles, o => {
                     return new Date(o.downloadedAt).getTime();
                 });
             }
@@ -370,7 +427,6 @@ export class RoosterX extends LitElement {
                 // @ts-ignore
                 me.latestChange = new Date(latestMedia.downloadedAt).getTime();
             }
-
         }
         return newList;
     }
@@ -381,7 +437,6 @@ export class RoosterX extends LitElement {
         }
         const newList: IMetaDataExtended[] = [...metaDataList];
         for (const me of newList) {
-
             // me.poster = me.poster ? `https://image.tmdb.org/t/p/original${me.poster}` : "";
             if (me.poster && !me.poster.startsWith("http")) {
                 me.poster = `https://image.tmdb.org/t/p/w300${me.poster}`;
@@ -392,13 +447,12 @@ export class RoosterX extends LitElement {
             // }
 
             // get latest max date downloaded / changed
-            const latestMediaFile: TorrentFile | undefined = _.maxBy(me.torrentFiles, (o) => {
+            const latestMediaFile: TorrentFile | undefined = _.maxBy(me.torrentFiles, o => {
                 return o.uploadedAt;
             });
             if (latestMediaFile) {
                 me.latestChange = latestMediaFile.uploadedAt;
             }
-
         }
         return newList;
     }
@@ -406,13 +460,13 @@ export class RoosterX extends LitElement {
     private filterMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
         // filter watched
         if (this._filterConfig.unwatchedMedia) {
-            list = list.filter((m) => !m.isWatched);
+            list = list.filter(m => !m.isWatched);
         }
 
         // filter media entries that don't have any files
         if (this._filterConfig.noMediaWithoutFiles) {
             // @ts-ignore
-            list = list.filter((m) => !!m.mediaFiles && m.mediaFiles > 0);
+            list = list.filter(m => !!m.mediaFiles && m.mediaFiles > 0);
         }
 
         // filter media entries that don't have metaData from imdb
@@ -423,30 +477,29 @@ export class RoosterX extends LitElement {
         // filter media by genres
         console.log("noMediaWithoutGenres", this._filterConfig.noMediaWithoutGenres);
         if (this._filterConfig.noMediaWithoutGenres.length > 0) {
-            list = list.filter((m) => isStringContains(m.genres, this._filterConfig.noMediaWithoutGenres));
+            list = list.filter(m => isStringContains(m.genres, this._filterConfig.noMediaWithoutGenres));
         }
         return list;
     }
 
     private filterTorrents(list: IMetaDataExtended[]): IMetaDataExtended[] {
-
         // filter media with files
         // list = list.filter((m) => m.mediaFiles?.length === 0 && m.torrentFiles.length > 0);
 
         // filter watched
         if (this._filterConfig.unwatchedMedia) {
-            list = list.filter((m) => !m.isWatched);
+            list = list.filter(m => !m.isWatched);
         }
 
         // filter media entries that don't have meta data from imdb
         if (this._filterConfig.noMediaWithoutMetaData) {
-            list = list.filter((m) => m.status !== "failed");
+            list = list.filter(m => m.status !== "failed");
         }
 
         // filter media by genres
         console.log("noMediaWithoutGenres", this._filterConfig.noMediaWithoutGenres);
         if (this._filterConfig.noMediaWithoutGenres.length > 0) {
-            list = list.filter((m) => isStringContains(m.genres, this._filterConfig.noMediaWithoutGenres));
+            list = list.filter(m => isStringContains(m.genres, this._filterConfig.noMediaWithoutGenres));
         }
         return list;
     }
@@ -471,7 +524,7 @@ export class RoosterX extends LitElement {
         this.view = "torrents";
         IpcService.getMedia({
             filter: "all",
-            isTorrents: this._showTorrents
+            isTorrents: this._showTorrents,
         }).then(torrents => {
             this._torrents = torrents;
             this.refreshMedia(this._torrents);
@@ -493,7 +546,7 @@ export class RoosterX extends LitElement {
         this.view = "folders";
         IpcService.getMedia({
             filter: "all",
-            isTorrents: this._showTorrents
+            isTorrents: this._showTorrents,
         }).then(media => {
             this.media = media;
             this.isLoading = false;
@@ -508,8 +561,8 @@ export class RoosterX extends LitElement {
     public getMedia() {
         IpcService.getMedia({
             filter: "all",
-            isTorrents: this._showTorrents
-        }).then(media => this.media = media);
+            isTorrents: this._showTorrents,
+        }).then(media => (this.media = media));
         RoosterX.setFocusToVideos();
         this.closeSideBar && this.closeSideBar();
     }
@@ -517,8 +570,8 @@ export class RoosterX extends LitElement {
     private getMovies() {
         IpcService.getMedia({
             filter: "movies",
-            isTorrents: this._showTorrents
-        }).then(media => this.media = media);
+            isTorrents: this._showTorrents,
+        }).then(media => (this.media = media));
         RoosterX.setFocusToVideos();
         this.closeSideBar();
     }
@@ -526,8 +579,8 @@ export class RoosterX extends LitElement {
     private getSeries() {
         IpcService.getMedia({
             filter: "series",
-            isTorrents: this._showTorrents
-        }).then(media => this.media = media);
+            isTorrents: this._showTorrents,
+        }).then(media => (this.media = media));
         RoosterX.setFocusToVideos();
         this.closeSideBar();
     }
@@ -582,66 +635,68 @@ export class RoosterX extends LitElement {
     }
 
     private getVideoCards() {
-        if (!this._filteredMedia) {
+        if (!this._filteredMedia || !this.videos) {
             return;
         }
 
         if (this._filteredMedia instanceof Map) {
-
-            const getGroupTitleFunc = (oc: OrderConfig): (group: string)=>string => {
+            const getGroupTitleFunc = (oc: OrderConfig): ((group: string) => string) => {
                 if (oc.groupBy === "rating") {
-                    return (group) => group ? group : "N/A";
+                    return group => (group ? group : "N/A");
                 }
                 if (oc.groupBy === "genres") {
-                    return (group) => group ? group : "N/A";
+                    return group => (group ? group : "N/A");
                 }
                 if (oc.groupBy === "uploadedDate") {
-                    return (group) => {
+                    return group => {
                         if (group === "null") {
                             return "N/A";
                         }
 
-                        const title =  group ? fromNow(group) : "N/A";
+                        const title = group ? fromNow(group) : "N/A";
                         return title;
-                    }
+                    };
                 }
                 if (oc.groupBy === "downloadedDate") {
-                    return (group) => group === "null" ? "N/A" : group ? new Date(group).toLocaleDateString() : "N/A";
+                    return group => (group === "null" ? "N/A" : group ? new Date(group).toLocaleDateString() : "N/A");
                 }
-                 if (oc.groupBy === "quality") {
-                    return (group) => group ? group : "N/A";
+                if (oc.groupBy === "quality") {
+                    return group => (group ? group : "N/A");
                 }
                 if (oc.groupBy === "resolution") {
-                    return (group) => group === "0" ? "N/A" : group ? group + "p" : "N/A";
+                    return group => (group === "0" ? "N/A" : group ? group + "p" : "N/A");
                 }
                 if (oc.groupBy === "year") {
-                    return (group) => group ? group.toString() || "N/A" : "N/A";
+                    return group => (group ? group.toString() || "N/A" : "N/A");
                 }
-                return (v) => "";
-            }
+                return v => "";
+            };
 
             setTimeout(() => {
                 const groupHeaders = document.querySelectorAll(".group-header");
                 // add intersection observer for all the sticky group-headers
                 // if its above half the screen, add a class to make it z-index: 1
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        // console.log("observer entry:", entry);
-                        const target = entry.target as HTMLElement;
-                        // trigger only if the group-header is above half the screen
-                        if (entry.intersectionRatio > 0.5) {
-                            target.classList.add("top-layer");
-                            // target.style.zIndex = "" + groupHeaders.length;
-                        } else {
-                            target.classList.remove("top-layer");
-                            // target.style.zIndex = "1";
-                        }
-                    });
-                }, {
-                    root: null,
-                    rootMargin: "0px 0px -200px 0px",
-                    threshold: 0.5,
-                });
+                const observer = new IntersectionObserver(
+                    entries => {
+                        entries.forEach(entry => {
+                            // console.log("observer entry:", entry);
+                            const target = entry.target as HTMLElement;
+                            // trigger only if the group-header is above half the screen
+                            if (entry.intersectionRatio > 0.5) {
+                                target.classList.add("top-layer");
+                                // target.style.zIndex = "" + groupHeaders.length;
+                            } else {
+                                target.classList.remove("top-layer");
+                                // target.style.zIndex = "1";
+                            }
+                        });
+                    },
+                    {
+                        root: null,
+                        rootMargin: "0px 0px -200px 0px",
+                        threshold: 0.5,
+                    },
+                );
                 groupHeaders.forEach(groupHeader => {
                     observer.observe(groupHeader);
                 });
@@ -651,29 +706,45 @@ export class RoosterX extends LitElement {
             const result: TemplateResult[] = [];
             const getGroupTitle = getGroupTitleFunc(this._orderConfig);
             let index = this._filteredMedia.size;
+
+            const groupOffset = 0;
+            let groupIndex = 0;
             for (const [key, arr] of this._filteredMedia) {
                 index--;
-                result.push(html`
-                    <div class="group-header open" style="z-index: ${index}">
-                        <div @click="${this.toggleGroup}" class="material-icons mini">keyboard_arrow_down</div>
-                        <div @click="${this.toggleGroup}" class="material-icons maxi">chevron_right</div>
-                        &nbsp;
-                        <a href="#${key}">${getGroupTitle(key)}</a>
-                    </div>
-                    <div id="${key}" class="group open">
-                        <div class="group-videos">
-                            ${repeat(
-                                arr, 
-                                (v) => "" + v.id + (this._showTorrents ? "-tor" : ""), 
-                                (v, i) => html`
-                                    <video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`)}
+
+                if (groupIndex < groupOffset) {
+                    continue;
+                } else if (groupIndex > groupOffset + 5) {
+                    break;
+                }
+
+                groupIndex++;
+                result.push(
+                    html` <div class="group-header open" style="z-index: ${index}">
+                            <div @click="${this.toggleGroup}" class="material-icons mini">keyboard_arrow_down</div>
+                            <div @click="${this.toggleGroup}" class="material-icons maxi">chevron_right</div>
+                            &nbsp;
+                            <a href="#${key}">${getGroupTitle(key)}</a>
                         </div>
-                    </div>`);
+                        <div id="${key}" class="group open">
+                            <div class="group-videos">
+                                ${repeat(
+                                    arr,
+                                    v => "" + v.id + (this._showTorrents ? "-tor" : ""),
+                                    (v, i) =>
+                                        html` <video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`,
+                                )}
+                            </div>
+                        </div>`,
+                );
             }
             return result;
         } else {
             // this is an array
-            return (this._filteredMedia as IMetaDataExtended[]).map(v => this.getVideoCard(v));
+            this.calculateHeightOffsetNoGroups();
+            const offset = this.videosOffset < 0 ? 0 : this.videosOffset;
+            return this._filteredMedia.slice(offset, offset + 80).map(v => this.getVideoCard(v));
+            // return (this._filteredMedia as IMetaDataExtended[]).map(v => this.getVideoCard(v));
         }
     }
 
@@ -683,39 +754,46 @@ export class RoosterX extends LitElement {
     }
 
     public render() {
-        return html`
-        ${this._sweepStatus ?
-            html`<div class="status-wrap">
-                <div class="sweep-status">
-                    ${this._sweepStatus}
-                </div>
-            </div>` : ""}
-        <top-bar .rooster=${this}></top-bar>
-        <div class="side-bar ${this._sideBar ? "open" : ""}">
-            <ul>
-                <li tabindex="0" @click=${this.getMedia}><i class="material-icons">video_library</i>All Media</li>
-                <li tabindex="0" @click=${this.getMovies}><i class="material-icons">movie</i>Movies</li>
-                <li tabindex="0" @click=${this.getSeries}><i class="material-icons">live_tv</i>Series</li>
-                <li tabindex="0" @click=${this.showFilters}><i class="material-icons">filter_list</i>Filter</li>
-            </ul>
-            <ul>
-                <li tabindex="0" @click=${this.showSettings}><i class="material-icons">settings</i>Settings</li>
-            </ul>
-        </div>
-        ${this._sideBar ? html`<div class="panel">
-            ${this._panel === "filters" ? html`<filters-page .rooster=${this}></filters-page>` : ""}
-            ${this._panel === "settings" ? html`<settings-page .rooster=${this}></settings-page>` : ""}
-        </div>` : ""}
-        ${this.isLoading ? html`<div class="loading">
-            <div class="spinner"><div></div></div>
-            Loading
-        </div>` : ""}
-        ${this.view === "channels" ? html`<rooster-channels></rooster-channels>` : html`
-        <div class="videos" tabindex="0" ?hidden="${this.isLoading}">
-            ${this.getVideoCards()}
-            <button class="goTop" @click="${this.goToTop}">
-                arrow_circle_up
-            </button>
-        </div>`}`;
+        return html` ${this._sweepStatus
+                ? html`<div class="status-wrap">
+                      <div class="sweep-status"> ${this._sweepStatus} </div>
+                  </div>`
+                : ""}
+            <top-bar .rooster=${this}></top-bar>
+            <div class="side-bar ${this._sideBar ? "open" : ""}">
+                <ul>
+                    <li tabindex="0" @click=${this.getMedia}><i class="material-icons">video_library</i>All Media</li>
+                    <li tabindex="0" @click=${this.getMovies}><i class="material-icons">movie</i>Movies</li>
+                    <li tabindex="0" @click=${this.getSeries}><i class="material-icons">live_tv</i>Series</li>
+                    <li tabindex="0" @click=${this.showFilters}><i class="material-icons">filter_list</i>Filter</li>
+                </ul>
+                <ul>
+                    <li tabindex="0" @click=${this.showSettings}><i class="material-icons">settings</i>Settings</li>
+                </ul>
+            </div>
+            ${this._sideBar
+                ? html`<div class="panel">
+                      ${this._panel === "filters" ? html`<filters-page .rooster=${this}></filters-page>` : ""}
+                      ${this._panel === "settings" ? html`<settings-page .rooster=${this}></settings-page>` : ""}
+                  </div>`
+                : ""}
+            ${this.isLoading
+                ? html`<div class="loading">
+                      <div class="spinner"><div></div></div>
+                      Loading
+                  </div>`
+                : ""}
+            ${this.view === "channels"
+                ? html`<rooster-channels></rooster-channels>`
+                : html` <div style="overflow: auto; display: block; height: calc(100vh - 64px);">
+                      <div
+                          class="videos"
+                          tabindex="0"
+                          ?hidden="${this.isLoading}"
+                          style="height: 2000px; overflow: hidden;align-content: flex-start;">
+                          ${this.getVideoCards()}
+                          <button class="goTop" @click="${this.goToTop}"> arrow_circle_up </button>
+                      </div></div
+                  >`}`;
     }
 }
