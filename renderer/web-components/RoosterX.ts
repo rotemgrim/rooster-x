@@ -319,6 +319,22 @@ export class RoosterX extends LitElement {
         if (visibleGroups.length <= 0) {
             return;
         }
+
+        // add the group before the first visible group
+        const beforeIndex = groupsMetadata.indexOf(visibleGroups[0]) - 1;
+        if (beforeIndex >= 0) {
+            const beforeGroup = groupsMetadata[beforeIndex];
+            visibleGroups.unshift(beforeGroup);
+        }
+
+        // add the group after the last visible group
+        const afterIndex = groupsMetadata.indexOf(visibleGroups.at(-1)) + 1;
+        if (afterIndex < groupsMetadata.length) {
+            const afterGroup = groupsMetadata[afterIndex];
+            visibleGroups.push(afterGroup);
+        }
+
+
         if (this.visibleGroupsData.length === 0 || this.visibleGroupsData.length !== visibleGroups.length) {
             this.visibleGroupsData = visibleGroups;
             return;
