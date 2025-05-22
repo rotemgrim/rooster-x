@@ -47,6 +47,15 @@ interface FilterConfig {
     noMediaWithoutGenres: string[];
 }
 
+type GroupMetaData = {
+    groupName: string;
+    startY: number;
+    endY: number;
+    rowsInGroup: number;
+    totalVideos: number;
+    isExpanded: boolean;
+}
+
 // @ts-ignore
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
@@ -85,6 +94,10 @@ export class RoosterX extends LitElement {
 
     @state()
     private videosOffset: number = 0;
+
+    @state()
+    private visibleGroupsData: {groupName: string; startY: number; endY: number; rowsInGroup: number; totalVideos: number}[] = [];
+    private isGroupExpanded: Map<string, boolean> = new Map<string, boolean>();
 
     public createRenderRoot() {
         window["RoosterX"] = this;
@@ -157,6 +170,12 @@ export class RoosterX extends LitElement {
 
     private calculateHeightOffsetNoGroups() {
         requestAnimationFrame(() => {
+
+            // check if its a grouped view
+            if (this._filteredMedia instanceof Map) {
+                return;
+            }
+
             const videosInARow = this.getNumOfVideosInARow();
             console.log("videosInARow", videosInARow);
 
@@ -191,6 +210,127 @@ export class RoosterX extends LitElement {
                 {once: true},
             );
         });
+    }
+
+    private calculateHeightOffsetWithGroups() {
+        requestAnimationFrame(() => {
+            const videosInARow = this.getNumOfVideosInARow();
+            const videoHeight = 314;
+            const groupMargin = 44.8; // Margin between groups
+            const groupTitleHeight = 32.35 + groupMargin; // Height of the group header/title
+            const rowGap = 22.4; // Gap between rows of cards
+            
+            // Build group metadata
+            const groupsMetadata: GroupMetaData[] = [];
+            let currentY = 0;
+            let totalHeight = 0;
+            
+            if (!(this._filteredMedia instanceof Map)) {
+                return; // Not a grouped view
+            }
+            
+            // Calculate dimensions for each group
+            for (const [groupName, videos] of this._filteredMedia) {
+                if (!this.isGroupExpanded.has(groupName)) {
+                    this.isGroupExpanded.set(groupName, true);
+                }
+                const isExpanded = this.isGroupExpanded.get(groupName)!;
+                const rowsInGroup = Math.ceil(videos.length / videosInARow);
+                const videosHeight = isExpanded ? (rowsInGroup * videoHeight) + ((rowsInGroup - 1) * rowGap) : 0;
+                const groupHeight = groupTitleHeight + videosHeight;
+                
+                groupsMetadata.push({
+                    groupName,
+                    startY: currentY,
+                    endY: currentY + groupHeight + groupMargin,
+                    rowsInGroup,
+                    totalVideos: videos.length,
+                    isExpanded: isExpanded,
+                });
+                
+                currentY += groupHeight + groupMargin;
+                totalHeight += groupHeight + groupMargin;
+            }
+
+            console.log("totalHeight", totalHeight);
+            
+            // Set total height
+            this.videos.style.height = `${totalHeight}px`;
+            
+            // Get current scroll position
+            const scrollHeight = this.videos.parentElement?.scrollTop || 0;
+            
+            // Determine visible range (buffer before and after viewport)
+            const viewportHeight = this.videos.parentElement?.clientHeight || 0;
+            const visibleStartY = Math.max(0, scrollHeight - viewportHeight * 2); // Buffer above
+            const visibleEndY = scrollHeight + (viewportHeight * 2); // Buffer below
+
+            console.log("visibleStartY", visibleStartY, "visibleEndY", visibleEndY);
+            console.log("groupsMetadata", groupsMetadata);
+
+            // Find visible groups
+            this.findVisibleGroups(groupsMetadata, visibleStartY, visibleEndY);
+
+            console.log("visibleGroupsData", this.visibleGroupsData);
+            
+            // Calculate padding (only if we have visible groups)
+            if (this.visibleGroupsData.length > 0) {
+                const firstVisibleGroup = this.visibleGroupsData[0];
+                this.videos.style.paddingTop = `${firstVisibleGroup.startY}px`;
+                
+                // Log for debugging
+                console.log(`Visible groups: ${this.visibleGroupsData.length}, First group: ${firstVisibleGroup.groupName}`);
+            } else {
+                this.videos.style.paddingTop = "0px";
+            }
+
+                // Re-attach scroll handler
+                this.videos.parentElement?.addEventListener(
+                    "scroll",
+                    () => {
+                        this.calculateHeightOffsetWithGroups();
+                    },
+                    { once: true }
+                )
+        });
+    }
+    
+    private findVisibleGroups(groupsMetadata: any[], visibleStartY: number, visibleEndY: number): void {
+        let foundFirst = false;
+        const visibleGroups: any = [];
+        for (const group of groupsMetadata) {
+            if (
+                // Check if the group is within the visible range
+                (group.startY >= visibleStartY && group.endY <= visibleEndY) ||
+                // Check if the group starts before and ends within the visible range
+                (group.endY >= visibleStartY && group.endY <= visibleEndY) ||
+                // Check if the group starts within and ends after the visible range
+                (group.startY >= visibleStartY && group.startY <= visibleEndY) ||
+                // Check if the group starts before and ends after the visible range
+                (group.startY <= visibleStartY && group.endY >= visibleEndY)
+            ) {
+                foundFirst = true;
+                visibleGroups.push(group);
+            }
+            // if (foundFirst && group.startY > visibleEndY) {
+            //     break;
+            // }
+        }
+        if (visibleGroups.length <= 0) {
+            return;
+        }
+        if (this.visibleGroupsData.length === 0 || this.visibleGroupsData.length !== visibleGroups.length) {
+            this.visibleGroupsData = visibleGroups;
+            return;
+        }
+        if (this.visibleGroupsData.length === visibleGroups.length) {
+            for (const i in this.visibleGroupsData) {
+                if (visibleGroups[i].groupName !== this.visibleGroupsData[i].groupName) {
+                    this.visibleGroupsData = visibleGroups;
+                    return;
+                }
+            }
+        }
     }
 
     private getNumOfVideosInARow(): number {
@@ -272,6 +412,7 @@ export class RoosterX extends LitElement {
         console.log("refreshMedia", data);
         this._orderConfig = this.orderConfig || this._orderConfig;
         this._filterConfig = this.filterConfig || this._filterConfig;
+        this.isGroupExpanded = new Map<string, boolean>();
         if (this._showTorrents) {
             if (data) {
                 this._filteredMedia = this.prepareMediaTorrents(data);
@@ -628,10 +769,16 @@ export class RoosterX extends LitElement {
     private toggleGroup(e) {
         const toggleWrapper = e.target.closest(".group-header") as HTMLElement;
         const group = toggleWrapper?.nextElementSibling as HTMLElement;
+        const groupName = toggleWrapper.querySelector("a")?.href?.split("#")[1];
+        console.log("toggleGroup", groupName);
+        if (groupName) {
+            this.isGroupExpanded.set(groupName, !this.isGroupExpanded.get(groupName));
+        }
         if (group) {
             toggleWrapper.classList.toggle("open");
             group.classList.toggle("open");
         }
+        this.calculateHeightOffsetWithGroups();
     }
 
     private getVideoCards() {
@@ -702,23 +849,20 @@ export class RoosterX extends LitElement {
                 });
             }, 5000);
 
+            // Apply virtual scrolling for grouped view
+            this.calculateHeightOffsetWithGroups();
+            
             // this is a record
             const result: TemplateResult[] = [];
             const getGroupTitle = getGroupTitleFunc(this._orderConfig);
             let index = this._filteredMedia.size;
 
-            const groupOffset = 0;
-            let groupIndex = 0;
-            for (const [key, arr] of this._filteredMedia) {
+
+
+            for (const group of this.visibleGroupsData) {
                 index--;
-
-                if (groupIndex < groupOffset) {
-                    continue;
-                } else if (groupIndex > groupOffset + 5) {
-                    break;
-                }
-
-                groupIndex++;
+                const key = group.groupName
+                const arr = this._filteredMedia.get(group.groupName);
                 result.push(
                     html` <div class="group-header open" style="z-index: ${index}">
                             <div @click="${this.toggleGroup}" class="material-icons mini">keyboard_arrow_down</div>
