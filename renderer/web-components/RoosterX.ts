@@ -276,12 +276,12 @@ export class RoosterX extends LitElement {
             // Calculate padding (only if we have visible groups)
             if (this.visibleGroupsData.length > 0) {
                 const firstVisibleGroup = this.visibleGroupsData[0];
-                this.videos.style.paddingTop = `${firstVisibleGroup.startY}px`;
+                this.videos.style.paddingTop = `${firstVisibleGroup.startY || 22.4}px`;
                 
                 // Log for debugging
                 console.log(`Visible groups: ${this.visibleGroupsData.length}, First group: ${firstVisibleGroup.groupName}`);
             } else {
-                this.videos.style.paddingTop = "0px";
+                this.videos.style.paddingTop = "1.4rem";
             }
 
                 // Re-attach scroll handler
@@ -929,12 +929,12 @@ export class RoosterX extends LitElement {
                 : ""}
             ${this.view === "channels"
                 ? html`<rooster-channels></rooster-channels>`
-                : html` <div style="overflow: auto; display: block; height: calc(100vh - 64px);">
+                : html` <div style="overflow-y: auto; overflow-x: hidden; display: block; height: calc(100vh - 64px);">
                       <div
                           class="videos"
                           tabindex="0"
                           ?hidden="${this.isLoading}"
-                          style="height: 2000px; overflow: hidden;align-content: flex-start;">
+                          style="height: 2000px; overflow: visible;align-content: flex-start;">
                           ${this.getVideoCards()}
                           <button class="goTop" @click="${this.goToTop}"> arrow_circle_up </button>
                       </div></div
