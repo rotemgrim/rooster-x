@@ -216,8 +216,8 @@ export class RoosterX extends LitElement {
         requestAnimationFrame(() => {
             const videosInARow = this.getNumOfVideosInARow();
             const videoHeight = 314;
-            const groupMargin = 44.8; // Margin between groups
-            const groupTitleHeight = 32.35 + groupMargin; // Height of the group header/title
+            const groupMargin = 0; //22.4; // Margin between groups
+            const groupTitleHeight = 0; //32.35 + groupMargin; // Height of the group header/title
             const rowGap = 22.4; // Gap between rows of cards
             
             // Build group metadata
@@ -237,12 +237,12 @@ export class RoosterX extends LitElement {
                 const isExpanded = this.isGroupExpanded.get(groupName)!;
                 const rowsInGroup = Math.ceil(videos.length / videosInARow);
                 const videosHeight = isExpanded ? (rowsInGroup * videoHeight) + ((rowsInGroup - 1) * rowGap) : 0;
-                const groupHeight = groupTitleHeight + videosHeight;
+                const groupHeight = groupTitleHeight + videosHeight - rowGap;
                 
                 groupsMetadata.push({
                     groupName,
-                    startY: currentY,
-                    endY: currentY + groupHeight + groupMargin,
+                    startY: Math.round(currentY),
+                    endY: Math.round(currentY + groupHeight + groupMargin),
                     rowsInGroup,
                     totalVideos: videos.length,
                     isExpanded: isExpanded,
@@ -276,7 +276,7 @@ export class RoosterX extends LitElement {
             // Calculate padding (only if we have visible groups)
             if (this.visibleGroupsData.length > 0) {
                 const firstVisibleGroup = this.visibleGroupsData[0];
-                this.videos.style.paddingTop = `${firstVisibleGroup.startY || 22.4}px`;
+                this.videos.style.paddingTop = `${firstVisibleGroup.startY || 0}px`;
                 
                 // Log for debugging
                 console.log(`Visible groups: ${this.visibleGroupsData.length}, First group: ${firstVisibleGroup.groupName}`);

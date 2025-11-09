@@ -59,8 +59,8 @@ var searches = Searches{
 }
 
 var proxyList = []ProxyUrl{
-	//{Url: "https://thepiratebay.org", SiteType: Original},
-	{Url: "https://thepiratebay.xyz", SiteType: Proxy},
+	{Url: "https://thepiratebay.org", SiteType: Original},
+	//{Url: "https://thepiratebay.xyz", SiteType: Proxy},
 	//{Url: "https://thepiratebay10.info", SiteType: Proxy},
 	//{Url: "https://thepiratebay0.org", SiteType: Proxy},
 	//{Url: "https://pirateproxylive.org", SiteType: Proxy},
@@ -97,15 +97,15 @@ func parseSearchPage(html string) ([]Torrent, error) {
 	// torrents stores a list of torrents made up of the torrent description url,
 	// its name, its size, its seeders, and its leechers
 
-	torrents := findTorrentsInHtmlProxy(doc)
-	//torrents := findTorrentsInHtmlOriginal(doc)
+	//torrents := findTorrentsInHtmlProxy(doc)
+	torrents := findTorrentsInHtmlOriginal(doc)
 
 	log.Println("found torrents: ", len(torrents))
 	return torrents, nil
 }
 
 // checkEmptyResp checks whether the tpb response contains the
-// #searchResult id, otherwise it means the site is broken
+// #torrents or #searchResult id, otherwise it means the site is broken
 func checkEmptyResp(html string) bool {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
@@ -113,11 +113,22 @@ func checkEmptyResp(html string) bool {
 		return false
 	}
 
-	if doc.Find("#torrents").Nodes == nil || doc.Find("#searchResult").Nodes == nil {
-		log.Println("empty torrent list in html")
+	// Check for either original site (#torrents) or proxy site (#searchResult)
+	hasTorrents := doc.Find("#torrents").Nodes != nil
+	hasSearchResult := doc.Find("#searchResult").Nodes != nil
+
+	if !hasTorrents && !hasSearchResult {
+		log.Println("empty torrent list in html - no #torrents or #searchResult found")
+		// Debug: print first 500 chars of HTML
+		if len(html) > 500 {
+			log.Println("HTML preview:", html[:500])
+		} else {
+			log.Println("HTML preview:", html)
+		}
 		return false
 	}
 
+	log.Printf("Found elements - hasTorrents: %v, hasSearchResult: %v\n", hasTorrents, hasSearchResult)
 	return true
 }
 
@@ -158,8 +169,8 @@ func Lookup(timeout time.Duration) ([]Torrent, error) {
 			msg := fmt.Sprintf("Fetching torrents from pirate bay [%d/%d] %s", i, len(searchesList), search)
 			log.Println(msg)
 
-			go fetchUrlUsingGet(ctx, fullURL, htmlCh, htmlErrCh)
-			//go fetchUrlUsingChromeDP(ctx, fullURL, htmlCh, htmlErrCh)
+			//go fetchUrlUsingGet(ctx, fullURL, htmlCh, htmlErrCh)
+			go fetchUrlUsingChromeDP(ctx, fullURL, htmlCh, htmlErrCh)
 		}
 	}
 
