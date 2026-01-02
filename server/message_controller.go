@@ -99,8 +99,12 @@ func (s *Server) GetConfig(c *websocket.Conn, data PayloadRequest) {
 }
 
 func (s *Server) GetAllUsers(c *websocket.Conn, data PayloadRequest) {
-	var users models.UserSlice
-	users = models.Users().AllGP(context.Background())
+	ctx := context.Background()
+	users, err := models.Users().All(ctx, db.DB)
+	if err != nil {
+		transmitPromiseReject(c, data, fmt.Sprintf("could not get users: %v", err))
+		return
+	}
 	transmitPromiseResponse(c, data, users)
 }
 
@@ -132,11 +136,14 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	var media []MediaDataExtended
 	var userId int = data.UserId
 	queryMods := []qm.QueryMod{
-		qm.Select("md.*, umd.isWatched as isWatched"),
+		qm.Select("md.id, md.title, md.imdbId, md.tmdbId, md.languages, md.country, md.votes, md.series, md.rating, md.runtime, md.year, md.poster, md.metascore, md.plot, md.director, md.writer, md.actors, md.released, md.released_unix, md.trailer, md.type, md.name"),
+		qm.Select("umd.isWatched as isWatched"),
 		qm.Select("max(IFNULL(CAST(SUBSTR(sub.resolution, 0) AS int), 0)) as resolution"),
 		qm.Select("rtrim(replace(group_concat(DISTINCT sub.quality||','), ',,', ','), ',') as quality"),
 
 		qm.Select("(SELECT COUNT(*) FROM torrentFile as tf WHERE tf.metaDataId = md.id AND tf.seenAt > strftime('%s', 'now', '-48 hours')) as trendingCount"),
+
+		qm.Select("(SELECT group_concat(g.type, ',') FROM metaDataGenre mg INNER JOIN genre g ON g.id = mg.genreId WHERE mg.metaDataId = md.id) as genres"),
 
 		qm.From("metaData as md"),
 	}
@@ -225,6 +232,7 @@ func (s *Server) GetAllTorrents(c *websocket.Conn, data PayloadRequest) {
 }
 
 func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
+	ctx := context.Background()
 	p := req.Data.(map[string]interface{})["metaDataId"]
 	episodes, err := models.Episodes(
 		qm.Where("metaDataId = ?", p),
@@ -234,7 +242,7 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 		),
 		qm.Load(models.EpisodeRels.EpisodeIdMediaFiles),
 		qm.Load(models.EpisodeRels.EpisodeIdTorrentFiles),
-	).AllG(context.Background())
+	).All(ctx, db.DB)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not get episodes 2 %s", err))
 		return
@@ -266,13 +274,14 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 }
 
 func (s *Server) GetMediaFilesByMetaId(c *websocket.Conn, req PayloadRequest) {
+	ctx := context.Background()
 	p := req.Data.(map[string]interface{})["metaDataId"]
 	mediaFiles, err := models.MediaFiles(
 		qm.Where("metaDataId = ?", p),
-	).AllG(context.Background())
+	).All(ctx, db.DB)
 	torrentFiles, err := models.TorrentFiles(
 		qm.Where("metaDataId = ?", p),
-	).AllG(context.Background())
+	).All(ctx, db.DB)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not get media / torrent files %s", err))
 		return
@@ -310,10 +319,11 @@ func (s *Server) SetWatched(c *websocket.Conn, req PayloadRequest) {
 }
 
 func (s *Server) GetMetaDataByFileId(c *websocket.Conn, req PayloadRequest) {
+	ctx := context.Background()
 	id := int64(req.Data.(map[string]interface{})["id"].(float64))
 	mediaFile, err := models.MediaFiles(
 		qm.Where("id = ?", id),
-	).OneG(context.Background())
+	).One(ctx, db.DB)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not find media file by id in db %s", err))
 		return
@@ -410,7 +420,8 @@ func (s *Server) ReprocessGenres() (int, error) {
 	// This function is now a no-op with many-to-many architecture
 	// Genres are created incrementally when metadata is added
 	// Just return the count of existing genres
-	count, err := models.Genres().CountG(context.Background())
+	ctx := context.Background()
+	count, err := models.Genres().Count(ctx, db.DB)
 	if err != nil {
 		return 0, fmt.Errorf("could not count genres: %w", err)
 	}
@@ -425,7 +436,8 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 		IsSeriesWatched bool `json:"isSeriesWatched"`
 	}
 
-	episode, err := models.FindEpisodeG(context.Background(), null.Int64From(entityId))
+	ctx := context.Background()
+	episode, err := models.FindEpisode(ctx, db.DB, null.Int64From(entityId))
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not find episode %s", err))
 		return
@@ -435,18 +447,18 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 	uep, err := models.UserEpisodes(
 		qm.Where("episodeId = ?", entityId),
 		qm.Where("userId = ?", req.UserId),
-	).OneG(context.Background())
+	).One(ctx, db.DB)
 	if err == nil {
 		// update existing
 		uep.IsWatched = null.BoolFrom(isWatched)
-		_, err = uep.UpdateG(context.Background(), boil.Infer())
+		_, err = uep.Update(ctx, db.DB, boil.Infer())
 		if err != nil {
 			transmitPromiseReject(c, req, fmt.Sprintf("could not update user episode %s", err))
 			return
 		}
 	} else {
 		// create new
-		err = episode.AddEpisodeIdUserEpisodesG(context.Background(), true, &models.UserEpisode{
+		err = episode.AddEpisodeIdUserEpisodes(ctx, db.DB, true, &models.UserEpisode{
 			UserId:    null.Int64From(1),
 			IsWatched: null.BoolFrom(isWatched),
 		})
@@ -462,7 +474,7 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 		qm.Load(models.EpisodeRels.EpisodeIdUserEpisodes,
 			qm.Where("userId = ?", req.UserId),
 		),
-	).AllG(context.Background())
+	).All(ctx, db.DB)
 
 	isSeriesWatched := false
 	if err == nil {
@@ -479,17 +491,17 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 	umd, err := models.UserMetaData(
 		qm.Where("metaDataId = ?", episode.MetaDataId.Int64),
 		qm.Where("userId = ?", req.UserId),
-	).OneG(context.Background())
+	).One(ctx, db.DB)
 	if err == nil {
 		umd.IsWatched = null.BoolFrom(isSeriesWatched)
-		_, _ = umd.UpdateG(context.Background(), boil.Infer())
+		_, _ = umd.Update(ctx, db.DB, boil.Infer())
 	} else {
 		newUmd := &models.UserMetaDatum{
 			UserId:     null.Int64From(1),
 			MetaDataId: episode.MetaDataId,
 			IsWatched:  null.BoolFrom(isSeriesWatched),
 		}
-		_ = newUmd.InsertG(context.Background(), boil.Infer())
+		_ = newUmd.Insert(ctx, db.DB, boil.Infer())
 	}
 
 	res := response{
@@ -499,7 +511,8 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 }
 
 func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {
-	meta, err := models.FindMetaDatumG(context.Background(), null.Int64From(entityId))
+	ctx := context.Background()
+	meta, err := models.FindMetaDatum(ctx, db.DB, null.Int64From(entityId))
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not find meta %s", err))
 		return
@@ -509,11 +522,11 @@ func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId 
 	umd, err := models.UserMetaData(
 		qm.Where("metaDataId = ?", entityId),
 		qm.Where("userId = ?", req.UserId),
-	).OneG(context.Background())
+	).One(ctx, db.DB)
 	if err == nil {
 		// update existing
 		umd.IsWatched = null.BoolFrom(isWatched)
-		_, err = umd.UpdateG(context.Background(), boil.Infer())
+		_, err = umd.Update(ctx, db.DB, boil.Infer())
 		if err != nil {
 			transmitPromiseReject(c, req, fmt.Sprintf("could not update user meta %s", err))
 			return
@@ -523,7 +536,7 @@ func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId 
 	}
 
 	// create new
-	err = meta.AddMetaDataIdUserMetaDataG(context.Background(), true, &models.UserMetaDatum{
+	err = meta.AddMetaDataIdUserMetaData(ctx, db.DB, true, &models.UserMetaDatum{
 		UserId:    null.Int64From(1),
 		IsWatched: null.BoolFrom(isWatched),
 	})
@@ -539,6 +552,7 @@ func (s *Server) RouteNotFound(c *websocket.Conn, data PayloadRequest) {
 }
 
 func (s *Server) GetTrailer(c *websocket.Conn, req PayloadRequest) {
+	ctx := context.Background()
 	title := req.Data.(map[string]interface{})["title"].(string)
 	year := int(req.Data.(map[string]interface{})["year"].(float64))
 	metaDataId := int64(req.Data.(map[string]interface{})["metaDataId"].(float64))
@@ -549,15 +563,16 @@ func (s *Server) GetTrailer(c *websocket.Conn, req PayloadRequest) {
 	}
 
 	// update trailer in db
-	meta, err := models.FindMetaDatumG(context.Background(), null.Int64From(metaDataId))
+	meta, err := models.FindMetaDatum(ctx, db.DB, null.Int64From(metaDataId))
 	if err == nil {
 		meta.Trailer = null.StringFrom(trailer)
-		_, _ = meta.UpdateG(context.Background(), boil.Infer())
+		_, _ = meta.Update(ctx, db.DB, boil.Infer())
 	}
 	transmitPromiseResponse(c, req, trailer)
 }
 
 func (s *Server) GetImdbRating(c *websocket.Conn, req PayloadRequest) {
+	ctx := context.Background()
 	imdbId := req.Data.(map[string]interface{})["imdbId"].(string)
 	metaDataId := int64(req.Data.(map[string]interface{})["metaDataId"].(float64))
 
@@ -568,11 +583,11 @@ func (s *Server) GetImdbRating(c *websocket.Conn, req PayloadRequest) {
 	}
 
 	// update rating in db
-	meta, err := models.FindMetaDatumG(context.Background(), null.Int64From(metaDataId))
+	meta, err := models.FindMetaDatum(ctx, db.DB, null.Int64From(metaDataId))
 	if err == nil {
 		meta.Votes = null.Int64From(rating.Votes)
 		meta.Rating = null.Float64From(rating.Score)
-		_, _ = meta.UpdateG(context.Background(), boil.Infer())
+		_, _ = meta.Update(ctx, db.DB, boil.Infer())
 	}
 
 	transmitPromiseResponse(c, req, rating)
