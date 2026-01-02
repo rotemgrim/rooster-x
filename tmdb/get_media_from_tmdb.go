@@ -111,7 +111,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 		log.Println("using cached for TMDB TV search: %s", tor.Title)
 	}
 
-	if tmdbSearchResult.TotalResults == 0 {
+	if tmdbSearchResult.TotalResults == 0 || len(tmdbSearchResult.Results) == 0 {
 		return nil, fmt.Errorf("no series found for %s", tor.Title)
 	}
 
@@ -175,10 +175,16 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 }
 
 func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("PANIC in getMovieMetaData for '%s': %v", tor.Title, r)
+		}
+	}()
+
 	// check if metadata is already in cache
 	tmdbSearchResult := TMDB_MOVIE_SEARCH_CACHE[tor.Title]
 	if tmdbSearchResult == nil {
-		log.Println("searching TMDB MOVIE for %s", tor.Title)
+		log.Printf("searching TMDB MOVIE for %s", tor.Title)
 
 		options := map[string]string{}
 		options["language"] = LANG
@@ -188,22 +194,31 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 			options["year"] = year.String
 		}
 
+		log.Printf("About to call GetSearchMovies for: %s", tor.Title)
 		tmpTmdbSearchResult, err := tmdbClient.GetSearchMovies(tor.Title, options)
+		log.Printf("GetSearchMovies returned, err: %v", err)
 		if err != nil {
+			log.Printf("Error from GetSearchMovies: %v", err)
 			return nil, err
 		}
+		log.Printf("Caching search result for: %s", tor.Title)
 		TMDB_MOVIE_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
 		tmdbSearchResult = tmpTmdbSearchResult
+		log.Printf("Search result cached successfully")
 	} else {
-		log.Println("using cached for TMDB MOVIE search: %s", tor.Title)
+		log.Printf("using cached for TMDB MOVIE search: %s", tor.Title)
 	}
 
-	if tmdbSearchResult.TotalResults == 0 {
+	log.Printf("Checking total results for: %s", tor.Title)
+	if tmdbSearchResult.TotalResults == 0 || len(tmdbSearchResult.Results) == 0 {
+		log.Printf("No movie found for: %s (TotalResults: %d, Results length: %d)", tor.Title, tmdbSearchResult.TotalResults, len(tmdbSearchResult.Results))
 		return nil, fmt.Errorf("no movie found for %s", tor.Title)
 	}
 
+	log.Printf("Found %d results, checking DB for first result ID: %d", tmdbSearchResult.TotalResults, tmdbSearchResult.Results[0].ID)
 	// check if metadata is not already id DB
 	md, err := m.MetaData(qm.Where("tmdbId = ?", int(tmdbSearchResult.Results[0].ID))).OneG(context.Background())
+	log.Printf("DB check completed, err: %v", err)
 	if err == nil {
 		return md, nil
 	}
@@ -212,47 +227,66 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 		"language":           LANG,
 		"append_to_response": "external_ids,genres,credits,release_dates",
 	}
-	log.Println("getting TMDB MOVIE details for %s", tor.Title)
+	log.Printf("getting TMDB MOVIE details for %s (ID: %d)", tor.Title, tmdbSearchResult.Results[0].ID)
 	tmdbDetails, err := tmdbClient.GetMovieDetails(int(tmdbSearchResult.Results[0].ID), detailsOptions)
+	log.Printf("GetMovieDetails returned, err: %v", err)
 	if err != nil {
+		log.Printf("Error from GetMovieDetails: %v", err)
 		return nil, err
 	}
+
+	log.Printf("Building metadata object for: %s", tor.Title)
 	newMd := &m.MetaDatum{}
+	log.Printf("Setting basic fields...")
 	newMd.Title = null.StringFrom(tmdbDetails.Title)
 	newMd.Poster = null.StringFrom(tmdbDetails.PosterPath)
 	newMd.Type = null.StringFrom("movie")
+
+	log.Printf("Processing genres...")
 	var genresArr []string
 	for _, genre := range tmdbDetails.Genres {
 		genresArr = append(genresArr, genre.Name)
 	}
 	newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
+
+	log.Printf("Setting IDs...")
 	newMd.ImdbId = null.StringFrom(tmdbDetails.IMDbID)
 	newMd.TMDBID = null.Int64From(tmdbDetails.ID)
 	newMd.Series = null.BoolFrom(false)
-	year, _ := strconv.ParseInt(strings.Split(tmdbDetails.ReleaseDate, "-")[0], 10, 64)
-	newMd.Year = null.Int64From(year)
+
+	log.Printf("Parsing release date: %s", tmdbDetails.ReleaseDate)
+	if tmdbDetails.ReleaseDate != "" {
+		year, _ := strconv.ParseInt(strings.Split(tmdbDetails.ReleaseDate, "-")[0], 10, 64)
+		newMd.Year = null.Int64From(year)
+
+		// convert date string like 2023-08-22 to unix timestamp
+		layout := "2006-01-02"
+		t, err := time.Parse(layout, tmdbDetails.ReleaseDate)
+		if err == nil {
+			newMd.ReleasedUnix = null.Int64From(t.Unix())
+		}
+	}
+
+	log.Printf("Setting other fields...")
 	newMd.Plot = null.StringFrom(tmdbDetails.Overview)
 	newMd.Runtime = null.Int64From(int64(tmdbDetails.Runtime))
-	// newMd.Director = null.StringFrom(tmdbDetails.d)
 	newMd.Released = null.StringFrom(tmdbDetails.ReleaseDate)
 
-	// convert date string like 2023-08-22 to unix timestamp
-	layout := "2006-01-02"
-	t, err := time.Parse(layout, tmdbDetails.ReleaseDate)
-	if err == nil {
-		newMd.ReleasedUnix = null.Int64From(t.Unix())
-	}
+	log.Printf("Processing credits cast...")
 	var actors []string
 	for _, actor := range tmdbDetails.Credits.Cast {
 		actors = append(actors, actor.Name)
 	}
 	newMd.Actors = null.StringFrom(strings.Join(actors, ","))
 
+	log.Printf("Processing origin countries...")
 	var countries []string
 	for _, country := range tmdbDetails.OriginCountry {
 		countries = append(countries, country)
 	}
 	newMd.Country = null.StringFrom(strings.Join(countries, ","))
+
+	log.Printf("Successfully created metadata for: %s", tor.Title)
 	return newMd, nil
 }
 

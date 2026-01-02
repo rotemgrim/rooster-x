@@ -76,6 +76,14 @@ func listenForIncomingMessages() {
 }
 
 func onReady() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("PANIC RECOVERED in onReady: %v", r)
+			log.Printf("Stack trace: %+v", r)
+			panic(r) // Re-panic to see full stack trace
+		}
+	}()
+
 	log.Println("RoosterX has started ======================")
 
 	// initialize system tray
