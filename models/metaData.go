@@ -512,31 +512,6 @@ func AddMetaDatumHook(hookPoint boil.HookPoint, metaDatumHook MetaDatumHook) {
 	}
 }
 
-// OneG returns a single metaDatum record from the query using the global executor.
-func (q metaDatumQuery) OneG(ctx context.Context) (*MetaDatum, error) {
-	return q.One(ctx, boil.GetContextDB())
-}
-
-// OneGP returns a single metaDatum record from the query using the global executor, and panics on error.
-func (q metaDatumQuery) OneGP(ctx context.Context) *MetaDatum {
-	o, err := q.One(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// OneP returns a single metaDatum record from the query, and panics on error.
-func (q metaDatumQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *MetaDatum {
-	o, err := q.One(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
 // One returns a single metaDatum record from the query.
 func (q metaDatumQuery) One(ctx context.Context, exec boil.ContextExecutor) (*MetaDatum, error) {
 	o := &MetaDatum{}
@@ -556,31 +531,6 @@ func (q metaDatumQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Me
 	}
 
 	return o, nil
-}
-
-// AllG returns all MetaDatum records from the query using the global executor.
-func (q metaDatumQuery) AllG(ctx context.Context) (MetaDatumSlice, error) {
-	return q.All(ctx, boil.GetContextDB())
-}
-
-// AllGP returns all MetaDatum records from the query using the global executor, and panics on error.
-func (q metaDatumQuery) AllGP(ctx context.Context) MetaDatumSlice {
-	o, err := q.All(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// AllP returns all MetaDatum records from the query, and panics on error.
-func (q metaDatumQuery) AllP(ctx context.Context, exec boil.ContextExecutor) MetaDatumSlice {
-	o, err := q.All(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
 }
 
 // All returns all MetaDatum records from the query.
@@ -603,31 +553,6 @@ func (q metaDatumQuery) All(ctx context.Context, exec boil.ContextExecutor) (Met
 	return o, nil
 }
 
-// CountG returns the count of all MetaDatum records in the query using the global executor
-func (q metaDatumQuery) CountG(ctx context.Context) (int64, error) {
-	return q.Count(ctx, boil.GetContextDB())
-}
-
-// CountGP returns the count of all MetaDatum records in the query using the global executor, and panics on error.
-func (q metaDatumQuery) CountGP(ctx context.Context) int64 {
-	c, err := q.Count(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
-// CountP returns the count of all MetaDatum records in the query, and panics on error.
-func (q metaDatumQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	c, err := q.Count(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
 // Count returns the count of all MetaDatum records in the query.
 func (q metaDatumQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -641,31 +566,6 @@ func (q metaDatumQuery) Count(ctx context.Context, exec boil.ContextExecutor) (i
 	}
 
 	return count, nil
-}
-
-// ExistsG checks if the row exists in the table using the global executor.
-func (q metaDatumQuery) ExistsG(ctx context.Context) (bool, error) {
-	return q.Exists(ctx, boil.GetContextDB())
-}
-
-// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
-func (q metaDatumQuery) ExistsGP(ctx context.Context) bool {
-	e, err := q.Exists(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// ExistsP checks if the row exists in the table, and panics on error.
-func (q metaDatumQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
-	e, err := q.Exists(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -1319,37 +1219,6 @@ func (metaDatumL) LoadMetaDataIdUserMetaData(ctx context.Context, e boil.Context
 	return nil
 }
 
-// AddMetaDataIdAliasesG adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdAliases.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle.
-func (o *MetaDatum) AddMetaDataIdAliasesG(ctx context.Context, insert bool, related ...*Alias) error {
-	return o.AddMetaDataIdAliases(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// AddMetaDataIdAliasesP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdAliases.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Panics on error.
-func (o *MetaDatum) AddMetaDataIdAliasesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Alias) {
-	if err := o.AddMetaDataIdAliases(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// AddMetaDataIdAliasesGP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdAliases.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) AddMetaDataIdAliasesGP(ctx context.Context, insert bool, related ...*Alias) {
-	if err := o.AddMetaDataIdAliases(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // AddMetaDataIdAliases adds the given related objects to the existing relationships
 // of the metaDatum, optionally inserting them as new records.
 // Appends related to o.R.MetaDataIdAliases.
@@ -1403,43 +1272,6 @@ func (o *MetaDatum) AddMetaDataIdAliases(ctx context.Context, exec boil.ContextE
 	return nil
 }
 
-// SetMetaDataIdAliasesG removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdAliases accordingly.
-// Replaces o.R.MetaDataIdAliases with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdAliases accordingly.
-// Uses the global database handle.
-func (o *MetaDatum) SetMetaDataIdAliasesG(ctx context.Context, insert bool, related ...*Alias) error {
-	return o.SetMetaDataIdAliases(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// SetMetaDataIdAliasesP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdAliases accordingly.
-// Replaces o.R.MetaDataIdAliases with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdAliases accordingly.
-// Panics on error.
-func (o *MetaDatum) SetMetaDataIdAliasesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Alias) {
-	if err := o.SetMetaDataIdAliases(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdAliasesGP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdAliases accordingly.
-// Replaces o.R.MetaDataIdAliases with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdAliases accordingly.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) SetMetaDataIdAliasesGP(ctx context.Context, insert bool, related ...*Alias) {
-	if err := o.SetMetaDataIdAliases(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetMetaDataIdAliases removes all previously related items of the
 // metaDatum replacing them completely with the passed
 // in related items, optionally inserting them as new records.
@@ -1472,34 +1304,6 @@ func (o *MetaDatum) SetMetaDataIdAliases(ctx context.Context, exec boil.ContextE
 	}
 
 	return o.AddMetaDataIdAliases(ctx, exec, insert, related...)
-}
-
-// RemoveMetaDataIdAliasesG relationships from objects passed in.
-// Removes related items from R.MetaDataIdAliases (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle.
-func (o *MetaDatum) RemoveMetaDataIdAliasesG(ctx context.Context, related ...*Alias) error {
-	return o.RemoveMetaDataIdAliases(ctx, boil.GetContextDB(), related...)
-}
-
-// RemoveMetaDataIdAliasesP relationships from objects passed in.
-// Removes related items from R.MetaDataIdAliases (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Panics on error.
-func (o *MetaDatum) RemoveMetaDataIdAliasesP(ctx context.Context, exec boil.ContextExecutor, related ...*Alias) {
-	if err := o.RemoveMetaDataIdAliases(ctx, exec, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdAliasesGP relationships from objects passed in.
-// Removes related items from R.MetaDataIdAliases (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) RemoveMetaDataIdAliasesGP(ctx context.Context, related ...*Alias) {
-	if err := o.RemoveMetaDataIdAliases(ctx, boil.GetContextDB(), related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // RemoveMetaDataIdAliases relationships from objects passed in.
@@ -1540,37 +1344,6 @@ func (o *MetaDatum) RemoveMetaDataIdAliases(ctx context.Context, exec boil.Conte
 	}
 
 	return nil
-}
-
-// AddMetaDataIdEpisodesG adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdEpisodes.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle.
-func (o *MetaDatum) AddMetaDataIdEpisodesG(ctx context.Context, insert bool, related ...*Episode) error {
-	return o.AddMetaDataIdEpisodes(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// AddMetaDataIdEpisodesP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdEpisodes.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Panics on error.
-func (o *MetaDatum) AddMetaDataIdEpisodesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Episode) {
-	if err := o.AddMetaDataIdEpisodes(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// AddMetaDataIdEpisodesGP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdEpisodes.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) AddMetaDataIdEpisodesGP(ctx context.Context, insert bool, related ...*Episode) {
-	if err := o.AddMetaDataIdEpisodes(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // AddMetaDataIdEpisodes adds the given related objects to the existing relationships
@@ -1626,43 +1399,6 @@ func (o *MetaDatum) AddMetaDataIdEpisodes(ctx context.Context, exec boil.Context
 	return nil
 }
 
-// SetMetaDataIdEpisodesG removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
-// Replaces o.R.MetaDataIdEpisodes with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
-// Uses the global database handle.
-func (o *MetaDatum) SetMetaDataIdEpisodesG(ctx context.Context, insert bool, related ...*Episode) error {
-	return o.SetMetaDataIdEpisodes(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// SetMetaDataIdEpisodesP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
-// Replaces o.R.MetaDataIdEpisodes with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
-// Panics on error.
-func (o *MetaDatum) SetMetaDataIdEpisodesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Episode) {
-	if err := o.SetMetaDataIdEpisodes(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdEpisodesGP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
-// Replaces o.R.MetaDataIdEpisodes with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdEpisodes accordingly.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) SetMetaDataIdEpisodesGP(ctx context.Context, insert bool, related ...*Episode) {
-	if err := o.SetMetaDataIdEpisodes(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetMetaDataIdEpisodes removes all previously related items of the
 // metaDatum replacing them completely with the passed
 // in related items, optionally inserting them as new records.
@@ -1695,34 +1431,6 @@ func (o *MetaDatum) SetMetaDataIdEpisodes(ctx context.Context, exec boil.Context
 	}
 
 	return o.AddMetaDataIdEpisodes(ctx, exec, insert, related...)
-}
-
-// RemoveMetaDataIdEpisodesG relationships from objects passed in.
-// Removes related items from R.MetaDataIdEpisodes (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle.
-func (o *MetaDatum) RemoveMetaDataIdEpisodesG(ctx context.Context, related ...*Episode) error {
-	return o.RemoveMetaDataIdEpisodes(ctx, boil.GetContextDB(), related...)
-}
-
-// RemoveMetaDataIdEpisodesP relationships from objects passed in.
-// Removes related items from R.MetaDataIdEpisodes (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Panics on error.
-func (o *MetaDatum) RemoveMetaDataIdEpisodesP(ctx context.Context, exec boil.ContextExecutor, related ...*Episode) {
-	if err := o.RemoveMetaDataIdEpisodes(ctx, exec, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdEpisodesGP relationships from objects passed in.
-// Removes related items from R.MetaDataIdEpisodes (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) RemoveMetaDataIdEpisodesGP(ctx context.Context, related ...*Episode) {
-	if err := o.RemoveMetaDataIdEpisodes(ctx, boil.GetContextDB(), related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // RemoveMetaDataIdEpisodes relationships from objects passed in.
@@ -1763,37 +1471,6 @@ func (o *MetaDatum) RemoveMetaDataIdEpisodes(ctx context.Context, exec boil.Cont
 	}
 
 	return nil
-}
-
-// AddMetaDataIdMediaFilesG adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdMediaFiles.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle.
-func (o *MetaDatum) AddMetaDataIdMediaFilesG(ctx context.Context, insert bool, related ...*MediaFile) error {
-	return o.AddMetaDataIdMediaFiles(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// AddMetaDataIdMediaFilesP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdMediaFiles.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Panics on error.
-func (o *MetaDatum) AddMetaDataIdMediaFilesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MediaFile) {
-	if err := o.AddMetaDataIdMediaFiles(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// AddMetaDataIdMediaFilesGP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdMediaFiles.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) AddMetaDataIdMediaFilesGP(ctx context.Context, insert bool, related ...*MediaFile) {
-	if err := o.AddMetaDataIdMediaFiles(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // AddMetaDataIdMediaFiles adds the given related objects to the existing relationships
@@ -1849,43 +1526,6 @@ func (o *MetaDatum) AddMetaDataIdMediaFiles(ctx context.Context, exec boil.Conte
 	return nil
 }
 
-// SetMetaDataIdMediaFilesG removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdMediaFiles accordingly.
-// Replaces o.R.MetaDataIdMediaFiles with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdMediaFiles accordingly.
-// Uses the global database handle.
-func (o *MetaDatum) SetMetaDataIdMediaFilesG(ctx context.Context, insert bool, related ...*MediaFile) error {
-	return o.SetMetaDataIdMediaFiles(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// SetMetaDataIdMediaFilesP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdMediaFiles accordingly.
-// Replaces o.R.MetaDataIdMediaFiles with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdMediaFiles accordingly.
-// Panics on error.
-func (o *MetaDatum) SetMetaDataIdMediaFilesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MediaFile) {
-	if err := o.SetMetaDataIdMediaFiles(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdMediaFilesGP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdMediaFiles accordingly.
-// Replaces o.R.MetaDataIdMediaFiles with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdMediaFiles accordingly.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) SetMetaDataIdMediaFilesGP(ctx context.Context, insert bool, related ...*MediaFile) {
-	if err := o.SetMetaDataIdMediaFiles(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetMetaDataIdMediaFiles removes all previously related items of the
 // metaDatum replacing them completely with the passed
 // in related items, optionally inserting them as new records.
@@ -1918,34 +1558,6 @@ func (o *MetaDatum) SetMetaDataIdMediaFiles(ctx context.Context, exec boil.Conte
 	}
 
 	return o.AddMetaDataIdMediaFiles(ctx, exec, insert, related...)
-}
-
-// RemoveMetaDataIdMediaFilesG relationships from objects passed in.
-// Removes related items from R.MetaDataIdMediaFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle.
-func (o *MetaDatum) RemoveMetaDataIdMediaFilesG(ctx context.Context, related ...*MediaFile) error {
-	return o.RemoveMetaDataIdMediaFiles(ctx, boil.GetContextDB(), related...)
-}
-
-// RemoveMetaDataIdMediaFilesP relationships from objects passed in.
-// Removes related items from R.MetaDataIdMediaFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Panics on error.
-func (o *MetaDatum) RemoveMetaDataIdMediaFilesP(ctx context.Context, exec boil.ContextExecutor, related ...*MediaFile) {
-	if err := o.RemoveMetaDataIdMediaFiles(ctx, exec, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdMediaFilesGP relationships from objects passed in.
-// Removes related items from R.MetaDataIdMediaFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) RemoveMetaDataIdMediaFilesGP(ctx context.Context, related ...*MediaFile) {
-	if err := o.RemoveMetaDataIdMediaFiles(ctx, boil.GetContextDB(), related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // RemoveMetaDataIdMediaFiles relationships from objects passed in.
@@ -1986,37 +1598,6 @@ func (o *MetaDatum) RemoveMetaDataIdMediaFiles(ctx context.Context, exec boil.Co
 	}
 
 	return nil
-}
-
-// AddMetaDataIdTorrentFilesG adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdTorrentFiles.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle.
-func (o *MetaDatum) AddMetaDataIdTorrentFilesG(ctx context.Context, insert bool, related ...*TorrentFile) error {
-	return o.AddMetaDataIdTorrentFiles(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// AddMetaDataIdTorrentFilesP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdTorrentFiles.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Panics on error.
-func (o *MetaDatum) AddMetaDataIdTorrentFilesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TorrentFile) {
-	if err := o.AddMetaDataIdTorrentFiles(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// AddMetaDataIdTorrentFilesGP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdTorrentFiles.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) AddMetaDataIdTorrentFilesGP(ctx context.Context, insert bool, related ...*TorrentFile) {
-	if err := o.AddMetaDataIdTorrentFiles(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // AddMetaDataIdTorrentFiles adds the given related objects to the existing relationships
@@ -2072,43 +1653,6 @@ func (o *MetaDatum) AddMetaDataIdTorrentFiles(ctx context.Context, exec boil.Con
 	return nil
 }
 
-// SetMetaDataIdTorrentFilesG removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdTorrentFiles accordingly.
-// Replaces o.R.MetaDataIdTorrentFiles with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdTorrentFiles accordingly.
-// Uses the global database handle.
-func (o *MetaDatum) SetMetaDataIdTorrentFilesG(ctx context.Context, insert bool, related ...*TorrentFile) error {
-	return o.SetMetaDataIdTorrentFiles(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// SetMetaDataIdTorrentFilesP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdTorrentFiles accordingly.
-// Replaces o.R.MetaDataIdTorrentFiles with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdTorrentFiles accordingly.
-// Panics on error.
-func (o *MetaDatum) SetMetaDataIdTorrentFilesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TorrentFile) {
-	if err := o.SetMetaDataIdTorrentFiles(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdTorrentFilesGP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdTorrentFiles accordingly.
-// Replaces o.R.MetaDataIdTorrentFiles with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdTorrentFiles accordingly.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) SetMetaDataIdTorrentFilesGP(ctx context.Context, insert bool, related ...*TorrentFile) {
-	if err := o.SetMetaDataIdTorrentFiles(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetMetaDataIdTorrentFiles removes all previously related items of the
 // metaDatum replacing them completely with the passed
 // in related items, optionally inserting them as new records.
@@ -2141,34 +1685,6 @@ func (o *MetaDatum) SetMetaDataIdTorrentFiles(ctx context.Context, exec boil.Con
 	}
 
 	return o.AddMetaDataIdTorrentFiles(ctx, exec, insert, related...)
-}
-
-// RemoveMetaDataIdTorrentFilesG relationships from objects passed in.
-// Removes related items from R.MetaDataIdTorrentFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle.
-func (o *MetaDatum) RemoveMetaDataIdTorrentFilesG(ctx context.Context, related ...*TorrentFile) error {
-	return o.RemoveMetaDataIdTorrentFiles(ctx, boil.GetContextDB(), related...)
-}
-
-// RemoveMetaDataIdTorrentFilesP relationships from objects passed in.
-// Removes related items from R.MetaDataIdTorrentFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Panics on error.
-func (o *MetaDatum) RemoveMetaDataIdTorrentFilesP(ctx context.Context, exec boil.ContextExecutor, related ...*TorrentFile) {
-	if err := o.RemoveMetaDataIdTorrentFiles(ctx, exec, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdTorrentFilesGP relationships from objects passed in.
-// Removes related items from R.MetaDataIdTorrentFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) RemoveMetaDataIdTorrentFilesGP(ctx context.Context, related ...*TorrentFile) {
-	if err := o.RemoveMetaDataIdTorrentFiles(ctx, boil.GetContextDB(), related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // RemoveMetaDataIdTorrentFiles relationships from objects passed in.
@@ -2209,37 +1725,6 @@ func (o *MetaDatum) RemoveMetaDataIdTorrentFiles(ctx context.Context, exec boil.
 	}
 
 	return nil
-}
-
-// AddMetaDataIdUserMetaDataG adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdUserMetaData.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle.
-func (o *MetaDatum) AddMetaDataIdUserMetaDataG(ctx context.Context, insert bool, related ...*UserMetaDatum) error {
-	return o.AddMetaDataIdUserMetaData(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// AddMetaDataIdUserMetaDataP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdUserMetaData.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Panics on error.
-func (o *MetaDatum) AddMetaDataIdUserMetaDataP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*UserMetaDatum) {
-	if err := o.AddMetaDataIdUserMetaData(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// AddMetaDataIdUserMetaDataGP adds the given related objects to the existing relationships
-// of the metaDatum, optionally inserting them as new records.
-// Appends related to o.R.MetaDataIdUserMetaData.
-// Sets related.R.MetaDataIdMetaDatum appropriately.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) AddMetaDataIdUserMetaDataGP(ctx context.Context, insert bool, related ...*UserMetaDatum) {
-	if err := o.AddMetaDataIdUserMetaData(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // AddMetaDataIdUserMetaData adds the given related objects to the existing relationships
@@ -2295,43 +1780,6 @@ func (o *MetaDatum) AddMetaDataIdUserMetaData(ctx context.Context, exec boil.Con
 	return nil
 }
 
-// SetMetaDataIdUserMetaDataG removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdUserMetaData accordingly.
-// Replaces o.R.MetaDataIdUserMetaData with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdUserMetaData accordingly.
-// Uses the global database handle.
-func (o *MetaDatum) SetMetaDataIdUserMetaDataG(ctx context.Context, insert bool, related ...*UserMetaDatum) error {
-	return o.SetMetaDataIdUserMetaData(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// SetMetaDataIdUserMetaDataP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdUserMetaData accordingly.
-// Replaces o.R.MetaDataIdUserMetaData with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdUserMetaData accordingly.
-// Panics on error.
-func (o *MetaDatum) SetMetaDataIdUserMetaDataP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*UserMetaDatum) {
-	if err := o.SetMetaDataIdUserMetaData(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdUserMetaDataGP removes all previously related items of the
-// metaDatum replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.MetaDataIdMetaDatum's MetaDataIdUserMetaData accordingly.
-// Replaces o.R.MetaDataIdUserMetaData with related.
-// Sets related.R.MetaDataIdMetaDatum's MetaDataIdUserMetaData accordingly.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) SetMetaDataIdUserMetaDataGP(ctx context.Context, insert bool, related ...*UserMetaDatum) {
-	if err := o.SetMetaDataIdUserMetaData(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetMetaDataIdUserMetaData removes all previously related items of the
 // metaDatum replacing them completely with the passed
 // in related items, optionally inserting them as new records.
@@ -2364,34 +1812,6 @@ func (o *MetaDatum) SetMetaDataIdUserMetaData(ctx context.Context, exec boil.Con
 	}
 
 	return o.AddMetaDataIdUserMetaData(ctx, exec, insert, related...)
-}
-
-// RemoveMetaDataIdUserMetaDataG relationships from objects passed in.
-// Removes related items from R.MetaDataIdUserMetaData (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle.
-func (o *MetaDatum) RemoveMetaDataIdUserMetaDataG(ctx context.Context, related ...*UserMetaDatum) error {
-	return o.RemoveMetaDataIdUserMetaData(ctx, boil.GetContextDB(), related...)
-}
-
-// RemoveMetaDataIdUserMetaDataP relationships from objects passed in.
-// Removes related items from R.MetaDataIdUserMetaData (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Panics on error.
-func (o *MetaDatum) RemoveMetaDataIdUserMetaDataP(ctx context.Context, exec boil.ContextExecutor, related ...*UserMetaDatum) {
-	if err := o.RemoveMetaDataIdUserMetaData(ctx, exec, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdUserMetaDataGP relationships from objects passed in.
-// Removes related items from R.MetaDataIdUserMetaData (uses pointer comparison, removal does not keep order)
-// Sets related.R.MetaDataIdMetaDatum.
-// Uses the global database handle and panics on error.
-func (o *MetaDatum) RemoveMetaDataIdUserMetaDataGP(ctx context.Context, related ...*UserMetaDatum) {
-	if err := o.RemoveMetaDataIdUserMetaData(ctx, boil.GetContextDB(), related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // RemoveMetaDataIdUserMetaData relationships from objects passed in.
@@ -2445,31 +1865,6 @@ func MetaData(mods ...qm.QueryMod) metaDatumQuery {
 	return metaDatumQuery{q}
 }
 
-// FindMetaDatumG retrieves a single record by ID.
-func FindMetaDatumG(ctx context.Context, iD null.Int64, selectCols ...string) (*MetaDatum, error) {
-	return FindMetaDatum(ctx, boil.GetContextDB(), iD, selectCols...)
-}
-
-// FindMetaDatumP retrieves a single record by ID with an executor, and panics on error.
-func FindMetaDatumP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) *MetaDatum {
-	retobj, err := FindMetaDatum(ctx, exec, iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
-// FindMetaDatumGP retrieves a single record by ID, and panics on error.
-func FindMetaDatumGP(ctx context.Context, iD null.Int64, selectCols ...string) *MetaDatum {
-	retobj, err := FindMetaDatum(ctx, boil.GetContextDB(), iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
 // FindMetaDatum retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
 func FindMetaDatum(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) (*MetaDatum, error) {
@@ -2498,27 +1893,6 @@ func FindMetaDatum(ctx context.Context, exec boil.ContextExecutor, iD null.Int64
 	}
 
 	return metaDatumObj, nil
-}
-
-// InsertG a single record. See Insert for whitelist behavior description.
-func (o *MetaDatum) InsertG(ctx context.Context, columns boil.Columns) error {
-	return o.Insert(ctx, boil.GetContextDB(), columns)
-}
-
-// InsertP a single record using an executor, and panics on error. See Insert
-// for whitelist behavior description.
-func (o *MetaDatum) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
-	if err := o.Insert(ctx, exec, columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// InsertGP a single record, and panics on error. See Insert for whitelist
-// behavior description.
-func (o *MetaDatum) InsertGP(ctx context.Context, columns boil.Columns) {
-	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Insert a single record using an executor.
@@ -2601,34 +1975,6 @@ func (o *MetaDatum) Insert(ctx context.Context, exec boil.ContextExecutor, colum
 	return o.doAfterInsertHooks(ctx, exec)
 }
 
-// UpdateG a single MetaDatum record using the global executor.
-// See Update for more documentation.
-func (o *MetaDatum) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
-	return o.Update(ctx, boil.GetContextDB(), columns)
-}
-
-// UpdateP uses an executor to update the MetaDatum, and panics on error.
-// See Update for more documentation.
-func (o *MetaDatum) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, exec, columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateGP a single MetaDatum record using the global executor. Panics on error.
-// See Update for more documentation.
-func (o *MetaDatum) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Update uses an executor to update the MetaDatum.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
@@ -2693,31 +2039,6 @@ func (o *MetaDatum) Update(ctx context.Context, exec boil.ContextExecutor, colum
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
-// UpdateAllP updates all rows with matching column names, and panics on error.
-func (q metaDatumQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (q metaDatumQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (q metaDatumQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // UpdateAll updates all rows with the specified column values.
 func (q metaDatumQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
@@ -2733,31 +2054,6 @@ func (q metaDatumQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor
 	}
 
 	return rowsAff, nil
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (o MetaDatumSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (o MetaDatumSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllP updates all rows with the specified column values, and panics on error.
-func (o MetaDatumSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -2806,26 +2102,6 @@ func (o MetaDatumSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor
 		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all metaDatum")
 	}
 	return rowsAff, nil
-}
-
-// UpsertG attempts an insert, and does an update or ignore on conflict.
-func (o *MetaDatum) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns)
-}
-
-// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
-func (o *MetaDatum) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
-// UpsertP panics on error.
-func (o *MetaDatum) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
@@ -2945,36 +2221,6 @@ func (o *MetaDatum) Upsert(ctx context.Context, exec boil.ContextExecutor, updat
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
-// DeleteG deletes a single MetaDatum record.
-// DeleteG will match against the primary key column to find the record to delete.
-func (o *MetaDatum) DeleteG(ctx context.Context) (int64, error) {
-	return o.Delete(ctx, boil.GetContextDB())
-}
-
-// DeleteP deletes a single MetaDatum record with an executor.
-// DeleteP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *MetaDatum) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.Delete(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteGP deletes a single MetaDatum record.
-// DeleteGP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *MetaDatum) DeleteGP(ctx context.Context) int64 {
-	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Delete deletes a single MetaDatum record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *MetaDatum) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -3011,30 +2257,6 @@ func (o *MetaDatum) Delete(ctx context.Context, exec boil.ContextExecutor) (int6
 	return rowsAff, nil
 }
 
-func (q metaDatumQuery) DeleteAllG(ctx context.Context) (int64, error) {
-	return q.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows, and panics on error.
-func (q metaDatumQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := q.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows, and panics on error.
-func (q metaDatumQuery) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // DeleteAll deletes all matching rows.
 func (q metaDatumQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
@@ -3054,31 +2276,6 @@ func (q metaDatumQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor
 	}
 
 	return rowsAff, nil
-}
-
-// DeleteAllG deletes all rows in the slice.
-func (o MetaDatumSlice) DeleteAllG(ctx context.Context) (int64, error) {
-	return o.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
-func (o MetaDatumSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows in the slice, and panics on error.
-func (o MetaDatumSlice) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -3130,29 +2327,6 @@ func (o MetaDatumSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor
 	return rowsAff, nil
 }
 
-// ReloadG refetches the object from the database using the primary keys.
-func (o *MetaDatum) ReloadG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: no MetaDatum provided for reload")
-	}
-
-	return o.Reload(ctx, boil.GetContextDB())
-}
-
-// ReloadP refetches the object from the database with an executor. Panics on error.
-func (o *MetaDatum) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.Reload(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadGP refetches the object from the database and panics on error.
-func (o *MetaDatum) ReloadGP(ctx context.Context) {
-	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *MetaDatum) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -3163,34 +2337,6 @@ func (o *MetaDatum) Reload(ctx context.Context, exec boil.ContextExecutor) error
 
 	*o = *ret
 	return nil
-}
-
-// ReloadAllG refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-func (o *MetaDatumSlice) ReloadAllG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: empty MetaDatumSlice provided for reload all")
-	}
-
-	return o.ReloadAll(ctx, boil.GetContextDB())
-}
-
-// ReloadAllP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *MetaDatumSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.ReloadAll(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadAllGP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *MetaDatumSlice) ReloadAllGP(ctx context.Context) {
-	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -3220,31 +2366,6 @@ func (o *MetaDatumSlice) ReloadAll(ctx context.Context, exec boil.ContextExecuto
 	*o = slice
 
 	return nil
-}
-
-// MetaDatumExistsG checks if the MetaDatum row exists.
-func MetaDatumExistsG(ctx context.Context, iD null.Int64) (bool, error) {
-	return MetaDatumExists(ctx, boil.GetContextDB(), iD)
-}
-
-// MetaDatumExistsP checks if the MetaDatum row exists. Panics on error.
-func MetaDatumExistsP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64) bool {
-	e, err := MetaDatumExists(ctx, exec, iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// MetaDatumExistsGP checks if the MetaDatum row exists. Panics on error.
-func MetaDatumExistsGP(ctx context.Context, iD null.Int64) bool {
-	e, err := MetaDatumExists(ctx, boil.GetContextDB(), iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // MetaDatumExists checks if the MetaDatum row exists.

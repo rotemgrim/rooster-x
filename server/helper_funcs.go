@@ -8,6 +8,7 @@ import (
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"go-poc/db"
 	m "go-poc/models"
 	"io"
 	"log"
@@ -154,10 +155,11 @@ func GetImdbRatingsFromImdb(imdbId string) (ImdbRating, error) {
 
 func ImdbRatingPoll() {
 	// Get all movies without imdb ratings
+	ctx := context.Background()
 	metaData, err := m.MetaData(
 		qm.Where("imdbId IS NOT NULL AND rating IS NULL"),
 		qm.OrderBy("id DESC"),
-	).OneG(context.Background())
+	).One(ctx, db.DB)
 	if err != nil {
 		return
 	}
@@ -168,7 +170,7 @@ func ImdbRatingPoll() {
 		// update the movie with the rating
 		metaData.Rating = null.Float64From(-2)
 		metaData.Votes = null.Int64From(-2)
-		_, err = metaData.UpdateG(context.Background(), boil.Whitelist("rating", "votes"))
+		_, err = metaData.Update(ctx, db.DB, boil.Whitelist("rating", "votes"))
 		if err != nil {
 			log.Println("Error updating metaData with imdb rating:", err)
 		}
@@ -178,7 +180,7 @@ func ImdbRatingPoll() {
 	// Update the movie with the rating
 	metaData.Rating = null.Float64From(rating.Score)
 	metaData.Votes = null.Int64From(rating.Votes)
-	_, err = metaData.UpdateG(context.Background(), boil.Whitelist("rating", "votes"))
+	_, err = metaData.Update(ctx, db.DB, boil.Whitelist("rating", "votes"))
 	if err != nil {
 		log.Println("Error updating movie with imdb rating:", err)
 		return

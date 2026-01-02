@@ -557,31 +557,6 @@ func AddEpisodeHook(hookPoint boil.HookPoint, episodeHook EpisodeHook) {
 	}
 }
 
-// OneG returns a single episode record from the query using the global executor.
-func (q episodeQuery) OneG(ctx context.Context) (*Episode, error) {
-	return q.One(ctx, boil.GetContextDB())
-}
-
-// OneGP returns a single episode record from the query using the global executor, and panics on error.
-func (q episodeQuery) OneGP(ctx context.Context) *Episode {
-	o, err := q.One(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// OneP returns a single episode record from the query, and panics on error.
-func (q episodeQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *Episode {
-	o, err := q.One(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
 // One returns a single episode record from the query.
 func (q episodeQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Episode, error) {
 	o := &Episode{}
@@ -601,31 +576,6 @@ func (q episodeQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Epis
 	}
 
 	return o, nil
-}
-
-// AllG returns all Episode records from the query using the global executor.
-func (q episodeQuery) AllG(ctx context.Context) (EpisodeSlice, error) {
-	return q.All(ctx, boil.GetContextDB())
-}
-
-// AllGP returns all Episode records from the query using the global executor, and panics on error.
-func (q episodeQuery) AllGP(ctx context.Context) EpisodeSlice {
-	o, err := q.All(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// AllP returns all Episode records from the query, and panics on error.
-func (q episodeQuery) AllP(ctx context.Context, exec boil.ContextExecutor) EpisodeSlice {
-	o, err := q.All(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
 }
 
 // All returns all Episode records from the query.
@@ -648,31 +598,6 @@ func (q episodeQuery) All(ctx context.Context, exec boil.ContextExecutor) (Episo
 	return o, nil
 }
 
-// CountG returns the count of all Episode records in the query using the global executor
-func (q episodeQuery) CountG(ctx context.Context) (int64, error) {
-	return q.Count(ctx, boil.GetContextDB())
-}
-
-// CountGP returns the count of all Episode records in the query using the global executor, and panics on error.
-func (q episodeQuery) CountGP(ctx context.Context) int64 {
-	c, err := q.Count(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
-// CountP returns the count of all Episode records in the query, and panics on error.
-func (q episodeQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	c, err := q.Count(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
 // Count returns the count of all Episode records in the query.
 func (q episodeQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -686,31 +611,6 @@ func (q episodeQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int
 	}
 
 	return count, nil
-}
-
-// ExistsG checks if the row exists in the table using the global executor.
-func (q episodeQuery) ExistsG(ctx context.Context) (bool, error) {
-	return q.Exists(ctx, boil.GetContextDB())
-}
-
-// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
-func (q episodeQuery) ExistsGP(ctx context.Context) bool {
-	e, err := q.Exists(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// ExistsP checks if the row exists in the table, and panics on error.
-func (q episodeQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
-	e, err := q.Exists(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -1245,34 +1145,6 @@ func (episodeL) LoadEpisodeIdUserEpisodes(ctx context.Context, e boil.ContextExe
 	return nil
 }
 
-// SetMetaDataIdMetaDatumG of the episode to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdEpisodes.
-// Uses the global database handle.
-func (o *Episode) SetMetaDataIdMetaDatumG(ctx context.Context, insert bool, related *MetaDatum) error {
-	return o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related)
-}
-
-// SetMetaDataIdMetaDatumP of the episode to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdEpisodes.
-// Panics on error.
-func (o *Episode) SetMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *MetaDatum) {
-	if err := o.SetMetaDataIdMetaDatum(ctx, exec, insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdMetaDatumGP of the episode to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdEpisodes.
-// Uses the global database handle and panics on error.
-func (o *Episode) SetMetaDataIdMetaDatumGP(ctx context.Context, insert bool, related *MetaDatum) {
-	if err := o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetMetaDataIdMetaDatum of the episode to the related item.
 // Sets o.R.MetaDataIdMetaDatum to related.
 // Adds o to related.R.MetaDataIdEpisodes.
@@ -1320,34 +1192,6 @@ func (o *Episode) SetMetaDataIdMetaDatum(ctx context.Context, exec boil.ContextE
 	return nil
 }
 
-// RemoveMetaDataIdMetaDatumG relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle.
-func (o *Episode) RemoveMetaDataIdMetaDatumG(ctx context.Context, related *MetaDatum) error {
-	return o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related)
-}
-
-// RemoveMetaDataIdMetaDatumP relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Panics on error.
-func (o *Episode) RemoveMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, related *MetaDatum) {
-	if err := o.RemoveMetaDataIdMetaDatum(ctx, exec, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdMetaDatumGP relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle and panics on error.
-func (o *Episode) RemoveMetaDataIdMetaDatumGP(ctx context.Context, related *MetaDatum) {
-	if err := o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // RemoveMetaDataIdMetaDatum relationship.
 // Sets o.R.MetaDataIdMetaDatum to nil.
 // Removes o from all passed in related items' relationships struct.
@@ -1379,37 +1223,6 @@ func (o *Episode) RemoveMetaDataIdMetaDatum(ctx context.Context, exec boil.Conte
 		break
 	}
 	return nil
-}
-
-// AddEpisodeIdMediaFilesG adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdMediaFiles.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Uses the global database handle.
-func (o *Episode) AddEpisodeIdMediaFilesG(ctx context.Context, insert bool, related ...*MediaFile) error {
-	return o.AddEpisodeIdMediaFiles(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// AddEpisodeIdMediaFilesP adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdMediaFiles.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Panics on error.
-func (o *Episode) AddEpisodeIdMediaFilesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MediaFile) {
-	if err := o.AddEpisodeIdMediaFiles(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// AddEpisodeIdMediaFilesGP adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdMediaFiles.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Uses the global database handle and panics on error.
-func (o *Episode) AddEpisodeIdMediaFilesGP(ctx context.Context, insert bool, related ...*MediaFile) {
-	if err := o.AddEpisodeIdMediaFiles(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // AddEpisodeIdMediaFiles adds the given related objects to the existing relationships
@@ -1465,43 +1278,6 @@ func (o *Episode) AddEpisodeIdMediaFiles(ctx context.Context, exec boil.ContextE
 	return nil
 }
 
-// SetEpisodeIdMediaFilesG removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdMediaFiles accordingly.
-// Replaces o.R.EpisodeIdMediaFiles with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdMediaFiles accordingly.
-// Uses the global database handle.
-func (o *Episode) SetEpisodeIdMediaFilesG(ctx context.Context, insert bool, related ...*MediaFile) error {
-	return o.SetEpisodeIdMediaFiles(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// SetEpisodeIdMediaFilesP removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdMediaFiles accordingly.
-// Replaces o.R.EpisodeIdMediaFiles with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdMediaFiles accordingly.
-// Panics on error.
-func (o *Episode) SetEpisodeIdMediaFilesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MediaFile) {
-	if err := o.SetEpisodeIdMediaFiles(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetEpisodeIdMediaFilesGP removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdMediaFiles accordingly.
-// Replaces o.R.EpisodeIdMediaFiles with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdMediaFiles accordingly.
-// Uses the global database handle and panics on error.
-func (o *Episode) SetEpisodeIdMediaFilesGP(ctx context.Context, insert bool, related ...*MediaFile) {
-	if err := o.SetEpisodeIdMediaFiles(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetEpisodeIdMediaFiles removes all previously related items of the
 // episode replacing them completely with the passed
 // in related items, optionally inserting them as new records.
@@ -1534,34 +1310,6 @@ func (o *Episode) SetEpisodeIdMediaFiles(ctx context.Context, exec boil.ContextE
 	}
 
 	return o.AddEpisodeIdMediaFiles(ctx, exec, insert, related...)
-}
-
-// RemoveEpisodeIdMediaFilesG relationships from objects passed in.
-// Removes related items from R.EpisodeIdMediaFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Uses the global database handle.
-func (o *Episode) RemoveEpisodeIdMediaFilesG(ctx context.Context, related ...*MediaFile) error {
-	return o.RemoveEpisodeIdMediaFiles(ctx, boil.GetContextDB(), related...)
-}
-
-// RemoveEpisodeIdMediaFilesP relationships from objects passed in.
-// Removes related items from R.EpisodeIdMediaFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Panics on error.
-func (o *Episode) RemoveEpisodeIdMediaFilesP(ctx context.Context, exec boil.ContextExecutor, related ...*MediaFile) {
-	if err := o.RemoveEpisodeIdMediaFiles(ctx, exec, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveEpisodeIdMediaFilesGP relationships from objects passed in.
-// Removes related items from R.EpisodeIdMediaFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Uses the global database handle and panics on error.
-func (o *Episode) RemoveEpisodeIdMediaFilesGP(ctx context.Context, related ...*MediaFile) {
-	if err := o.RemoveEpisodeIdMediaFiles(ctx, boil.GetContextDB(), related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // RemoveEpisodeIdMediaFiles relationships from objects passed in.
@@ -1602,37 +1350,6 @@ func (o *Episode) RemoveEpisodeIdMediaFiles(ctx context.Context, exec boil.Conte
 	}
 
 	return nil
-}
-
-// AddEpisodeIdTorrentFilesG adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdTorrentFiles.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Uses the global database handle.
-func (o *Episode) AddEpisodeIdTorrentFilesG(ctx context.Context, insert bool, related ...*TorrentFile) error {
-	return o.AddEpisodeIdTorrentFiles(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// AddEpisodeIdTorrentFilesP adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdTorrentFiles.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Panics on error.
-func (o *Episode) AddEpisodeIdTorrentFilesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TorrentFile) {
-	if err := o.AddEpisodeIdTorrentFiles(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// AddEpisodeIdTorrentFilesGP adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdTorrentFiles.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Uses the global database handle and panics on error.
-func (o *Episode) AddEpisodeIdTorrentFilesGP(ctx context.Context, insert bool, related ...*TorrentFile) {
-	if err := o.AddEpisodeIdTorrentFiles(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // AddEpisodeIdTorrentFiles adds the given related objects to the existing relationships
@@ -1688,43 +1405,6 @@ func (o *Episode) AddEpisodeIdTorrentFiles(ctx context.Context, exec boil.Contex
 	return nil
 }
 
-// SetEpisodeIdTorrentFilesG removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdTorrentFiles accordingly.
-// Replaces o.R.EpisodeIdTorrentFiles with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdTorrentFiles accordingly.
-// Uses the global database handle.
-func (o *Episode) SetEpisodeIdTorrentFilesG(ctx context.Context, insert bool, related ...*TorrentFile) error {
-	return o.SetEpisodeIdTorrentFiles(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// SetEpisodeIdTorrentFilesP removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdTorrentFiles accordingly.
-// Replaces o.R.EpisodeIdTorrentFiles with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdTorrentFiles accordingly.
-// Panics on error.
-func (o *Episode) SetEpisodeIdTorrentFilesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TorrentFile) {
-	if err := o.SetEpisodeIdTorrentFiles(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetEpisodeIdTorrentFilesGP removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdTorrentFiles accordingly.
-// Replaces o.R.EpisodeIdTorrentFiles with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdTorrentFiles accordingly.
-// Uses the global database handle and panics on error.
-func (o *Episode) SetEpisodeIdTorrentFilesGP(ctx context.Context, insert bool, related ...*TorrentFile) {
-	if err := o.SetEpisodeIdTorrentFiles(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetEpisodeIdTorrentFiles removes all previously related items of the
 // episode replacing them completely with the passed
 // in related items, optionally inserting them as new records.
@@ -1757,34 +1437,6 @@ func (o *Episode) SetEpisodeIdTorrentFiles(ctx context.Context, exec boil.Contex
 	}
 
 	return o.AddEpisodeIdTorrentFiles(ctx, exec, insert, related...)
-}
-
-// RemoveEpisodeIdTorrentFilesG relationships from objects passed in.
-// Removes related items from R.EpisodeIdTorrentFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Uses the global database handle.
-func (o *Episode) RemoveEpisodeIdTorrentFilesG(ctx context.Context, related ...*TorrentFile) error {
-	return o.RemoveEpisodeIdTorrentFiles(ctx, boil.GetContextDB(), related...)
-}
-
-// RemoveEpisodeIdTorrentFilesP relationships from objects passed in.
-// Removes related items from R.EpisodeIdTorrentFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Panics on error.
-func (o *Episode) RemoveEpisodeIdTorrentFilesP(ctx context.Context, exec boil.ContextExecutor, related ...*TorrentFile) {
-	if err := o.RemoveEpisodeIdTorrentFiles(ctx, exec, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveEpisodeIdTorrentFilesGP relationships from objects passed in.
-// Removes related items from R.EpisodeIdTorrentFiles (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Uses the global database handle and panics on error.
-func (o *Episode) RemoveEpisodeIdTorrentFilesGP(ctx context.Context, related ...*TorrentFile) {
-	if err := o.RemoveEpisodeIdTorrentFiles(ctx, boil.GetContextDB(), related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // RemoveEpisodeIdTorrentFiles relationships from objects passed in.
@@ -1825,37 +1477,6 @@ func (o *Episode) RemoveEpisodeIdTorrentFiles(ctx context.Context, exec boil.Con
 	}
 
 	return nil
-}
-
-// AddEpisodeIdUserEpisodesG adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdUserEpisodes.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Uses the global database handle.
-func (o *Episode) AddEpisodeIdUserEpisodesG(ctx context.Context, insert bool, related ...*UserEpisode) error {
-	return o.AddEpisodeIdUserEpisodes(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// AddEpisodeIdUserEpisodesP adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdUserEpisodes.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Panics on error.
-func (o *Episode) AddEpisodeIdUserEpisodesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*UserEpisode) {
-	if err := o.AddEpisodeIdUserEpisodes(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// AddEpisodeIdUserEpisodesGP adds the given related objects to the existing relationships
-// of the episode, optionally inserting them as new records.
-// Appends related to o.R.EpisodeIdUserEpisodes.
-// Sets related.R.EpisodeIdEpisode appropriately.
-// Uses the global database handle and panics on error.
-func (o *Episode) AddEpisodeIdUserEpisodesGP(ctx context.Context, insert bool, related ...*UserEpisode) {
-	if err := o.AddEpisodeIdUserEpisodes(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // AddEpisodeIdUserEpisodes adds the given related objects to the existing relationships
@@ -1911,43 +1532,6 @@ func (o *Episode) AddEpisodeIdUserEpisodes(ctx context.Context, exec boil.Contex
 	return nil
 }
 
-// SetEpisodeIdUserEpisodesG removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdUserEpisodes accordingly.
-// Replaces o.R.EpisodeIdUserEpisodes with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdUserEpisodes accordingly.
-// Uses the global database handle.
-func (o *Episode) SetEpisodeIdUserEpisodesG(ctx context.Context, insert bool, related ...*UserEpisode) error {
-	return o.SetEpisodeIdUserEpisodes(ctx, boil.GetContextDB(), insert, related...)
-}
-
-// SetEpisodeIdUserEpisodesP removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdUserEpisodes accordingly.
-// Replaces o.R.EpisodeIdUserEpisodes with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdUserEpisodes accordingly.
-// Panics on error.
-func (o *Episode) SetEpisodeIdUserEpisodesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*UserEpisode) {
-	if err := o.SetEpisodeIdUserEpisodes(ctx, exec, insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetEpisodeIdUserEpisodesGP removes all previously related items of the
-// episode replacing them completely with the passed
-// in related items, optionally inserting them as new records.
-// Sets o.R.EpisodeIdEpisode's EpisodeIdUserEpisodes accordingly.
-// Replaces o.R.EpisodeIdUserEpisodes with related.
-// Sets related.R.EpisodeIdEpisode's EpisodeIdUserEpisodes accordingly.
-// Uses the global database handle and panics on error.
-func (o *Episode) SetEpisodeIdUserEpisodesGP(ctx context.Context, insert bool, related ...*UserEpisode) {
-	if err := o.SetEpisodeIdUserEpisodes(ctx, boil.GetContextDB(), insert, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetEpisodeIdUserEpisodes removes all previously related items of the
 // episode replacing them completely with the passed
 // in related items, optionally inserting them as new records.
@@ -1980,34 +1564,6 @@ func (o *Episode) SetEpisodeIdUserEpisodes(ctx context.Context, exec boil.Contex
 	}
 
 	return o.AddEpisodeIdUserEpisodes(ctx, exec, insert, related...)
-}
-
-// RemoveEpisodeIdUserEpisodesG relationships from objects passed in.
-// Removes related items from R.EpisodeIdUserEpisodes (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Uses the global database handle.
-func (o *Episode) RemoveEpisodeIdUserEpisodesG(ctx context.Context, related ...*UserEpisode) error {
-	return o.RemoveEpisodeIdUserEpisodes(ctx, boil.GetContextDB(), related...)
-}
-
-// RemoveEpisodeIdUserEpisodesP relationships from objects passed in.
-// Removes related items from R.EpisodeIdUserEpisodes (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Panics on error.
-func (o *Episode) RemoveEpisodeIdUserEpisodesP(ctx context.Context, exec boil.ContextExecutor, related ...*UserEpisode) {
-	if err := o.RemoveEpisodeIdUserEpisodes(ctx, exec, related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveEpisodeIdUserEpisodesGP relationships from objects passed in.
-// Removes related items from R.EpisodeIdUserEpisodes (uses pointer comparison, removal does not keep order)
-// Sets related.R.EpisodeIdEpisode.
-// Uses the global database handle and panics on error.
-func (o *Episode) RemoveEpisodeIdUserEpisodesGP(ctx context.Context, related ...*UserEpisode) {
-	if err := o.RemoveEpisodeIdUserEpisodes(ctx, boil.GetContextDB(), related...); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // RemoveEpisodeIdUserEpisodes relationships from objects passed in.
@@ -2061,31 +1617,6 @@ func Episodes(mods ...qm.QueryMod) episodeQuery {
 	return episodeQuery{q}
 }
 
-// FindEpisodeG retrieves a single record by ID.
-func FindEpisodeG(ctx context.Context, iD null.Int64, selectCols ...string) (*Episode, error) {
-	return FindEpisode(ctx, boil.GetContextDB(), iD, selectCols...)
-}
-
-// FindEpisodeP retrieves a single record by ID with an executor, and panics on error.
-func FindEpisodeP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) *Episode {
-	retobj, err := FindEpisode(ctx, exec, iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
-// FindEpisodeGP retrieves a single record by ID, and panics on error.
-func FindEpisodeGP(ctx context.Context, iD null.Int64, selectCols ...string) *Episode {
-	retobj, err := FindEpisode(ctx, boil.GetContextDB(), iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
 // FindEpisode retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
 func FindEpisode(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) (*Episode, error) {
@@ -2114,27 +1645,6 @@ func FindEpisode(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, 
 	}
 
 	return episodeObj, nil
-}
-
-// InsertG a single record. See Insert for whitelist behavior description.
-func (o *Episode) InsertG(ctx context.Context, columns boil.Columns) error {
-	return o.Insert(ctx, boil.GetContextDB(), columns)
-}
-
-// InsertP a single record using an executor, and panics on error. See Insert
-// for whitelist behavior description.
-func (o *Episode) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
-	if err := o.Insert(ctx, exec, columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// InsertGP a single record, and panics on error. See Insert for whitelist
-// behavior description.
-func (o *Episode) InsertGP(ctx context.Context, columns boil.Columns) {
-	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Insert a single record using an executor.
@@ -2217,34 +1727,6 @@ func (o *Episode) Insert(ctx context.Context, exec boil.ContextExecutor, columns
 	return o.doAfterInsertHooks(ctx, exec)
 }
 
-// UpdateG a single Episode record using the global executor.
-// See Update for more documentation.
-func (o *Episode) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
-	return o.Update(ctx, boil.GetContextDB(), columns)
-}
-
-// UpdateP uses an executor to update the Episode, and panics on error.
-// See Update for more documentation.
-func (o *Episode) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, exec, columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateGP a single Episode record using the global executor. Panics on error.
-// See Update for more documentation.
-func (o *Episode) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Update uses an executor to update the Episode.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
@@ -2309,31 +1791,6 @@ func (o *Episode) Update(ctx context.Context, exec boil.ContextExecutor, columns
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
-// UpdateAllP updates all rows with matching column names, and panics on error.
-func (q episodeQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (q episodeQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (q episodeQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // UpdateAll updates all rows with the specified column values.
 func (q episodeQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
@@ -2349,31 +1806,6 @@ func (q episodeQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, 
 	}
 
 	return rowsAff, nil
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (o EpisodeSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (o EpisodeSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllP updates all rows with the specified column values, and panics on error.
-func (o EpisodeSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -2422,26 +1854,6 @@ func (o EpisodeSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, 
 		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all episode")
 	}
 	return rowsAff, nil
-}
-
-// UpsertG attempts an insert, and does an update or ignore on conflict.
-func (o *Episode) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns)
-}
-
-// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
-func (o *Episode) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
-// UpsertP panics on error.
-func (o *Episode) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
@@ -2561,36 +1973,6 @@ func (o *Episode) Upsert(ctx context.Context, exec boil.ContextExecutor, updateO
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
-// DeleteG deletes a single Episode record.
-// DeleteG will match against the primary key column to find the record to delete.
-func (o *Episode) DeleteG(ctx context.Context) (int64, error) {
-	return o.Delete(ctx, boil.GetContextDB())
-}
-
-// DeleteP deletes a single Episode record with an executor.
-// DeleteP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *Episode) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.Delete(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteGP deletes a single Episode record.
-// DeleteGP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *Episode) DeleteGP(ctx context.Context) int64 {
-	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Delete deletes a single Episode record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *Episode) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -2627,30 +2009,6 @@ func (o *Episode) Delete(ctx context.Context, exec boil.ContextExecutor) (int64,
 	return rowsAff, nil
 }
 
-func (q episodeQuery) DeleteAllG(ctx context.Context) (int64, error) {
-	return q.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows, and panics on error.
-func (q episodeQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := q.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows, and panics on error.
-func (q episodeQuery) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // DeleteAll deletes all matching rows.
 func (q episodeQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
@@ -2670,31 +2028,6 @@ func (q episodeQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) 
 	}
 
 	return rowsAff, nil
-}
-
-// DeleteAllG deletes all rows in the slice.
-func (o EpisodeSlice) DeleteAllG(ctx context.Context) (int64, error) {
-	return o.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
-func (o EpisodeSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows in the slice, and panics on error.
-func (o EpisodeSlice) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -2746,29 +2079,6 @@ func (o EpisodeSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) 
 	return rowsAff, nil
 }
 
-// ReloadG refetches the object from the database using the primary keys.
-func (o *Episode) ReloadG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: no Episode provided for reload")
-	}
-
-	return o.Reload(ctx, boil.GetContextDB())
-}
-
-// ReloadP refetches the object from the database with an executor. Panics on error.
-func (o *Episode) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.Reload(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadGP refetches the object from the database and panics on error.
-func (o *Episode) ReloadGP(ctx context.Context) {
-	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *Episode) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -2779,34 +2089,6 @@ func (o *Episode) Reload(ctx context.Context, exec boil.ContextExecutor) error {
 
 	*o = *ret
 	return nil
-}
-
-// ReloadAllG refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-func (o *EpisodeSlice) ReloadAllG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: empty EpisodeSlice provided for reload all")
-	}
-
-	return o.ReloadAll(ctx, boil.GetContextDB())
-}
-
-// ReloadAllP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *EpisodeSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.ReloadAll(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadAllGP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *EpisodeSlice) ReloadAllGP(ctx context.Context) {
-	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -2836,31 +2118,6 @@ func (o *EpisodeSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor)
 	*o = slice
 
 	return nil
-}
-
-// EpisodeExistsG checks if the Episode row exists.
-func EpisodeExistsG(ctx context.Context, iD null.Int64) (bool, error) {
-	return EpisodeExists(ctx, boil.GetContextDB(), iD)
-}
-
-// EpisodeExistsP checks if the Episode row exists. Panics on error.
-func EpisodeExistsP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64) bool {
-	e, err := EpisodeExists(ctx, exec, iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// EpisodeExistsGP checks if the Episode row exists. Panics on error.
-func EpisodeExistsGP(ctx context.Context, iD null.Int64) bool {
-	e, err := EpisodeExists(ctx, boil.GetContextDB(), iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // EpisodeExists checks if the Episode row exists.

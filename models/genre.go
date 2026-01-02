@@ -321,31 +321,6 @@ func AddGenreHook(hookPoint boil.HookPoint, genreHook GenreHook) {
 	}
 }
 
-// OneG returns a single genre record from the query using the global executor.
-func (q genreQuery) OneG(ctx context.Context) (*Genre, error) {
-	return q.One(ctx, boil.GetContextDB())
-}
-
-// OneGP returns a single genre record from the query using the global executor, and panics on error.
-func (q genreQuery) OneGP(ctx context.Context) *Genre {
-	o, err := q.One(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// OneP returns a single genre record from the query, and panics on error.
-func (q genreQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *Genre {
-	o, err := q.One(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
 // One returns a single genre record from the query.
 func (q genreQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Genre, error) {
 	o := &Genre{}
@@ -365,31 +340,6 @@ func (q genreQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Genre,
 	}
 
 	return o, nil
-}
-
-// AllG returns all Genre records from the query using the global executor.
-func (q genreQuery) AllG(ctx context.Context) (GenreSlice, error) {
-	return q.All(ctx, boil.GetContextDB())
-}
-
-// AllGP returns all Genre records from the query using the global executor, and panics on error.
-func (q genreQuery) AllGP(ctx context.Context) GenreSlice {
-	o, err := q.All(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// AllP returns all Genre records from the query, and panics on error.
-func (q genreQuery) AllP(ctx context.Context, exec boil.ContextExecutor) GenreSlice {
-	o, err := q.All(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
 }
 
 // All returns all Genre records from the query.
@@ -412,31 +362,6 @@ func (q genreQuery) All(ctx context.Context, exec boil.ContextExecutor) (GenreSl
 	return o, nil
 }
 
-// CountG returns the count of all Genre records in the query using the global executor
-func (q genreQuery) CountG(ctx context.Context) (int64, error) {
-	return q.Count(ctx, boil.GetContextDB())
-}
-
-// CountGP returns the count of all Genre records in the query using the global executor, and panics on error.
-func (q genreQuery) CountGP(ctx context.Context) int64 {
-	c, err := q.Count(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
-// CountP returns the count of all Genre records in the query, and panics on error.
-func (q genreQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	c, err := q.Count(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
 // Count returns the count of all Genre records in the query.
 func (q genreQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -450,31 +375,6 @@ func (q genreQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64
 	}
 
 	return count, nil
-}
-
-// ExistsG checks if the row exists in the table using the global executor.
-func (q genreQuery) ExistsG(ctx context.Context) (bool, error) {
-	return q.Exists(ctx, boil.GetContextDB())
-}
-
-// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
-func (q genreQuery) ExistsGP(ctx context.Context) bool {
-	e, err := q.Exists(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// ExistsP checks if the row exists in the table, and panics on error.
-func (q genreQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
-	e, err := q.Exists(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -502,31 +402,6 @@ func Genres(mods ...qm.QueryMod) genreQuery {
 	}
 
 	return genreQuery{q}
-}
-
-// FindGenreG retrieves a single record by ID.
-func FindGenreG(ctx context.Context, iD null.Int64, selectCols ...string) (*Genre, error) {
-	return FindGenre(ctx, boil.GetContextDB(), iD, selectCols...)
-}
-
-// FindGenreP retrieves a single record by ID with an executor, and panics on error.
-func FindGenreP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) *Genre {
-	retobj, err := FindGenre(ctx, exec, iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
-// FindGenreGP retrieves a single record by ID, and panics on error.
-func FindGenreGP(ctx context.Context, iD null.Int64, selectCols ...string) *Genre {
-	retobj, err := FindGenre(ctx, boil.GetContextDB(), iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
 }
 
 // FindGenre retrieves a single record by ID with an executor.
@@ -557,27 +432,6 @@ func FindGenre(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, se
 	}
 
 	return genreObj, nil
-}
-
-// InsertG a single record. See Insert for whitelist behavior description.
-func (o *Genre) InsertG(ctx context.Context, columns boil.Columns) error {
-	return o.Insert(ctx, boil.GetContextDB(), columns)
-}
-
-// InsertP a single record using an executor, and panics on error. See Insert
-// for whitelist behavior description.
-func (o *Genre) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
-	if err := o.Insert(ctx, exec, columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// InsertGP a single record, and panics on error. See Insert for whitelist
-// behavior description.
-func (o *Genre) InsertGP(ctx context.Context, columns boil.Columns) {
-	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Insert a single record using an executor.
@@ -660,34 +514,6 @@ func (o *Genre) Insert(ctx context.Context, exec boil.ContextExecutor, columns b
 	return o.doAfterInsertHooks(ctx, exec)
 }
 
-// UpdateG a single Genre record using the global executor.
-// See Update for more documentation.
-func (o *Genre) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
-	return o.Update(ctx, boil.GetContextDB(), columns)
-}
-
-// UpdateP uses an executor to update the Genre, and panics on error.
-// See Update for more documentation.
-func (o *Genre) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, exec, columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateGP a single Genre record using the global executor. Panics on error.
-// See Update for more documentation.
-func (o *Genre) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Update uses an executor to update the Genre.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
@@ -752,31 +578,6 @@ func (o *Genre) Update(ctx context.Context, exec boil.ContextExecutor, columns b
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
-// UpdateAllP updates all rows with matching column names, and panics on error.
-func (q genreQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (q genreQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (q genreQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // UpdateAll updates all rows with the specified column values.
 func (q genreQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
@@ -792,31 +593,6 @@ func (q genreQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 	}
 
 	return rowsAff, nil
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (o GenreSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (o GenreSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllP updates all rows with the specified column values, and panics on error.
-func (o GenreSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -865,26 +641,6 @@ func (o GenreSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all genre")
 	}
 	return rowsAff, nil
-}
-
-// UpsertG attempts an insert, and does an update or ignore on conflict.
-func (o *Genre) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns)
-}
-
-// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
-func (o *Genre) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
-// UpsertP panics on error.
-func (o *Genre) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
@@ -1004,36 +760,6 @@ func (o *Genre) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnC
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
-// DeleteG deletes a single Genre record.
-// DeleteG will match against the primary key column to find the record to delete.
-func (o *Genre) DeleteG(ctx context.Context) (int64, error) {
-	return o.Delete(ctx, boil.GetContextDB())
-}
-
-// DeleteP deletes a single Genre record with an executor.
-// DeleteP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *Genre) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.Delete(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteGP deletes a single Genre record.
-// DeleteGP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *Genre) DeleteGP(ctx context.Context) int64 {
-	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Delete deletes a single Genre record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *Genre) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -1070,30 +796,6 @@ func (o *Genre) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, e
 	return rowsAff, nil
 }
 
-func (q genreQuery) DeleteAllG(ctx context.Context) (int64, error) {
-	return q.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows, and panics on error.
-func (q genreQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := q.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows, and panics on error.
-func (q genreQuery) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // DeleteAll deletes all matching rows.
 func (q genreQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
@@ -1113,31 +815,6 @@ func (q genreQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (i
 	}
 
 	return rowsAff, nil
-}
-
-// DeleteAllG deletes all rows in the slice.
-func (o GenreSlice) DeleteAllG(ctx context.Context) (int64, error) {
-	return o.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
-func (o GenreSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows in the slice, and panics on error.
-func (o GenreSlice) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -1189,29 +866,6 @@ func (o GenreSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (i
 	return rowsAff, nil
 }
 
-// ReloadG refetches the object from the database using the primary keys.
-func (o *Genre) ReloadG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: no Genre provided for reload")
-	}
-
-	return o.Reload(ctx, boil.GetContextDB())
-}
-
-// ReloadP refetches the object from the database with an executor. Panics on error.
-func (o *Genre) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.Reload(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadGP refetches the object from the database and panics on error.
-func (o *Genre) ReloadGP(ctx context.Context) {
-	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *Genre) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -1222,34 +876,6 @@ func (o *Genre) Reload(ctx context.Context, exec boil.ContextExecutor) error {
 
 	*o = *ret
 	return nil
-}
-
-// ReloadAllG refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-func (o *GenreSlice) ReloadAllG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: empty GenreSlice provided for reload all")
-	}
-
-	return o.ReloadAll(ctx, boil.GetContextDB())
-}
-
-// ReloadAllP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *GenreSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.ReloadAll(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadAllGP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *GenreSlice) ReloadAllGP(ctx context.Context) {
-	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -1279,31 +905,6 @@ func (o *GenreSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) e
 	*o = slice
 
 	return nil
-}
-
-// GenreExistsG checks if the Genre row exists.
-func GenreExistsG(ctx context.Context, iD null.Int64) (bool, error) {
-	return GenreExists(ctx, boil.GetContextDB(), iD)
-}
-
-// GenreExistsP checks if the Genre row exists. Panics on error.
-func GenreExistsP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64) bool {
-	e, err := GenreExists(ctx, exec, iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// GenreExistsGP checks if the Genre row exists. Panics on error.
-func GenreExistsGP(ctx context.Context, iD null.Int64) bool {
-	e, err := GenreExists(ctx, boil.GetContextDB(), iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // GenreExists checks if the Genre row exists.

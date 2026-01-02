@@ -183,8 +183,9 @@ func (w *Walker) GetEntriesFromPaths(paths []string) []m.MediaFile {
 }
 
 func (w *Walker) removeAllDeletedMediaFiles() error {
+	ctx := context.Background()
 	// get all media files
-	mediaFiles, err := m.MediaFiles().AllG(context.Background())
+	mediaFiles, err := m.MediaFiles().All(ctx, db.DB)
 	if err != nil {
 		return fmt.Errorf("could not get media files: %w", err)
 	}
@@ -193,10 +194,11 @@ func (w *Walker) removeAllDeletedMediaFiles() error {
 }
 
 func (w *Walker) removeDeletedMediaFilesByMetaDataId(id float64) {
+	ctx := context.Background()
 	// get all media files by meta data id
 	mediaFiles, err := m.MediaFiles(
 		qm.Where("metaDataId = ?", id),
-	).AllG(context.Background())
+	).All(ctx, db.DB)
 	if err != nil {
 		log.Println("could not get media files by meta data id", err)
 		return
@@ -211,7 +213,8 @@ func (w *Walker) removeDeletedMediaFiles(mediaFiles []*m.MediaFile) {
 
 		// check if file not exists
 		if _, err := os.Stat(mediaFile.Path.String); os.IsNotExist(err) {
-			_, err = mediaFile.DeleteG(context.Background())
+			ctx := context.Background()
+			_, err = mediaFile.Delete(ctx, db.DB)
 			if err == nil {
 				count++
 			}
@@ -233,8 +236,9 @@ func (w *Walker) Sweep(paths []string) {
 	// insert into db (not duplicates)
 	w.insertMediaFilesToDB(entries)
 
+	ctx := context.Background()
 	// get all missing metadata for files and query TMDB
-	filesWithoutMetaData, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).AllG(context.Background())
+	filesWithoutMetaData, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).All(ctx, db.DB)
 	if err != nil {
 		w.releaseLock("No files without metadata found, skipping net search")
 		return
@@ -322,8 +326,9 @@ func (w *Walker) insertMediaFilesToDB(entries []m.MediaFile) {
 
 	log.Println("start adding files to db")
 
+	ctx := context.Background()
 	// get all files from files
-	files, err := m.MediaFiles(qm.Select("id", "hash", "path")).AllG(context.Background())
+	files, err := m.MediaFiles(qm.Select("id", "hash", "path")).All(ctx, db.DB)
 	if err != nil {
 		files = []*m.MediaFile{}
 	}
@@ -344,7 +349,7 @@ func (w *Walker) insertMediaFilesToDB(entries []m.MediaFile) {
 		}
 
 		ctx := context.Background()
-		err := entry.InsertG(ctx, boil.Infer())
+		err := entry.Insert(ctx, db.DB, boil.Infer())
 		if err != nil {
 			skippedFiles++
 		} else {
@@ -514,7 +519,8 @@ func getMetaData(mf *m.MediaFile, tor *ptn.TorrentInfo) {
 	// get the meta data
 	//md := m.MetaData(qm.Where(`type=?`, t), qm.Where(`title=?`, tor.Title)).OneGP(context.Background())
 
-	md, err := m.MetaData().OneG(context.Background())
+	ctx := context.Background()
+	md, err := m.MetaData().One(ctx, db.DB)
 	if err != nil {
 		// create a new metadata
 		md = &m.MetaDatum{
@@ -523,14 +529,14 @@ func getMetaData(mf *m.MediaFile, tor *ptn.TorrentInfo) {
 		}
 		// get the meta data from the internet
 		//md = getMetaDataFromInternetByMediaFile(md)
-		md.InsertGP(context.Background(), boil.Infer())
+		_ = md.Insert(ctx, db.DB, boil.Infer())
 	} else {
 		mf.MetaDataId = md.ID
 		if t == Series {
 			episode, err := m.Episodes(
 				qm.Where(`season=?`, tor.Season),
 				qm.Where(`episode=?`, tor.Episode),
-			).OneG(db.CTX)
+			).One(context.Background(), db.DB)
 			if err != nil && episode != nil {
 				mf.EpisodeId = episode.ID
 			}

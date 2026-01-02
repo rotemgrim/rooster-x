@@ -7,6 +7,7 @@ import (
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"go-poc/db"
 	EventBus "go-poc/event-bus"
 	m "go-poc/models"
 	"go-poc/server"
@@ -36,8 +37,9 @@ func (tf *TorrentFetcher) FullSweep() {
 }
 
 func (tf *TorrentFetcher) GetMetaDataFromInternet() {
+	ctx := context.Background()
 	// get all missing metadata for files and query TMDB
-	torrentsWithoutMetaData, err := m.TorrentFiles(qm.Where(`metaDataId IS NULL`)).AllG(context.Background())
+	torrentsWithoutMetaData, err := m.TorrentFiles(qm.Where(`metaDataId IS NULL`)).All(ctx, db.DB)
 	if err != nil {
 		log.Println("no torrents without metadata found, skipping")
 		return
@@ -108,7 +110,8 @@ func fetchTorrentsFromSearch() {
 			UploadedAt: null.TimeFrom(uploadedAt),
 			SeenAt:     null.Int64From(time.Now().Unix()),
 		}
-		err = dbTor.InsertG(context.Background(), boil.Infer())
+		ctx := context.Background()
+		err = dbTor.Insert(ctx, db.DB, boil.Infer())
 		if err != nil {
 			log.Printf("skipping (%s): %s", tor.Title, err)
 			continue

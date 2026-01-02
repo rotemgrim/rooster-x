@@ -1,2 +1,7 @@
 [sqlite3]
 dbname = "./db.sqlite"
+output = "models"
+pkgname = "models"
+wipe = false
+add-global-variants = true
+add-panic-variants = true

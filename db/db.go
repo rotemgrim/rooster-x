@@ -34,7 +34,10 @@ func Init() {
 	CTX, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	users := models.Users().AllGP(CTX)
+	users, err := models.Users().All(CTX, DB)
+	if err != nil {
+		log.Printf("Warning: could not fetch users: %v", err)
+	}
 	for _, t := range users {
 		log.Println(t)
 	}

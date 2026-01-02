@@ -421,31 +421,6 @@ func AddAliasHook(hookPoint boil.HookPoint, aliasHook AliasHook) {
 	}
 }
 
-// OneG returns a single alias record from the query using the global executor.
-func (q aliasQuery) OneG(ctx context.Context) (*Alias, error) {
-	return q.One(ctx, boil.GetContextDB())
-}
-
-// OneGP returns a single alias record from the query using the global executor, and panics on error.
-func (q aliasQuery) OneGP(ctx context.Context) *Alias {
-	o, err := q.One(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// OneP returns a single alias record from the query, and panics on error.
-func (q aliasQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *Alias {
-	o, err := q.One(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
 // One returns a single alias record from the query.
 func (q aliasQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Alias, error) {
 	o := &Alias{}
@@ -465,31 +440,6 @@ func (q aliasQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Alias,
 	}
 
 	return o, nil
-}
-
-// AllG returns all Alias records from the query using the global executor.
-func (q aliasQuery) AllG(ctx context.Context) (AliasSlice, error) {
-	return q.All(ctx, boil.GetContextDB())
-}
-
-// AllGP returns all Alias records from the query using the global executor, and panics on error.
-func (q aliasQuery) AllGP(ctx context.Context) AliasSlice {
-	o, err := q.All(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// AllP returns all Alias records from the query, and panics on error.
-func (q aliasQuery) AllP(ctx context.Context, exec boil.ContextExecutor) AliasSlice {
-	o, err := q.All(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
 }
 
 // All returns all Alias records from the query.
@@ -512,31 +462,6 @@ func (q aliasQuery) All(ctx context.Context, exec boil.ContextExecutor) (AliasSl
 	return o, nil
 }
 
-// CountG returns the count of all Alias records in the query using the global executor
-func (q aliasQuery) CountG(ctx context.Context) (int64, error) {
-	return q.Count(ctx, boil.GetContextDB())
-}
-
-// CountGP returns the count of all Alias records in the query using the global executor, and panics on error.
-func (q aliasQuery) CountGP(ctx context.Context) int64 {
-	c, err := q.Count(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
-// CountP returns the count of all Alias records in the query, and panics on error.
-func (q aliasQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	c, err := q.Count(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
 // Count returns the count of all Alias records in the query.
 func (q aliasQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -550,31 +475,6 @@ func (q aliasQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64
 	}
 
 	return count, nil
-}
-
-// ExistsG checks if the row exists in the table using the global executor.
-func (q aliasQuery) ExistsG(ctx context.Context) (bool, error) {
-	return q.Exists(ctx, boil.GetContextDB())
-}
-
-// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
-func (q aliasQuery) ExistsGP(ctx context.Context) bool {
-	e, err := q.Exists(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// ExistsP checks if the row exists in the table, and panics on error.
-func (q aliasQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
-	e, err := q.Exists(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -728,34 +628,6 @@ func (aliasL) LoadMetaDataIdMetaDatum(ctx context.Context, e boil.ContextExecuto
 	return nil
 }
 
-// SetMetaDataIdMetaDatumG of the alias to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdAliases.
-// Uses the global database handle.
-func (o *Alias) SetMetaDataIdMetaDatumG(ctx context.Context, insert bool, related *MetaDatum) error {
-	return o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related)
-}
-
-// SetMetaDataIdMetaDatumP of the alias to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdAliases.
-// Panics on error.
-func (o *Alias) SetMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *MetaDatum) {
-	if err := o.SetMetaDataIdMetaDatum(ctx, exec, insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdMetaDatumGP of the alias to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdAliases.
-// Uses the global database handle and panics on error.
-func (o *Alias) SetMetaDataIdMetaDatumGP(ctx context.Context, insert bool, related *MetaDatum) {
-	if err := o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetMetaDataIdMetaDatum of the alias to the related item.
 // Sets o.R.MetaDataIdMetaDatum to related.
 // Adds o to related.R.MetaDataIdAliases.
@@ -803,34 +675,6 @@ func (o *Alias) SetMetaDataIdMetaDatum(ctx context.Context, exec boil.ContextExe
 	return nil
 }
 
-// RemoveMetaDataIdMetaDatumG relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle.
-func (o *Alias) RemoveMetaDataIdMetaDatumG(ctx context.Context, related *MetaDatum) error {
-	return o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related)
-}
-
-// RemoveMetaDataIdMetaDatumP relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Panics on error.
-func (o *Alias) RemoveMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, related *MetaDatum) {
-	if err := o.RemoveMetaDataIdMetaDatum(ctx, exec, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdMetaDatumGP relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle and panics on error.
-func (o *Alias) RemoveMetaDataIdMetaDatumGP(ctx context.Context, related *MetaDatum) {
-	if err := o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // RemoveMetaDataIdMetaDatum relationship.
 // Sets o.R.MetaDataIdMetaDatum to nil.
 // Removes o from all passed in related items' relationships struct.
@@ -875,31 +719,6 @@ func Aliases(mods ...qm.QueryMod) aliasQuery {
 	return aliasQuery{q}
 }
 
-// FindAliasG retrieves a single record by ID.
-func FindAliasG(ctx context.Context, iD null.Int64, selectCols ...string) (*Alias, error) {
-	return FindAlias(ctx, boil.GetContextDB(), iD, selectCols...)
-}
-
-// FindAliasP retrieves a single record by ID with an executor, and panics on error.
-func FindAliasP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) *Alias {
-	retobj, err := FindAlias(ctx, exec, iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
-// FindAliasGP retrieves a single record by ID, and panics on error.
-func FindAliasGP(ctx context.Context, iD null.Int64, selectCols ...string) *Alias {
-	retobj, err := FindAlias(ctx, boil.GetContextDB(), iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
 // FindAlias retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
 func FindAlias(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) (*Alias, error) {
@@ -928,27 +747,6 @@ func FindAlias(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, se
 	}
 
 	return aliasObj, nil
-}
-
-// InsertG a single record. See Insert for whitelist behavior description.
-func (o *Alias) InsertG(ctx context.Context, columns boil.Columns) error {
-	return o.Insert(ctx, boil.GetContextDB(), columns)
-}
-
-// InsertP a single record using an executor, and panics on error. See Insert
-// for whitelist behavior description.
-func (o *Alias) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
-	if err := o.Insert(ctx, exec, columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// InsertGP a single record, and panics on error. See Insert for whitelist
-// behavior description.
-func (o *Alias) InsertGP(ctx context.Context, columns boil.Columns) {
-	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Insert a single record using an executor.
@@ -1031,34 +829,6 @@ func (o *Alias) Insert(ctx context.Context, exec boil.ContextExecutor, columns b
 	return o.doAfterInsertHooks(ctx, exec)
 }
 
-// UpdateG a single Alias record using the global executor.
-// See Update for more documentation.
-func (o *Alias) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
-	return o.Update(ctx, boil.GetContextDB(), columns)
-}
-
-// UpdateP uses an executor to update the Alias, and panics on error.
-// See Update for more documentation.
-func (o *Alias) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, exec, columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateGP a single Alias record using the global executor. Panics on error.
-// See Update for more documentation.
-func (o *Alias) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Update uses an executor to update the Alias.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
@@ -1123,31 +893,6 @@ func (o *Alias) Update(ctx context.Context, exec boil.ContextExecutor, columns b
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
-// UpdateAllP updates all rows with matching column names, and panics on error.
-func (q aliasQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (q aliasQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (q aliasQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // UpdateAll updates all rows with the specified column values.
 func (q aliasQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
@@ -1163,31 +908,6 @@ func (q aliasQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 	}
 
 	return rowsAff, nil
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (o AliasSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (o AliasSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllP updates all rows with the specified column values, and panics on error.
-func (o AliasSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -1236,26 +956,6 @@ func (o AliasSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all alias")
 	}
 	return rowsAff, nil
-}
-
-// UpsertG attempts an insert, and does an update or ignore on conflict.
-func (o *Alias) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns)
-}
-
-// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
-func (o *Alias) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
-// UpsertP panics on error.
-func (o *Alias) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
@@ -1375,36 +1075,6 @@ func (o *Alias) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnC
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
-// DeleteG deletes a single Alias record.
-// DeleteG will match against the primary key column to find the record to delete.
-func (o *Alias) DeleteG(ctx context.Context) (int64, error) {
-	return o.Delete(ctx, boil.GetContextDB())
-}
-
-// DeleteP deletes a single Alias record with an executor.
-// DeleteP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *Alias) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.Delete(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteGP deletes a single Alias record.
-// DeleteGP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *Alias) DeleteGP(ctx context.Context) int64 {
-	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Delete deletes a single Alias record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *Alias) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -1441,30 +1111,6 @@ func (o *Alias) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, e
 	return rowsAff, nil
 }
 
-func (q aliasQuery) DeleteAllG(ctx context.Context) (int64, error) {
-	return q.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows, and panics on error.
-func (q aliasQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := q.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows, and panics on error.
-func (q aliasQuery) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // DeleteAll deletes all matching rows.
 func (q aliasQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
@@ -1484,31 +1130,6 @@ func (q aliasQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (i
 	}
 
 	return rowsAff, nil
-}
-
-// DeleteAllG deletes all rows in the slice.
-func (o AliasSlice) DeleteAllG(ctx context.Context) (int64, error) {
-	return o.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
-func (o AliasSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows in the slice, and panics on error.
-func (o AliasSlice) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -1560,29 +1181,6 @@ func (o AliasSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (i
 	return rowsAff, nil
 }
 
-// ReloadG refetches the object from the database using the primary keys.
-func (o *Alias) ReloadG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: no Alias provided for reload")
-	}
-
-	return o.Reload(ctx, boil.GetContextDB())
-}
-
-// ReloadP refetches the object from the database with an executor. Panics on error.
-func (o *Alias) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.Reload(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadGP refetches the object from the database and panics on error.
-func (o *Alias) ReloadGP(ctx context.Context) {
-	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *Alias) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -1593,34 +1191,6 @@ func (o *Alias) Reload(ctx context.Context, exec boil.ContextExecutor) error {
 
 	*o = *ret
 	return nil
-}
-
-// ReloadAllG refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-func (o *AliasSlice) ReloadAllG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: empty AliasSlice provided for reload all")
-	}
-
-	return o.ReloadAll(ctx, boil.GetContextDB())
-}
-
-// ReloadAllP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *AliasSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.ReloadAll(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadAllGP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *AliasSlice) ReloadAllGP(ctx context.Context) {
-	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -1650,31 +1220,6 @@ func (o *AliasSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) e
 	*o = slice
 
 	return nil
-}
-
-// AliasExistsG checks if the Alias row exists.
-func AliasExistsG(ctx context.Context, iD null.Int64) (bool, error) {
-	return AliasExists(ctx, boil.GetContextDB(), iD)
-}
-
-// AliasExistsP checks if the Alias row exists. Panics on error.
-func AliasExistsP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64) bool {
-	e, err := AliasExists(ctx, exec, iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// AliasExistsGP checks if the Alias row exists. Panics on error.
-func AliasExistsGP(ctx context.Context, iD null.Int64) bool {
-	e, err := AliasExists(ctx, boil.GetContextDB(), iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // AliasExists checks if the Alias row exists.

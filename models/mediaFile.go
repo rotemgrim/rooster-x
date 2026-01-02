@@ -506,31 +506,6 @@ func AddMediaFileHook(hookPoint boil.HookPoint, mediaFileHook MediaFileHook) {
 	}
 }
 
-// OneG returns a single mediaFile record from the query using the global executor.
-func (q mediaFileQuery) OneG(ctx context.Context) (*MediaFile, error) {
-	return q.One(ctx, boil.GetContextDB())
-}
-
-// OneGP returns a single mediaFile record from the query using the global executor, and panics on error.
-func (q mediaFileQuery) OneGP(ctx context.Context) *MediaFile {
-	o, err := q.One(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// OneP returns a single mediaFile record from the query, and panics on error.
-func (q mediaFileQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *MediaFile {
-	o, err := q.One(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
 // One returns a single mediaFile record from the query.
 func (q mediaFileQuery) One(ctx context.Context, exec boil.ContextExecutor) (*MediaFile, error) {
 	o := &MediaFile{}
@@ -550,31 +525,6 @@ func (q mediaFileQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Me
 	}
 
 	return o, nil
-}
-
-// AllG returns all MediaFile records from the query using the global executor.
-func (q mediaFileQuery) AllG(ctx context.Context) (MediaFileSlice, error) {
-	return q.All(ctx, boil.GetContextDB())
-}
-
-// AllGP returns all MediaFile records from the query using the global executor, and panics on error.
-func (q mediaFileQuery) AllGP(ctx context.Context) MediaFileSlice {
-	o, err := q.All(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// AllP returns all MediaFile records from the query, and panics on error.
-func (q mediaFileQuery) AllP(ctx context.Context, exec boil.ContextExecutor) MediaFileSlice {
-	o, err := q.All(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
 }
 
 // All returns all MediaFile records from the query.
@@ -597,31 +547,6 @@ func (q mediaFileQuery) All(ctx context.Context, exec boil.ContextExecutor) (Med
 	return o, nil
 }
 
-// CountG returns the count of all MediaFile records in the query using the global executor
-func (q mediaFileQuery) CountG(ctx context.Context) (int64, error) {
-	return q.Count(ctx, boil.GetContextDB())
-}
-
-// CountGP returns the count of all MediaFile records in the query using the global executor, and panics on error.
-func (q mediaFileQuery) CountGP(ctx context.Context) int64 {
-	c, err := q.Count(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
-// CountP returns the count of all MediaFile records in the query, and panics on error.
-func (q mediaFileQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	c, err := q.Count(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
 // Count returns the count of all MediaFile records in the query.
 func (q mediaFileQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -635,31 +560,6 @@ func (q mediaFileQuery) Count(ctx context.Context, exec boil.ContextExecutor) (i
 	}
 
 	return count, nil
-}
-
-// ExistsG checks if the row exists in the table using the global executor.
-func (q mediaFileQuery) ExistsG(ctx context.Context) (bool, error) {
-	return q.Exists(ctx, boil.GetContextDB())
-}
-
-// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
-func (q mediaFileQuery) ExistsGP(ctx context.Context) bool {
-	e, err := q.Exists(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// ExistsP checks if the row exists in the table, and panics on error.
-func (q mediaFileQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
-	e, err := q.Exists(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -948,34 +848,6 @@ func (mediaFileL) LoadMetaDataIdMetaDatum(ctx context.Context, e boil.ContextExe
 	return nil
 }
 
-// SetEpisodeIdEpisodeG of the mediaFile to the related item.
-// Sets o.R.EpisodeIdEpisode to related.
-// Adds o to related.R.EpisodeIdMediaFiles.
-// Uses the global database handle.
-func (o *MediaFile) SetEpisodeIdEpisodeG(ctx context.Context, insert bool, related *Episode) error {
-	return o.SetEpisodeIdEpisode(ctx, boil.GetContextDB(), insert, related)
-}
-
-// SetEpisodeIdEpisodeP of the mediaFile to the related item.
-// Sets o.R.EpisodeIdEpisode to related.
-// Adds o to related.R.EpisodeIdMediaFiles.
-// Panics on error.
-func (o *MediaFile) SetEpisodeIdEpisodeP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Episode) {
-	if err := o.SetEpisodeIdEpisode(ctx, exec, insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetEpisodeIdEpisodeGP of the mediaFile to the related item.
-// Sets o.R.EpisodeIdEpisode to related.
-// Adds o to related.R.EpisodeIdMediaFiles.
-// Uses the global database handle and panics on error.
-func (o *MediaFile) SetEpisodeIdEpisodeGP(ctx context.Context, insert bool, related *Episode) {
-	if err := o.SetEpisodeIdEpisode(ctx, boil.GetContextDB(), insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetEpisodeIdEpisode of the mediaFile to the related item.
 // Sets o.R.EpisodeIdEpisode to related.
 // Adds o to related.R.EpisodeIdMediaFiles.
@@ -1023,34 +895,6 @@ func (o *MediaFile) SetEpisodeIdEpisode(ctx context.Context, exec boil.ContextEx
 	return nil
 }
 
-// RemoveEpisodeIdEpisodeG relationship.
-// Sets o.R.EpisodeIdEpisode to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle.
-func (o *MediaFile) RemoveEpisodeIdEpisodeG(ctx context.Context, related *Episode) error {
-	return o.RemoveEpisodeIdEpisode(ctx, boil.GetContextDB(), related)
-}
-
-// RemoveEpisodeIdEpisodeP relationship.
-// Sets o.R.EpisodeIdEpisode to nil.
-// Removes o from all passed in related items' relationships struct.
-// Panics on error.
-func (o *MediaFile) RemoveEpisodeIdEpisodeP(ctx context.Context, exec boil.ContextExecutor, related *Episode) {
-	if err := o.RemoveEpisodeIdEpisode(ctx, exec, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveEpisodeIdEpisodeGP relationship.
-// Sets o.R.EpisodeIdEpisode to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle and panics on error.
-func (o *MediaFile) RemoveEpisodeIdEpisodeGP(ctx context.Context, related *Episode) {
-	if err := o.RemoveEpisodeIdEpisode(ctx, boil.GetContextDB(), related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // RemoveEpisodeIdEpisode relationship.
 // Sets o.R.EpisodeIdEpisode to nil.
 // Removes o from all passed in related items' relationships struct.
@@ -1082,34 +926,6 @@ func (o *MediaFile) RemoveEpisodeIdEpisode(ctx context.Context, exec boil.Contex
 		break
 	}
 	return nil
-}
-
-// SetMetaDataIdMetaDatumG of the mediaFile to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdMediaFiles.
-// Uses the global database handle.
-func (o *MediaFile) SetMetaDataIdMetaDatumG(ctx context.Context, insert bool, related *MetaDatum) error {
-	return o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related)
-}
-
-// SetMetaDataIdMetaDatumP of the mediaFile to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdMediaFiles.
-// Panics on error.
-func (o *MediaFile) SetMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *MetaDatum) {
-	if err := o.SetMetaDataIdMetaDatum(ctx, exec, insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdMetaDatumGP of the mediaFile to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdMediaFiles.
-// Uses the global database handle and panics on error.
-func (o *MediaFile) SetMetaDataIdMetaDatumGP(ctx context.Context, insert bool, related *MetaDatum) {
-	if err := o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // SetMetaDataIdMetaDatum of the mediaFile to the related item.
@@ -1159,34 +975,6 @@ func (o *MediaFile) SetMetaDataIdMetaDatum(ctx context.Context, exec boil.Contex
 	return nil
 }
 
-// RemoveMetaDataIdMetaDatumG relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle.
-func (o *MediaFile) RemoveMetaDataIdMetaDatumG(ctx context.Context, related *MetaDatum) error {
-	return o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related)
-}
-
-// RemoveMetaDataIdMetaDatumP relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Panics on error.
-func (o *MediaFile) RemoveMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, related *MetaDatum) {
-	if err := o.RemoveMetaDataIdMetaDatum(ctx, exec, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdMetaDatumGP relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle and panics on error.
-func (o *MediaFile) RemoveMetaDataIdMetaDatumGP(ctx context.Context, related *MetaDatum) {
-	if err := o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // RemoveMetaDataIdMetaDatum relationship.
 // Sets o.R.MetaDataIdMetaDatum to nil.
 // Removes o from all passed in related items' relationships struct.
@@ -1231,31 +1019,6 @@ func MediaFiles(mods ...qm.QueryMod) mediaFileQuery {
 	return mediaFileQuery{q}
 }
 
-// FindMediaFileG retrieves a single record by ID.
-func FindMediaFileG(ctx context.Context, iD null.Int64, selectCols ...string) (*MediaFile, error) {
-	return FindMediaFile(ctx, boil.GetContextDB(), iD, selectCols...)
-}
-
-// FindMediaFileP retrieves a single record by ID with an executor, and panics on error.
-func FindMediaFileP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) *MediaFile {
-	retobj, err := FindMediaFile(ctx, exec, iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
-// FindMediaFileGP retrieves a single record by ID, and panics on error.
-func FindMediaFileGP(ctx context.Context, iD null.Int64, selectCols ...string) *MediaFile {
-	retobj, err := FindMediaFile(ctx, boil.GetContextDB(), iD, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
 // FindMediaFile retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
 func FindMediaFile(ctx context.Context, exec boil.ContextExecutor, iD null.Int64, selectCols ...string) (*MediaFile, error) {
@@ -1284,27 +1047,6 @@ func FindMediaFile(ctx context.Context, exec boil.ContextExecutor, iD null.Int64
 	}
 
 	return mediaFileObj, nil
-}
-
-// InsertG a single record. See Insert for whitelist behavior description.
-func (o *MediaFile) InsertG(ctx context.Context, columns boil.Columns) error {
-	return o.Insert(ctx, boil.GetContextDB(), columns)
-}
-
-// InsertP a single record using an executor, and panics on error. See Insert
-// for whitelist behavior description.
-func (o *MediaFile) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
-	if err := o.Insert(ctx, exec, columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// InsertGP a single record, and panics on error. See Insert for whitelist
-// behavior description.
-func (o *MediaFile) InsertGP(ctx context.Context, columns boil.Columns) {
-	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Insert a single record using an executor.
@@ -1387,34 +1129,6 @@ func (o *MediaFile) Insert(ctx context.Context, exec boil.ContextExecutor, colum
 	return o.doAfterInsertHooks(ctx, exec)
 }
 
-// UpdateG a single MediaFile record using the global executor.
-// See Update for more documentation.
-func (o *MediaFile) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
-	return o.Update(ctx, boil.GetContextDB(), columns)
-}
-
-// UpdateP uses an executor to update the MediaFile, and panics on error.
-// See Update for more documentation.
-func (o *MediaFile) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, exec, columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateGP a single MediaFile record using the global executor. Panics on error.
-// See Update for more documentation.
-func (o *MediaFile) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Update uses an executor to update the MediaFile.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
@@ -1479,31 +1193,6 @@ func (o *MediaFile) Update(ctx context.Context, exec boil.ContextExecutor, colum
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
-// UpdateAllP updates all rows with matching column names, and panics on error.
-func (q mediaFileQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (q mediaFileQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (q mediaFileQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // UpdateAll updates all rows with the specified column values.
 func (q mediaFileQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
@@ -1519,31 +1208,6 @@ func (q mediaFileQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor
 	}
 
 	return rowsAff, nil
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (o MediaFileSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (o MediaFileSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllP updates all rows with the specified column values, and panics on error.
-func (o MediaFileSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -1592,26 +1256,6 @@ func (o MediaFileSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor
 		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all mediaFile")
 	}
 	return rowsAff, nil
-}
-
-// UpsertG attempts an insert, and does an update or ignore on conflict.
-func (o *MediaFile) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns)
-}
-
-// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
-func (o *MediaFile) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
-// UpsertP panics on error.
-func (o *MediaFile) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
@@ -1731,36 +1375,6 @@ func (o *MediaFile) Upsert(ctx context.Context, exec boil.ContextExecutor, updat
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
-// DeleteG deletes a single MediaFile record.
-// DeleteG will match against the primary key column to find the record to delete.
-func (o *MediaFile) DeleteG(ctx context.Context) (int64, error) {
-	return o.Delete(ctx, boil.GetContextDB())
-}
-
-// DeleteP deletes a single MediaFile record with an executor.
-// DeleteP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *MediaFile) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.Delete(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteGP deletes a single MediaFile record.
-// DeleteGP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *MediaFile) DeleteGP(ctx context.Context) int64 {
-	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Delete deletes a single MediaFile record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *MediaFile) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -1797,30 +1411,6 @@ func (o *MediaFile) Delete(ctx context.Context, exec boil.ContextExecutor) (int6
 	return rowsAff, nil
 }
 
-func (q mediaFileQuery) DeleteAllG(ctx context.Context) (int64, error) {
-	return q.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows, and panics on error.
-func (q mediaFileQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := q.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows, and panics on error.
-func (q mediaFileQuery) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // DeleteAll deletes all matching rows.
 func (q mediaFileQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
@@ -1840,31 +1430,6 @@ func (q mediaFileQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor
 	}
 
 	return rowsAff, nil
-}
-
-// DeleteAllG deletes all rows in the slice.
-func (o MediaFileSlice) DeleteAllG(ctx context.Context) (int64, error) {
-	return o.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
-func (o MediaFileSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows in the slice, and panics on error.
-func (o MediaFileSlice) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -1916,29 +1481,6 @@ func (o MediaFileSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor
 	return rowsAff, nil
 }
 
-// ReloadG refetches the object from the database using the primary keys.
-func (o *MediaFile) ReloadG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: no MediaFile provided for reload")
-	}
-
-	return o.Reload(ctx, boil.GetContextDB())
-}
-
-// ReloadP refetches the object from the database with an executor. Panics on error.
-func (o *MediaFile) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.Reload(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadGP refetches the object from the database and panics on error.
-func (o *MediaFile) ReloadGP(ctx context.Context) {
-	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *MediaFile) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -1949,34 +1491,6 @@ func (o *MediaFile) Reload(ctx context.Context, exec boil.ContextExecutor) error
 
 	*o = *ret
 	return nil
-}
-
-// ReloadAllG refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-func (o *MediaFileSlice) ReloadAllG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: empty MediaFileSlice provided for reload all")
-	}
-
-	return o.ReloadAll(ctx, boil.GetContextDB())
-}
-
-// ReloadAllP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *MediaFileSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.ReloadAll(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadAllGP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *MediaFileSlice) ReloadAllGP(ctx context.Context) {
-	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -2006,31 +1520,6 @@ func (o *MediaFileSlice) ReloadAll(ctx context.Context, exec boil.ContextExecuto
 	*o = slice
 
 	return nil
-}
-
-// MediaFileExistsG checks if the MediaFile row exists.
-func MediaFileExistsG(ctx context.Context, iD null.Int64) (bool, error) {
-	return MediaFileExists(ctx, boil.GetContextDB(), iD)
-}
-
-// MediaFileExistsP checks if the MediaFile row exists. Panics on error.
-func MediaFileExistsP(ctx context.Context, exec boil.ContextExecutor, iD null.Int64) bool {
-	e, err := MediaFileExists(ctx, exec, iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// MediaFileExistsGP checks if the MediaFile row exists. Panics on error.
-func MediaFileExistsGP(ctx context.Context, iD null.Int64) bool {
-	e, err := MediaFileExists(ctx, boil.GetContextDB(), iD)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // MediaFileExists checks if the MediaFile row exists.

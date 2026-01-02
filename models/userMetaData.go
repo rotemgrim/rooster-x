@@ -342,31 +342,6 @@ func AddUserMetaDatumHook(hookPoint boil.HookPoint, userMetaDatumHook UserMetaDa
 	}
 }
 
-// OneG returns a single userMetaDatum record from the query using the global executor.
-func (q userMetaDatumQuery) OneG(ctx context.Context) (*UserMetaDatum, error) {
-	return q.One(ctx, boil.GetContextDB())
-}
-
-// OneGP returns a single userMetaDatum record from the query using the global executor, and panics on error.
-func (q userMetaDatumQuery) OneGP(ctx context.Context) *UserMetaDatum {
-	o, err := q.One(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// OneP returns a single userMetaDatum record from the query, and panics on error.
-func (q userMetaDatumQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *UserMetaDatum {
-	o, err := q.One(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
 // One returns a single userMetaDatum record from the query.
 func (q userMetaDatumQuery) One(ctx context.Context, exec boil.ContextExecutor) (*UserMetaDatum, error) {
 	o := &UserMetaDatum{}
@@ -386,31 +361,6 @@ func (q userMetaDatumQuery) One(ctx context.Context, exec boil.ContextExecutor) 
 	}
 
 	return o, nil
-}
-
-// AllG returns all UserMetaDatum records from the query using the global executor.
-func (q userMetaDatumQuery) AllG(ctx context.Context) (UserMetaDatumSlice, error) {
-	return q.All(ctx, boil.GetContextDB())
-}
-
-// AllGP returns all UserMetaDatum records from the query using the global executor, and panics on error.
-func (q userMetaDatumQuery) AllGP(ctx context.Context) UserMetaDatumSlice {
-	o, err := q.All(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
-}
-
-// AllP returns all UserMetaDatum records from the query, and panics on error.
-func (q userMetaDatumQuery) AllP(ctx context.Context, exec boil.ContextExecutor) UserMetaDatumSlice {
-	o, err := q.All(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return o
 }
 
 // All returns all UserMetaDatum records from the query.
@@ -433,31 +383,6 @@ func (q userMetaDatumQuery) All(ctx context.Context, exec boil.ContextExecutor) 
 	return o, nil
 }
 
-// CountG returns the count of all UserMetaDatum records in the query using the global executor
-func (q userMetaDatumQuery) CountG(ctx context.Context) (int64, error) {
-	return q.Count(ctx, boil.GetContextDB())
-}
-
-// CountGP returns the count of all UserMetaDatum records in the query using the global executor, and panics on error.
-func (q userMetaDatumQuery) CountGP(ctx context.Context) int64 {
-	c, err := q.Count(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
-// CountP returns the count of all UserMetaDatum records in the query, and panics on error.
-func (q userMetaDatumQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	c, err := q.Count(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return c
-}
-
 // Count returns the count of all UserMetaDatum records in the query.
 func (q userMetaDatumQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -471,31 +396,6 @@ func (q userMetaDatumQuery) Count(ctx context.Context, exec boil.ContextExecutor
 	}
 
 	return count, nil
-}
-
-// ExistsG checks if the row exists in the table using the global executor.
-func (q userMetaDatumQuery) ExistsG(ctx context.Context) (bool, error) {
-	return q.Exists(ctx, boil.GetContextDB())
-}
-
-// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
-func (q userMetaDatumQuery) ExistsGP(ctx context.Context) bool {
-	e, err := q.Exists(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// ExistsP checks if the row exists in the table, and panics on error.
-func (q userMetaDatumQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
-	e, err := q.Exists(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -784,34 +684,6 @@ func (userMetaDatumL) LoadUserIdUser(ctx context.Context, e boil.ContextExecutor
 	return nil
 }
 
-// SetMetaDataIdMetaDatumG of the userMetaDatum to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdUserMetaData.
-// Uses the global database handle.
-func (o *UserMetaDatum) SetMetaDataIdMetaDatumG(ctx context.Context, insert bool, related *MetaDatum) error {
-	return o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related)
-}
-
-// SetMetaDataIdMetaDatumP of the userMetaDatum to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdUserMetaData.
-// Panics on error.
-func (o *UserMetaDatum) SetMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *MetaDatum) {
-	if err := o.SetMetaDataIdMetaDatum(ctx, exec, insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetMetaDataIdMetaDatumGP of the userMetaDatum to the related item.
-// Sets o.R.MetaDataIdMetaDatum to related.
-// Adds o to related.R.MetaDataIdUserMetaData.
-// Uses the global database handle and panics on error.
-func (o *UserMetaDatum) SetMetaDataIdMetaDatumGP(ctx context.Context, insert bool, related *MetaDatum) {
-	if err := o.SetMetaDataIdMetaDatum(ctx, boil.GetContextDB(), insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // SetMetaDataIdMetaDatum of the userMetaDatum to the related item.
 // Sets o.R.MetaDataIdMetaDatum to related.
 // Adds o to related.R.MetaDataIdUserMetaData.
@@ -859,34 +731,6 @@ func (o *UserMetaDatum) SetMetaDataIdMetaDatum(ctx context.Context, exec boil.Co
 	return nil
 }
 
-// RemoveMetaDataIdMetaDatumG relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle.
-func (o *UserMetaDatum) RemoveMetaDataIdMetaDatumG(ctx context.Context, related *MetaDatum) error {
-	return o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related)
-}
-
-// RemoveMetaDataIdMetaDatumP relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Panics on error.
-func (o *UserMetaDatum) RemoveMetaDataIdMetaDatumP(ctx context.Context, exec boil.ContextExecutor, related *MetaDatum) {
-	if err := o.RemoveMetaDataIdMetaDatum(ctx, exec, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveMetaDataIdMetaDatumGP relationship.
-// Sets o.R.MetaDataIdMetaDatum to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle and panics on error.
-func (o *UserMetaDatum) RemoveMetaDataIdMetaDatumGP(ctx context.Context, related *MetaDatum) {
-	if err := o.RemoveMetaDataIdMetaDatum(ctx, boil.GetContextDB(), related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // RemoveMetaDataIdMetaDatum relationship.
 // Sets o.R.MetaDataIdMetaDatum to nil.
 // Removes o from all passed in related items' relationships struct.
@@ -918,34 +762,6 @@ func (o *UserMetaDatum) RemoveMetaDataIdMetaDatum(ctx context.Context, exec boil
 		break
 	}
 	return nil
-}
-
-// SetUserIdUserG of the userMetaDatum to the related item.
-// Sets o.R.UserIdUser to related.
-// Adds o to related.R.UserIdUserMetaData.
-// Uses the global database handle.
-func (o *UserMetaDatum) SetUserIdUserG(ctx context.Context, insert bool, related *User) error {
-	return o.SetUserIdUser(ctx, boil.GetContextDB(), insert, related)
-}
-
-// SetUserIdUserP of the userMetaDatum to the related item.
-// Sets o.R.UserIdUser to related.
-// Adds o to related.R.UserIdUserMetaData.
-// Panics on error.
-func (o *UserMetaDatum) SetUserIdUserP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) {
-	if err := o.SetUserIdUser(ctx, exec, insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetUserIdUserGP of the userMetaDatum to the related item.
-// Sets o.R.UserIdUser to related.
-// Adds o to related.R.UserIdUserMetaData.
-// Uses the global database handle and panics on error.
-func (o *UserMetaDatum) SetUserIdUserGP(ctx context.Context, insert bool, related *User) {
-	if err := o.SetUserIdUser(ctx, boil.GetContextDB(), insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // SetUserIdUser of the userMetaDatum to the related item.
@@ -995,34 +811,6 @@ func (o *UserMetaDatum) SetUserIdUser(ctx context.Context, exec boil.ContextExec
 	return nil
 }
 
-// RemoveUserIdUserG relationship.
-// Sets o.R.UserIdUser to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle.
-func (o *UserMetaDatum) RemoveUserIdUserG(ctx context.Context, related *User) error {
-	return o.RemoveUserIdUser(ctx, boil.GetContextDB(), related)
-}
-
-// RemoveUserIdUserP relationship.
-// Sets o.R.UserIdUser to nil.
-// Removes o from all passed in related items' relationships struct.
-// Panics on error.
-func (o *UserMetaDatum) RemoveUserIdUserP(ctx context.Context, exec boil.ContextExecutor, related *User) {
-	if err := o.RemoveUserIdUser(ctx, exec, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// RemoveUserIdUserGP relationship.
-// Sets o.R.UserIdUser to nil.
-// Removes o from all passed in related items' relationships struct.
-// Uses the global database handle and panics on error.
-func (o *UserMetaDatum) RemoveUserIdUserGP(ctx context.Context, related *User) {
-	if err := o.RemoveUserIdUser(ctx, boil.GetContextDB(), related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // RemoveUserIdUser relationship.
 // Sets o.R.UserIdUser to nil.
 // Removes o from all passed in related items' relationships struct.
@@ -1067,31 +855,6 @@ func UserMetaData(mods ...qm.QueryMod) userMetaDatumQuery {
 	return userMetaDatumQuery{q}
 }
 
-// FindUserMetaDatumG retrieves a single record by ID.
-func FindUserMetaDatumG(ctx context.Context, userId null.Int64, metaDataId null.Int64, selectCols ...string) (*UserMetaDatum, error) {
-	return FindUserMetaDatum(ctx, boil.GetContextDB(), userId, metaDataId, selectCols...)
-}
-
-// FindUserMetaDatumP retrieves a single record by ID with an executor, and panics on error.
-func FindUserMetaDatumP(ctx context.Context, exec boil.ContextExecutor, userId null.Int64, metaDataId null.Int64, selectCols ...string) *UserMetaDatum {
-	retobj, err := FindUserMetaDatum(ctx, exec, userId, metaDataId, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
-// FindUserMetaDatumGP retrieves a single record by ID, and panics on error.
-func FindUserMetaDatumGP(ctx context.Context, userId null.Int64, metaDataId null.Int64, selectCols ...string) *UserMetaDatum {
-	retobj, err := FindUserMetaDatum(ctx, boil.GetContextDB(), userId, metaDataId, selectCols...)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return retobj
-}
-
 // FindUserMetaDatum retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
 func FindUserMetaDatum(ctx context.Context, exec boil.ContextExecutor, userId null.Int64, metaDataId null.Int64, selectCols ...string) (*UserMetaDatum, error) {
@@ -1120,27 +883,6 @@ func FindUserMetaDatum(ctx context.Context, exec boil.ContextExecutor, userId nu
 	}
 
 	return userMetaDatumObj, nil
-}
-
-// InsertG a single record. See Insert for whitelist behavior description.
-func (o *UserMetaDatum) InsertG(ctx context.Context, columns boil.Columns) error {
-	return o.Insert(ctx, boil.GetContextDB(), columns)
-}
-
-// InsertP a single record using an executor, and panics on error. See Insert
-// for whitelist behavior description.
-func (o *UserMetaDatum) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
-	if err := o.Insert(ctx, exec, columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// InsertGP a single record, and panics on error. See Insert for whitelist
-// behavior description.
-func (o *UserMetaDatum) InsertGP(ctx context.Context, columns boil.Columns) {
-	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Insert a single record using an executor.
@@ -1222,34 +964,6 @@ func (o *UserMetaDatum) Insert(ctx context.Context, exec boil.ContextExecutor, c
 	return o.doAfterInsertHooks(ctx, exec)
 }
 
-// UpdateG a single UserMetaDatum record using the global executor.
-// See Update for more documentation.
-func (o *UserMetaDatum) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
-	return o.Update(ctx, boil.GetContextDB(), columns)
-}
-
-// UpdateP uses an executor to update the UserMetaDatum, and panics on error.
-// See Update for more documentation.
-func (o *UserMetaDatum) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, exec, columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateGP a single UserMetaDatum record using the global executor. Panics on error.
-// See Update for more documentation.
-func (o *UserMetaDatum) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
-	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Update uses an executor to update the UserMetaDatum.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
@@ -1313,31 +1027,6 @@ func (o *UserMetaDatum) Update(ctx context.Context, exec boil.ContextExecutor, c
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
-// UpdateAllP updates all rows with matching column names, and panics on error.
-func (q userMetaDatumQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (q userMetaDatumQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (q userMetaDatumQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // UpdateAll updates all rows with the specified column values.
 func (q userMetaDatumQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
@@ -1353,31 +1042,6 @@ func (q userMetaDatumQuery) UpdateAll(ctx context.Context, exec boil.ContextExec
 	}
 
 	return rowsAff, nil
-}
-
-// UpdateAllG updates all rows with the specified column values.
-func (o UserMetaDatumSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
-	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
-}
-
-// UpdateAllGP updates all rows with the specified column values, and panics on error.
-func (o UserMetaDatumSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// UpdateAllP updates all rows with the specified column values, and panics on error.
-func (o UserMetaDatumSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
-	rowsAff, err := o.UpdateAll(ctx, exec, cols)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -1426,26 +1090,6 @@ func (o UserMetaDatumSlice) UpdateAll(ctx context.Context, exec boil.ContextExec
 		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all userMetaDatum")
 	}
 	return rowsAff, nil
-}
-
-// UpsertG attempts an insert, and does an update or ignore on conflict.
-func (o *UserMetaDatum) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns)
-}
-
-// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
-func (o *UserMetaDatum) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
-// UpsertP panics on error.
-func (o *UserMetaDatum) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) {
-	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
@@ -1565,36 +1209,6 @@ func (o *UserMetaDatum) Upsert(ctx context.Context, exec boil.ContextExecutor, u
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
-// DeleteG deletes a single UserMetaDatum record.
-// DeleteG will match against the primary key column to find the record to delete.
-func (o *UserMetaDatum) DeleteG(ctx context.Context) (int64, error) {
-	return o.Delete(ctx, boil.GetContextDB())
-}
-
-// DeleteP deletes a single UserMetaDatum record with an executor.
-// DeleteP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *UserMetaDatum) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.Delete(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteGP deletes a single UserMetaDatum record.
-// DeleteGP will match against the primary key column to find the record to delete.
-// Panics on error.
-func (o *UserMetaDatum) DeleteGP(ctx context.Context) int64 {
-	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // Delete deletes a single UserMetaDatum record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *UserMetaDatum) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -1631,30 +1245,6 @@ func (o *UserMetaDatum) Delete(ctx context.Context, exec boil.ContextExecutor) (
 	return rowsAff, nil
 }
 
-func (q userMetaDatumQuery) DeleteAllG(ctx context.Context) (int64, error) {
-	return q.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows, and panics on error.
-func (q userMetaDatumQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := q.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows, and panics on error.
-func (q userMetaDatumQuery) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
 // DeleteAll deletes all matching rows.
 func (q userMetaDatumQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
@@ -1674,31 +1264,6 @@ func (q userMetaDatumQuery) DeleteAll(ctx context.Context, exec boil.ContextExec
 	}
 
 	return rowsAff, nil
-}
-
-// DeleteAllG deletes all rows in the slice.
-func (o UserMetaDatumSlice) DeleteAllG(ctx context.Context) (int64, error) {
-	return o.DeleteAll(ctx, boil.GetContextDB())
-}
-
-// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
-func (o UserMetaDatumSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
-	rowsAff, err := o.DeleteAll(ctx, exec)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
-}
-
-// DeleteAllGP deletes all rows in the slice, and panics on error.
-func (o UserMetaDatumSlice) DeleteAllGP(ctx context.Context) int64 {
-	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -1750,29 +1315,6 @@ func (o UserMetaDatumSlice) DeleteAll(ctx context.Context, exec boil.ContextExec
 	return rowsAff, nil
 }
 
-// ReloadG refetches the object from the database using the primary keys.
-func (o *UserMetaDatum) ReloadG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: no UserMetaDatum provided for reload")
-	}
-
-	return o.Reload(ctx, boil.GetContextDB())
-}
-
-// ReloadP refetches the object from the database with an executor. Panics on error.
-func (o *UserMetaDatum) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.Reload(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadGP refetches the object from the database and panics on error.
-func (o *UserMetaDatum) ReloadGP(ctx context.Context) {
-	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *UserMetaDatum) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -1783,34 +1325,6 @@ func (o *UserMetaDatum) Reload(ctx context.Context, exec boil.ContextExecutor) e
 
 	*o = *ret
 	return nil
-}
-
-// ReloadAllG refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-func (o *UserMetaDatumSlice) ReloadAllG(ctx context.Context) error {
-	if o == nil {
-		return errors.New("models: empty UserMetaDatumSlice provided for reload all")
-	}
-
-	return o.ReloadAll(ctx, boil.GetContextDB())
-}
-
-// ReloadAllP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *UserMetaDatumSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
-	if err := o.ReloadAll(ctx, exec); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// ReloadAllGP refetches every row with matching primary key column values
-// and overwrites the original object slice with the newly updated slice.
-// Panics on error.
-func (o *UserMetaDatumSlice) ReloadAllGP(ctx context.Context) {
-	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
-		panic(boil.WrapErr(err))
-	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -1840,31 +1354,6 @@ func (o *UserMetaDatumSlice) ReloadAll(ctx context.Context, exec boil.ContextExe
 	*o = slice
 
 	return nil
-}
-
-// UserMetaDatumExistsG checks if the UserMetaDatum row exists.
-func UserMetaDatumExistsG(ctx context.Context, userId null.Int64, metaDataId null.Int64) (bool, error) {
-	return UserMetaDatumExists(ctx, boil.GetContextDB(), userId, metaDataId)
-}
-
-// UserMetaDatumExistsP checks if the UserMetaDatum row exists. Panics on error.
-func UserMetaDatumExistsP(ctx context.Context, exec boil.ContextExecutor, userId null.Int64, metaDataId null.Int64) bool {
-	e, err := UserMetaDatumExists(ctx, exec, userId, metaDataId)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
-}
-
-// UserMetaDatumExistsGP checks if the UserMetaDatum row exists. Panics on error.
-func UserMetaDatumExistsGP(ctx context.Context, userId null.Int64, metaDataId null.Int64) bool {
-	e, err := UserMetaDatumExists(ctx, boil.GetContextDB(), userId, metaDataId)
-	if err != nil {
-		panic(boil.WrapErr(err))
-	}
-
-	return e
 }
 
 // UserMetaDatumExists checks if the UserMetaDatum row exists.
