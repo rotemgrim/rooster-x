@@ -666,7 +666,7 @@ export class RoosterX extends LitElement {
 
     public showTorrents() {
         if (this.view === "folders") {
-            this.foldersViewScrollPos = this.videos.scrollTop;
+            this.foldersViewScrollPos = this.videos.parentElement?.scrollTop || 0;
         }
         this.isLoading = true;
         this._showTorrents = true;
@@ -681,7 +681,7 @@ export class RoosterX extends LitElement {
             this.isLoading = false;
             this.updateComplete.then(() => {
                 RoosterX.setFocusToVideos();
-                this.videos.scrollTo({top: this.torrentsViewScrollPos, behavior: "smooth"});
+                this.videos.parentElement?.scrollTo({top: this.torrentsViewScrollPos, behavior: "smooth"});
             });
         });
         this.closeSideBar();
@@ -689,7 +689,7 @@ export class RoosterX extends LitElement {
 
     public showFolders() {
         if (this.view === "torrents") {
-            this.torrentsViewScrollPos = this.videos.scrollTop;
+            this.torrentsViewScrollPos = this.videos.parentElement?.scrollTop || 0;
         }
         this.isLoading = true;
         this._showTorrents = false;
@@ -703,7 +703,7 @@ export class RoosterX extends LitElement {
             this.isLoading = false;
             this.updateComplete.then(() => {
                 RoosterX.setFocusToVideos();
-                this.videos.scrollTo({top: this.foldersViewScrollPos, behavior: "smooth"});
+                this.videos.parentElement?.scrollTo({top: this.foldersViewScrollPos, behavior: "smooth"});
             });
         });
         this.closeSideBar && this.closeSideBar();
@@ -907,7 +907,7 @@ export class RoosterX extends LitElement {
 
     public goToTop() {
         const videos = document.querySelector(".videos") as HTMLElement;
-        videos.scrollTo({top: 0, behavior: "smooth"});
+        videos.parentElement?.scrollTo({top: 0, behavior: "smooth"});
     }
 
     public render() {
