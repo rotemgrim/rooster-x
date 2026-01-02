@@ -144,10 +144,16 @@ func createMediaFileTable(db *sql.DB) {
 		downloadedAt DATETIME,
 		FOREIGN KEY (metaDataId) REFERENCES metaData(id),
 		FOREIGN KEY (episodeId) REFERENCES episode(id)
-	);
-		CREATE INDEX IF NOT EXISTS idx_metaDataId ON mediaFile(metaDataId);
-		CREATE INDEX IF NOT EXISTS idx_status ON mediaFile(status);
-`)
+	);`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create indexes separately to ensure they're created
+	_, err = db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_mediaFile_metaDataId ON mediaFile(metaDataId);
+		CREATE INDEX IF NOT EXISTS idx_mediaFile_status ON mediaFile(status);
+	`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -181,12 +187,18 @@ func createTorrentFileTable(db *sql.DB) {
 		seenAt INTEGER,
 		FOREIGN KEY (metaDataId) REFERENCES metaData(id),
   		FOREIGN KEY (episodeId) REFERENCES episode(id)
-	);
-		CREATE INDEX IF NOT EXISTS idx_metaDataId ON torrentFile(metaDataId);
-		CREATE INDEX IF NOT EXISTS idx_seenAt ON torrentFile(seenAt DESC);
-		CREATE INDEX IF NOT EXISTS idx_episodeId ON torrentFile(episodeId DESC);
-		CREATE INDEX IF NOT EXISTS idx_uploadedAt ON torrentFile(uploadedAt DESC);
-`)
+	);`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create indexes separately to ensure they're created
+	_, err = db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_torrentFile_metaDataId ON torrentFile(metaDataId);
+		CREATE INDEX IF NOT EXISTS idx_torrentFile_seenAt ON torrentFile(seenAt DESC);
+		CREATE INDEX IF NOT EXISTS idx_torrentFile_episodeId ON torrentFile(episodeId DESC);
+		CREATE INDEX IF NOT EXISTS idx_torrentFile_uploadedAt ON torrentFile(uploadedAt DESC);
+	`)
 
 	if err != nil {
 		log.Fatal(err)

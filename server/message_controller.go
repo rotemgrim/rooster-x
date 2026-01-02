@@ -16,6 +16,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 type StatusResponse string // "success" or "failure"
@@ -111,10 +112,23 @@ func (s *Server) SaveConfig(c *websocket.Conn, request PayloadRequest) {
 func (s *Server) GetAllMedia(c *websocket.Conn, req PayloadRequest) {
 	filter := req.Data.(map[string]interface{})["filter"]
 	isTorrents := req.Data.(map[string]interface{})["isTorrents"]
-	s.GetMedia(c, req, isTorrents.(bool), filter.(string))
+	genres := req.Data.(map[string]interface{})["genres"]
+
+	var genreList []string
+	if genres != nil {
+		if genresSlice, ok := genres.([]interface{}); ok {
+			for _, g := range genresSlice {
+				if genreStr, ok := g.(string); ok {
+					genreList = append(genreList, genreStr)
+				}
+			}
+		}
+	}
+
+	s.GetMedia(c, req, isTorrents.(bool), filter.(string), genreList)
 }
 
-func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string) {
+func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string, genres []string) {
 	var media []MediaDataExtended
 	var userId int = data.UserId
 	queryMods := []qm.QueryMod{
@@ -125,12 +139,44 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		qm.Select("(SELECT COUNT(*) FROM torrentFile as tf WHERE tf.metaDataId = md.id AND tf.seenAt > strftime('%s', 'now', '-48 hours')) as trendingCount"),
 
 		qm.From("metaData as md"),
-		//qm.Where("sub.metaDataId != 0"),
-		//qm.LeftOuterJoin("metaData as md on md.id = sub.metaDataId"),
+	}
+
+	// CRITICAL: Add genre filter FIRST, before expensive JOINs
+	if len(genres) > 0 {
+		log.Printf("Filtering by %d genre(s): %v", len(genres), genres)
+
+		placeholders := make([]string, len(genres))
+		args := make([]interface{}, len(genres))
+		for i, genre := range genres {
+			placeholders[i] = "?"
+			args[i] = strings.ToLower(strings.TrimSpace(genre))
+		}
+
+		// Add WHERE clause BEFORE JOINs to reduce dataset early
+		whereClause := fmt.Sprintf(`EXISTS (
+			SELECT 1 
+			FROM metaDataGenre mg
+			INNER JOIN genre g ON g.id = mg.genreId
+			WHERE mg.metaDataId = md.id 
+			AND LOWER(g.type) IN (%s)
+		)`, strings.Join(placeholders, ","))
+
+		queryMods = append(queryMods, qm.Where(whereClause, args...))
+	}
+
+	// Add filter for movies/series
+	if filter == "movies" {
+		queryMods = append(queryMods, qm.Where("md.series = false"))
+	} else if filter == "series" {
+		queryMods = append(queryMods, qm.Where("md.series = true"))
+	}
+
+	// NOW add the expensive JOINs after filtering
+	queryMods = append(queryMods,
 		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = ?", userId),
 		qm.GroupBy("md.id"),
 		qm.OrderBy("trendingCount DESC"),
-	}
+	)
 
 	if isTorrents {
 		//queryMods = append(queryMods, qm.From("torrentFile as sub"))
@@ -151,28 +197,31 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	}
 	queryMods = append(queryMods, qm.OrderBy("md.id DESC"))
 
-	if filter == "movies" {
-		queryMods = append(queryMods, qm.Where("md.series = false"))
-	} else if filter == "series" {
-		queryMods = append(queryMods, qm.Where("md.series = true"))
-	}
+	query := models.NewQuery(queryMods...)
 
-	err := models.NewQuery(queryMods...).BindG(context.Background(), &media)
+	// Create context with timeout to prevent hanging queries
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := query.Bind(ctx, db.DB, &media)
 	if err != nil {
-		query := models.NewQuery(queryMods...)
 		text, _ := queries.BuildQuery(query)
-		transmitPromiseReject(c, data, fmt.Sprintf("could not get media:\n%s\n\nquery: %s", err, text))
-		//transmitPromiseReject(c, data, fmt.Sprintf("could not get media %s", err))
+		if ctx.Err() == context.DeadlineExceeded {
+			log.Printf("⚠ Query timeout after 30s (filter: %s, torrents: %v, genres: %v)", filter, isTorrents, genres)
+			transmitPromiseReject(c, data, "Query timed out - too complex. Try fewer filters or wait for database optimization.")
+		} else {
+			log.Printf("Query error: %v", err)
+			transmitPromiseReject(c, data, fmt.Sprintf("could not get media:\n%s\n\nquery: %s", err, text))
+		}
 		return
 	}
-	query := models.NewQuery(queryMods...)
-	text, _ := queries.BuildQuery(query)
-	log.Printf(text)
+
+	log.Printf("✓ Returned %d results (filter: %s, torrents: %v, genres: %v)", len(media), filter, isTorrents, genres)
 	transmitPromiseResponse(c, data, media)
 }
 
 func (s *Server) GetAllTorrents(c *websocket.Conn, data PayloadRequest) {
-	s.GetMedia(c, data, true, "all")
+	s.GetMedia(c, data, true, "all", []string{})
 }
 
 func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
@@ -335,9 +384,12 @@ func (s *Server) GetAllGenres(c *websocket.Conn, req PayloadRequest) {
 	`).Bind(context.Background(), db.DB, &genres)
 
 	if err != nil {
+		log.Printf("Error fetching genres: %v", err)
 		transmitPromiseReject(c, req, fmt.Sprintf("could not get genres %s", err))
 		return
 	}
+
+	log.Printf("✓ Returning %d genres", len(genres))
 	transmitPromiseResponse(c, req, genres)
 }
 

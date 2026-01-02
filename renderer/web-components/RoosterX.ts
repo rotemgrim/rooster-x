@@ -21,18 +21,6 @@ import {VideoCard} from "./VideoCard";
 import {TopBar} from "./TopBar";
 import {fromNow} from "../common/commonUtils";
 
-export function isStringContains(str, items) {
-    if (str) {
-        str = str.toLowerCase();
-        for (const item of items) {
-            if (str.includes(item)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 type OrderConfig = {
     directionDescending: boolean;
     orderBy: string;
@@ -111,6 +99,7 @@ export class RoosterX extends LitElement {
         IpcService.getMedia({
             filter: "all",
             isTorrents: this._showTorrents,
+            genres: this._filterConfig.noMediaWithoutGenres,
         }).then(media => (this.media = media));
         document.addEventListener("click", <HTMLElement>(e) => {
             if (
@@ -398,7 +387,20 @@ export class RoosterX extends LitElement {
         // save filter config to local storage
         const localStorageKey = this.getLocalStorageKey("filterConfig");
         localStorage.setItem(localStorageKey, JSON.stringify(data));
-        this.media = this._media;
+        
+        // If genres changed, refetch from backend (uses junction table for efficiency)
+        // Otherwise just refresh with existing data
+        const oldGenres = this.filterConfig?.noMediaWithoutGenres || [];
+        const newGenres = data.noMediaWithoutGenres || [];
+        const genresChanged = JSON.stringify(oldGenres.sort()) !== JSON.stringify(newGenres.sort());
+        
+        if (genresChanged) {
+            // Refetch data from backend with new genre filter
+            this.getMedia();
+        } else {
+            // Just refresh with existing data (local filtering)
+            this.media = this._media;
+        }
     }
 
     get filterConfig(): FilterConfig | undefined {
@@ -631,11 +633,6 @@ export class RoosterX extends LitElement {
         //     list = list.filter((m) => m.status !== "failed");
         // }
 
-        // filter media by genres
-        console.log("noMediaWithoutGenres", this._filterConfig.noMediaWithoutGenres);
-        if (this._filterConfig.noMediaWithoutGenres.length > 0) {
-            list = list.filter(m => isStringContains(m.genres, this._filterConfig.noMediaWithoutGenres));
-        }
         return list;
     }
 
@@ -653,11 +650,6 @@ export class RoosterX extends LitElement {
             list = list.filter(m => m.status !== "failed");
         }
 
-        // filter media by genres
-        console.log("noMediaWithoutGenres", this._filterConfig.noMediaWithoutGenres);
-        if (this._filterConfig.noMediaWithoutGenres.length > 0) {
-            list = list.filter(m => isStringContains(m.genres, this._filterConfig.noMediaWithoutGenres));
-        }
         return list;
     }
 
@@ -682,6 +674,7 @@ export class RoosterX extends LitElement {
         IpcService.getMedia({
             filter: "all",
             isTorrents: this._showTorrents,
+            genres: this._filterConfig.noMediaWithoutGenres,
         }).then(torrents => {
             this._torrents = torrents;
             this.refreshMedia(this._torrents);
@@ -704,6 +697,7 @@ export class RoosterX extends LitElement {
         IpcService.getMedia({
             filter: "all",
             isTorrents: this._showTorrents,
+            genres: this._filterConfig.noMediaWithoutGenres,
         }).then(media => {
             this.media = media;
             this.isLoading = false;
@@ -719,6 +713,7 @@ export class RoosterX extends LitElement {
         IpcService.getMedia({
             filter: "all",
             isTorrents: this._showTorrents,
+            genres: this._filterConfig.noMediaWithoutGenres,
         }).then(media => (this.media = media));
         RoosterX.setFocusToVideos();
         this.closeSideBar && this.closeSideBar();
@@ -728,6 +723,7 @@ export class RoosterX extends LitElement {
         IpcService.getMedia({
             filter: "movies",
             isTorrents: this._showTorrents,
+            genres: this._filterConfig.noMediaWithoutGenres,
         }).then(media => (this.media = media));
         RoosterX.setFocusToVideos();
         this.closeSideBar();
@@ -737,6 +733,7 @@ export class RoosterX extends LitElement {
         IpcService.getMedia({
             filter: "series",
             isTorrents: this._showTorrents,
+            genres: this._filterConfig.noMediaWithoutGenres,
         }).then(media => (this.media = media));
         RoosterX.setFocusToVideos();
         this.closeSideBar();

@@ -114,7 +114,8 @@ export class IpcService {
 
     public static getMedia(payload?: {
         filter: "movies" | "series" | "all",
-        isTorrents: boolean
+        isTorrents: boolean,
+        genres?: string[]
     }): Promise<any> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("get-media", {...payload}).then(resolve).catch(reject);
