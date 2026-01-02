@@ -11,6 +11,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"go-poc/db"
 	"go-poc/models"
 	"log"
 	"os"
@@ -316,7 +317,23 @@ md.*, ue.isWatched as isWatched`),
 }
 
 func (s *Server) GetAllGenres(c *websocket.Conn, req PayloadRequest) {
-	genres, err := models.Genres(qm.OrderBy("type ASC")).AllG(context.Background())
+	// Query with counts from junction table
+	type GenreWithCount struct {
+		ID    int64  `boil:"id" json:"id"`
+		Type  string `boil:"type" json:"type"`
+		Count int64  `boil:"count" json:"count"`
+	}
+
+	var genres []GenreWithCount
+	err := queries.Raw(`
+		SELECT g.id, g.type, COUNT(mg.metaDataId) as count
+		FROM genre g
+		LEFT JOIN metaDataGenre mg ON g.id = mg.genreId
+		GROUP BY g.id, g.type
+		HAVING count > 0
+		ORDER BY count DESC, g.type ASC
+	`).Bind(context.Background(), db.DB, &genres)
+
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not get genres %s", err))
 		return
@@ -338,57 +355,16 @@ func (s *Server) ReprocessGenresRequest(c *websocket.Conn, req PayloadRequest) {
 }
 
 func (s *Server) ReprocessGenres() (int, error) {
-
-	// remove all genres
-	_, err := models.Genres().DeleteAllG(context.Background())
+	// This function is now a no-op with many-to-many architecture
+	// Genres are created incrementally when metadata is added
+	// Just return the count of existing genres
+	count, err := models.Genres().CountG(context.Background())
 	if err != nil {
-		return 0, fmt.Errorf("could not delete genres %s", err)
+		return 0, fmt.Errorf("could not count genres: %w", err)
 	}
 
-	// get all metadata
-	metas, err := models.MetaData().AllG(context.Background())
-	if err != nil {
-		return 0, fmt.Errorf("could not get metadata %s", err)
-	}
-
-	// for each metadata get genres split them and add them to the genre table
-	count := 0
-	var genres []*models.Genre
-
-	for _, meta := range metas {
-		if meta.Genres.Valid {
-			genresArr := strings.Split(meta.Genres.String, ",")
-			for _, genre := range genresArr {
-				// trim spaces and change to lowercase
-				genre = strings.TrimSpace(genre)
-				if genre == "" {
-					continue
-				}
-				genre = strings.ToLower(genre)
-				found := false
-				for _, g := range genres {
-					if g.Type.String == genre {
-						g.Count.Int64 += 1
-						_, err = g.UpdateG(context.Background(), boil.Infer())
-						found = true
-						break
-					}
-				}
-				if !found {
-					genreModel := models.Genre{
-						Type:  null.StringFrom(genre),
-						Count: null.Int64From(1),
-					}
-					err = genreModel.InsertG(context.Background(), boil.Infer())
-					if err == nil {
-						genres = append(genres, &genreModel)
-						count++
-					}
-				}
-			}
-		}
-	}
-	return count, nil
+	log.Printf("Genre count: %d (using many-to-many architecture, no reprocessing needed)", count)
+	return int(count), nil
 }
 
 func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entityId int64, isWatched bool) {

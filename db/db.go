@@ -19,17 +19,20 @@ var DB *sql.DB
 var CTX context.Context
 
 func Init() {
-	DB, err := sql.Open("sqlite", filename)
+	var err error
+	DB, err = sql.Open("sqlite", filename)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Set boil DB before creating tables (needed for migration)
+	boil.SetDB(DB)
+
 	createTablesIfNotExist(DB)
 
 	// Create a context with a timeout
 	CTX, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	boil.SetDB(DB)
 
 	users := models.Users().AllGP(CTX)
 	for _, t := range users {

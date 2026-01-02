@@ -3,6 +3,7 @@ package gtmdb
 import (
 	"context"
 	"fmt"
+	"go-poc/db"
 	m "go-poc/models"
 	"go-poc/server"
 	"log"
@@ -139,6 +140,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	for _, genre := range tmdbDetails.Genres {
 		genresArr = append(genresArr, genre.Name)
 	}
+	// Keep for backward compatibility, but primarily use many-to-many
 	newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
 	newMd.ImdbId = null.StringFrom(tmdbDetails.TVExternalIDs.IMDbID)
 	newMd.TMDBID = null.Int64From(tmdbDetails.ID)
@@ -247,6 +249,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	for _, genre := range tmdbDetails.Genres {
 		genresArr = append(genresArr, genre.Name)
 	}
+	// Keep for backward compatibility, but primarily use many-to-many
 	newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
 
 	log.Printf("Setting IDs...")
@@ -376,6 +379,14 @@ func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *serve
 			if HandleMetaDataGettingErr(*file, err) {
 				return
 			}
+
+			// Save genres in many-to-many table
+			if newMd.Genres.Valid && newMd.Genres.String != "" {
+				genreNames := strings.Split(newMd.Genres.String, ",")
+				if err := db.SaveGenresForMetaData(newMd.ID.Int64, genreNames); err != nil {
+					log.Printf("Warning: Could not save genres for metadata %d: %v", newMd.ID.Int64, err)
+				}
+			}
 		}
 		md = newMd
 	}
@@ -443,6 +454,14 @@ func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *se
 			err = newMd.InsertG(context.Background(), boil.Infer())
 			if HandleMetaDataGettingErr(*file, err) {
 				return
+			}
+
+			// Save genres in many-to-many table
+			if newMd.Genres.Valid && newMd.Genres.String != "" {
+				genreNames := strings.Split(newMd.Genres.String, ",")
+				if err := db.SaveGenresForMetaData(newMd.ID.Int64, genreNames); err != nil {
+					log.Printf("Warning: Could not save genres for metadata %d: %v", newMd.ID.Int64, err)
+				}
 			}
 		}
 		md = newMd

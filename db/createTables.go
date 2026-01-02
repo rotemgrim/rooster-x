@@ -15,6 +15,12 @@ func createTablesIfNotExist(db *sql.DB) {
 	createUserTable(db)
 	createUserEpisodeTable(db)
 	createUserMetaDataTable(db)
+
+	// Run migration to many-to-many genres (safe to run multiple times)
+	if err := MigrateToManyToManyGenres(db); err != nil {
+		log.Printf("Warning: Genre migration failed: %v", err)
+		// Don't fatal - allow app to continue with old schema
+	}
 }
 
 func createMetaDataTable(db *sql.DB) {
