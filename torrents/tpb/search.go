@@ -3,7 +3,6 @@ package tpb
 import (
 	"context"
 	"fmt"
-	"github.com/juliensalinas/torrengo/core"
 	"io"
 	"net/http"
 	"net/url"
@@ -221,7 +220,7 @@ func fetchUrlUsingGet(ctx context.Context, url string, htmlCh chan string, htmlE
 }
 
 func fetchUrlUsingChromeDP(ctx context.Context, url string, htmlCh chan string, htmlErrCh chan struct{}) {
-	html, _, err := core.Fetch(ctx, url, nil)
+	html, _, err := Fetch(ctx, url, nil)
 	if err != nil {
 		log.Println("could not download page: %w", err)
 		htmlErrCh <- struct{}{}
