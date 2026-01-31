@@ -2,6 +2,7 @@ import {css, html, LitElement, PropertyValues} from 'lit';
 import {customElement, query, state} from 'lit/decorators.js';
 import {IpcService} from "../services/ipc.service";
 import Hls from 'hls.js';
+import {ChannelCategory, CategoryLabels, CategoryIcons, filterChannelsByCategory, getChannelCategories} from './channel-categories';
 
 @customElement('rooster-channels')
 class RoosterChannels extends LitElement {
@@ -54,10 +55,65 @@ class RoosterChannels extends LitElement {
             color: #f00;
             scale: 1.2;
         }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 4rem);
+        }
+
+        .category-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+        }
+
+        .category-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem;
+            min-width: 50px;
+            background: #333;
+            color: white;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .category-btn:hover {
+            background: #444;
+            border-color: #666;
+        }
+
+        .category-btn.active {
+            border-color: #f00;
+            background: #442222;
+        }
+
+        .category-btn .icon {
+            font-size: 1.5rem;
+        }
+
+        .category-btn .label {
+            font-size: 0.65rem;
+            margin-top: 0.2rem;
+            white-space: nowrap;
+        }
+
+        .category-btn .count {
+            font-size: 0.55rem;
+            color: #888;
+        }
     `;
 
     @state() private isLoading = true;
     @state() private channels: any[] = [];
+    @state() private selectedCategory: ChannelCategory = ChannelCategory.ALL;
     @query("#video") private video: HTMLVideoElement;
     @query("#list") private list: HTMLUListElement;
 
@@ -101,21 +157,38 @@ class RoosterChannels extends LitElement {
                 <h1>Loading...</h1>
             `;
         }
+        const filteredChannels = filterChannelsByCategory(this.channels, this.selectedCategory);
         return html`
-            <style>
-
-            </style>
             <div class="video-container">
                 <video id="video" controls autoplay></video>
             </div>
-            <ul tabindex="0" id="list" class="list" @click="${this.onChannelClick}"
-                @mouseenter="${this.focusOnChannels}">
-                ${this.channels.map(channel => html`
-                    <li rel="${channel.uri}">
-                        ${channel.name}
-                    </li>
-                `)}
-            </ul>
+            <div class="sidebar">
+                <div class="category-filter">
+                    ${getChannelCategories().map(category => {
+                        const count = category === ChannelCategory.ALL 
+                            ? this.channels.length 
+                            : filterChannelsByCategory(this.channels, category).length;
+                        return html`
+                            <button 
+                                class="category-btn ${category === this.selectedCategory ? 'active' : ''}"
+                                @click="${() => this.selectedCategory = category}"
+                                title="${CategoryLabels[category]}">
+                                <span class="icon">${CategoryIcons[category]}</span>
+                                <span class="label">${CategoryLabels[category]}</span>
+                                <span class="count">${count}</span>
+                            </button>
+                        `;
+                    })}
+                </div>
+                <ul tabindex="0" id="list" class="list" @click="${this.onChannelClick}"
+                    @mouseenter="${this.focusOnChannels}">
+                    ${filteredChannels.map(channel => html`
+                        <li rel="${channel.uri}">
+                            ${channel.name}
+                        </li>
+                    `)}
+                </ul>
+            </div>
         `;
     }
 
