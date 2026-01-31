@@ -60,6 +60,37 @@ class RoosterChannels extends LitElement {
             scale: 1.05;
         }
 
+        .list li.not-working {
+            color: #666;
+            opacity: 0.6;
+        }
+
+        .list li.not-working:hover {
+            color: #888;
+        }
+
+        .mark-broken-btn {
+            display: none;
+            position: absolute;
+            right: -2rem;
+            background: #c00;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .list li:hover .mark-broken-btn {
+            display: block;
+        }
+
+        .mark-broken-btn:hover {
+            background: #f00;
+        }
+
         .channel-logo {
             width: 32px;
             height: 32px;
@@ -138,11 +169,73 @@ class RoosterChannels extends LitElement {
             font-size: 0.55rem;
             color: #888;
         }
+
+        .view-toggle {
+            background: #333;
+            color: white;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .view-toggle:hover {
+            background: #444;
+            border-color: #666;
+        }
+
+        .list.grid-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+            gap: 0.5rem;
+            padding: 1rem;
+            min-width: 300px;
+        }
+
+        .list.grid-view li {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0.5rem;
+            background: #222;
+            border-radius: 8px;
+            aspect-ratio: 1;
+        }
+
+        .list.grid-view li:hover {
+            scale: 1.1;
+            background: #333;
+        }
+
+        .list.grid-view .channel-name {
+            display: none;
+        }
+
+        .list.grid-view .channel-logo,
+        .list.grid-view .channel-placeholder {
+            width: 48px;
+            height: 48px;
+            font-size: 1rem;
+        }
+
+        .list.grid-view .mark-broken-btn {
+            right: auto;
+            bottom: -1.5rem;
+            font-size: 0.6rem;
+            padding: 0.1rem 0.3rem;
+        }
     `;
 
     @state() private isLoading = true;
     @state() private channels: any[] = [];
     @state() private selectedCategory: ChannelCategory = ChannelCategory.ALL;
+    @state() private brokenChannels: Set<string> = new Set();
+    @state() private isGridView = false;
+    @state() private hideBroken = false;
+
+    private static BROKEN_CHANNELS_KEY = 'rooster-broken-channels';
     @query("#video") private video: HTMLVideoElement;
     @query("#list") private list: HTMLUListElement;
 
@@ -152,7 +245,34 @@ class RoosterChannels extends LitElement {
             console.error("HLS is not supported");
             throw new Error("HLS is not supported");
         }
+        this.loadBrokenChannels();
         this.loadChannels();
+    }
+
+    private loadBrokenChannels() {
+        const stored = localStorage.getItem(RoosterChannels.BROKEN_CHANNELS_KEY);
+        if (stored) {
+            try {
+                this.brokenChannels = new Set(JSON.parse(stored));
+            } catch (e) {
+                this.brokenChannels = new Set();
+            }
+        }
+    }
+
+    private saveBrokenChannels() {
+        localStorage.setItem(RoosterChannels.BROKEN_CHANNELS_KEY, JSON.stringify([...this.brokenChannels]));
+    }
+
+    private toggleBrokenChannel(uri: string, e: Event) {
+        e.stopPropagation();
+        if (this.brokenChannels.has(uri)) {
+            this.brokenChannels.delete(uri);
+        } else {
+            this.brokenChannels.add(uri);
+        }
+        this.brokenChannels = new Set(this.brokenChannels); // trigger reactivity
+        this.saveBrokenChannels();
     }
 
     protected updated(_changedProperties: PropertyValues) {
@@ -223,13 +343,25 @@ class RoosterChannels extends LitElement {
             `;
         }
         const filteredChannels = filterChannelsByCategory(this.channels, this.selectedCategory)
-            .sort((a, b) => extractCleanChannelName(a.name).localeCompare(extractCleanChannelName(b.name)));
+            .filter(channel => !this.hideBroken || !this.brokenChannels.has(channel.uri))
+            .sort((a, b) => {
+                const aIsBroken = this.brokenChannels.has(a.uri);
+                const bIsBroken = this.brokenChannels.has(b.uri);
+                if (aIsBroken !== bIsBroken) return aIsBroken ? 1 : -1;
+                return extractCleanChannelName(a.name).localeCompare(extractCleanChannelName(b.name));
+            });
         return html`
             <div class="video-container">
                 <video id="video" controls autoplay></video>
             </div>
             <div class="sidebar">
                 <div class="category-filter">
+                    <button class="view-toggle" @click="${() => this.isGridView = !this.isGridView}" title="${this.isGridView ? 'List View' : 'Grid View'}">
+                        ${this.isGridView ? '☰' : '⊞'}
+                    </button>
+                    <button class="view-toggle" @click="${() => this.hideBroken = !this.hideBroken}" title="${this.hideBroken ? 'Show Broken' : 'Hide Broken'}">
+                        ${this.hideBroken ? '👁️' : '🚫'}
+                    </button>
                     ${getChannelCategories().map(category => {
                         const count = category === ChannelCategory.ALL 
                             ? this.channels.length 
@@ -246,19 +378,23 @@ class RoosterChannels extends LitElement {
                         `;
                     })}
                 </div>
-                <ul tabindex="0" id="list" class="list" @click="${this.onChannelClick}"
+                <ul tabindex="0" id="list" class="list ${this.isGridView ? 'grid-view' : ''}" @click="${this.onChannelClick}"
                     @mouseenter="${this.focusOnChannels}">
                     ${repeat(filteredChannels, (channel) => channel.uri, (channel, index) => {
                         const cleanName = extractCleanChannelName(channel.name);
                         const iconPath = `/icons/${this.sanitizeFileName(cleanName)}.png`;
                         const channelNum = index + 1;
+                        const isBroken = this.brokenChannels.has(channel.uri);
                         return html`
-                            <li rel="${channel.uri}" data-clean-name="${cleanName}" data-index="${channelNum}">
+                            <li rel="${channel.uri}" data-clean-name="${cleanName}" data-index="${channelNum}" class="${isBroken ? 'not-working' : ''}" title="${channel.name}">
                                 <span class="channel-placeholder">${channelNum}</span>
                                 <img class="channel-logo hidden" src="${iconPath}" alt="" 
                                     @load="${(e: Event) => this.onLogoLoad(e)}"
                                     @error="${(e: Event) => this.onLogoError(e)}">
-                                <span>${cleanName}</span>
+                                <span class="channel-name">${cleanName}</span>
+                                <button class="mark-broken-btn" @click="${(e: Event) => this.toggleBrokenChannel(channel.uri, e)}">
+                                    ${isBroken ? '✓ Working' : '✗ Broken'}
+                                </button>
                             </li>
                         `;
                     })}
