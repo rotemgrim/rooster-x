@@ -80,6 +80,10 @@ class RoosterChannels extends LitElement {
             flex-shrink: 0;
         }
 
+        .hidden {
+            display: none;
+        }
+
         .sidebar {
             display: flex;
             flex-direction: column;
@@ -246,10 +250,13 @@ class RoosterChannels extends LitElement {
                     ${filteredChannels.map((channel, index) => {
                         const cleanName = extractCleanChannelName(channel.name);
                         const iconPath = `/icons/${this.sanitizeFileName(cleanName)}.png`;
+                        const channelNum = index + 1;
                         return html`
-                            <li rel="${channel.uri}" data-clean-name="${cleanName}" data-index="${index + 1}">
-                                <img class="channel-logo" src="${iconPath}" alt="" 
-                                    @error="${(e: Event) => this.onLogoError(e, index + 1)}">
+                            <li rel="${channel.uri}" data-clean-name="${cleanName}" data-index="${channelNum}">
+                                <span class="channel-placeholder">${channelNum}</span>
+                                <img class="channel-logo hidden" src="${iconPath}" alt="" 
+                                    @load="${(e: Event) => this.onLogoLoad(e)}"
+                                    @error="${(e: Event) => this.onLogoError(e)}">
                                 <span>${cleanName}</span>
                             </li>
                         `;
@@ -277,15 +284,23 @@ class RoosterChannels extends LitElement {
         return name.replace(/[/\\:*?"<>|]/g, '_').trim();
     }
 
-    private onLogoError(e: Event, channelNumber: number) {
+    private onLogoLoad(e: Event) {
         const img = e.target as HTMLImageElement;
         const li = img.closest('li');
         if (li) {
-            const placeholder = document.createElement('span');
-            placeholder.className = 'channel-placeholder';
-            placeholder.textContent = String(channelNumber);
-            img.replaceWith(placeholder);
+            // Remove placeholder and show image
+            const placeholder = li.querySelector('.channel-placeholder');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            img.classList.remove('hidden');
         }
+    }
+
+    private onLogoError(e: Event) {
+        const img = e.target as HTMLImageElement;
+        // Just remove the hidden img, keep the placeholder number
+        img.remove();
     }
 
     private loadChannels() {
