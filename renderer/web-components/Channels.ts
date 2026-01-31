@@ -1,5 +1,6 @@
 import {css, html, LitElement, PropertyValues} from 'lit';
 import {customElement, query, state} from 'lit/decorators.js';
+import {repeat} from 'lit/directives/repeat.js';
 import {IpcService} from "../services/ipc.service";
 import Hls from 'hls.js';
 import {ChannelCategory, CategoryLabels, CategoryIcons, filterChannelsByCategory, getChannelCategories, extractCleanChannelName} from './channel-categories';
@@ -247,7 +248,7 @@ class RoosterChannels extends LitElement {
                 </div>
                 <ul tabindex="0" id="list" class="list" @click="${this.onChannelClick}"
                     @mouseenter="${this.focusOnChannels}">
-                    ${filteredChannels.map((channel, index) => {
+                    ${repeat(filteredChannels, (channel) => channel.uri, (channel, index) => {
                         const cleanName = extractCleanChannelName(channel.name);
                         const iconPath = `/icons/${this.sanitizeFileName(cleanName)}.png`;
                         const channelNum = index + 1;
