@@ -112,6 +112,12 @@ export class IpcService {
         });
     }
 
+    public static fetchChannelIcon(channelName: string, cleanName: string, logoUrl: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("fetch-channel-icon", {channelName, cleanName, logoUrl}).then(resolve).catch(reject);
+        });
+    }
+
     public static getMedia(payload?: {
         filter: "movies" | "series" | "all",
         isTorrents: boolean,

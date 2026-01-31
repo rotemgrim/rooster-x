@@ -48,6 +48,11 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 		assets, _ := Assets()
 		assetsFS := http.FileServer(http.FS(assets))
 		http.Handle("/", http.StripPrefix("/", assetsFS))
+
+		// Serve icons folder from filesystem
+		iconsFS := http.FileServer(http.Dir("icons"))
+		http.Handle("/icons/", http.StripPrefix("/icons/", iconsFS))
+
 		http.HandleFunc("/ws", s.wsHandler)
 	}()
 

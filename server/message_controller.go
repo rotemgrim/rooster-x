@@ -4,6 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"path/filepath"
+
+	"go-poc/db"
+	"go-poc/models"
+	"log"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/gorilla/websocket"
 	"github.com/jamesnetherton/m3u"
 	"github.com/skratchdot/open-golang/open"
@@ -11,12 +22,6 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
-	"go-poc/db"
-	"go-poc/models"
-	"log"
-	"os"
-	"strings"
-	"time"
 )
 
 type StatusResponse string // "success" or "failure"
@@ -685,4 +690,169 @@ func (s *Server) GetChannels(c *websocket.Conn, req PayloadRequest) {
 	}
 
 	transmitPromiseResponse(c, req, string(file))
+}
+
+type FetchIconRequest struct {
+	ChannelName string `json:"channelName"`
+	CleanName   string `json:"cleanName"`
+	LogoUrl     string `json:"logoUrl"`
+}
+
+// HTTP client with timeout for icon fetching
+var iconHttpClient = &http.Client{
+	Timeout: 10 * time.Second,
+}
+
+func (s *Server) FetchChannelIcon(c *websocket.Conn, req PayloadRequest) {
+	dataBytes, _ := json.Marshal(req.Data)
+	var iconReq FetchIconRequest
+	if err := json.Unmarshal(dataBytes, &iconReq); err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("invalid request: %s", err))
+		return
+	}
+
+	if iconReq.CleanName == "" {
+		transmitPromiseReject(c, req, "cleanName is required")
+		return
+	}
+
+	// Create icons directory if it doesn't exist
+	iconsDir := "icons"
+	if err := os.MkdirAll(iconsDir, 0755); err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not create icons dir: %s", err))
+		return
+	}
+
+	// Sanitize filename
+	safeFileName := sanitizeFileName(iconReq.CleanName)
+	iconPath := filepath.Join(iconsDir, safeFileName+".png")
+
+	// Check if icon already exists
+	if _, err := os.Stat(iconPath); err == nil {
+		transmitPromiseResponse(c, req, "/icons/"+safeFileName+".png")
+		return
+	}
+
+	// Try to download icon from various sources
+	var err error
+	var imageData []byte
+
+	// Priority 1: Use logo URL from M3U data if provided
+	if iconReq.LogoUrl != "" {
+		log.Printf("Trying M3U logo URL: %s", iconReq.LogoUrl)
+		imageData, err = fetchValidImage(iconReq.LogoUrl)
+		if err == nil && len(imageData) > 0 {
+			goto saveIcon
+		}
+		log.Printf("M3U logo failed for %s: %v", iconReq.CleanName, err)
+	}
+
+	// Priority 2: Try Clearbit (works for some brands)
+	imageData, err = fetchValidImage(fmt.Sprintf("https://logo.clearbit.com/%s.com", strings.ToLower(strings.ReplaceAll(safeFileName, " ", ""))))
+	if err == nil && len(imageData) > 0 {
+		goto saveIcon
+	}
+
+	// Priority 3: Try with "tv" suffix
+	imageData, err = fetchValidImage(fmt.Sprintf("https://logo.clearbit.com/%stv.com", strings.ToLower(strings.ReplaceAll(safeFileName, " ", ""))))
+	if err == nil && len(imageData) > 0 {
+		goto saveIcon
+	}
+
+	// No icon found
+	log.Printf("No icon found for %s", iconReq.CleanName)
+	transmitPromiseReject(c, req, "could not find icon")
+	return
+
+saveIcon:
+	// Save the icon
+	err = os.WriteFile(iconPath, imageData, 0644)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not save icon: %s", err))
+		return
+	}
+
+	log.Printf("Icon saved: %s (%d bytes)", iconPath, len(imageData))
+	transmitPromiseResponse(c, req, "/icons/"+safeFileName+".png")
+}
+
+func sanitizeFileName(name string) string {
+	// Remove or replace invalid filename characters
+	invalid := []string{"/", "\\", ":", "*", "?", "\"", "<", ">", "|"}
+	result := name
+	for _, char := range invalid {
+		result = strings.ReplaceAll(result, char, "_")
+	}
+	return strings.TrimSpace(result)
+}
+
+// fetchValidImage downloads an image and validates it's actually an image
+func fetchValidImage(url string) ([]byte, error) {
+	resp, err := iconHttpClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("status %d", resp.StatusCode)
+	}
+
+	// Check content type
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "" && !strings.HasPrefix(contentType, "image/") {
+		return nil, fmt.Errorf("not an image: %s", contentType)
+	}
+
+	// Read body
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read failed: %w", err)
+	}
+
+	// Validate minimum size (a valid image should be at least a few hundred bytes)
+	if len(data) < 100 {
+		return nil, fmt.Errorf("image too small: %d bytes", len(data))
+	}
+
+	// Check for image magic bytes (PNG, JPEG, GIF, WebP)
+	if !isValidImageData(data) {
+		return nil, fmt.Errorf("invalid image data")
+	}
+
+	return data, nil
+}
+
+// isValidImageData checks magic bytes for common image formats
+func isValidImageData(data []byte) bool {
+	if len(data) < 8 {
+		return false
+	}
+	// PNG: 89 50 4E 47
+	if data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
+		return true
+	}
+	// JPEG: FF D8 FF
+	if data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
+		return true
+	}
+	// GIF: 47 49 46 38
+	if data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x38 {
+		return true
+	}
+	// WebP: 52 49 46 46 ... 57 45 42 50
+	if data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 {
+		if len(data) >= 12 && data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50 {
+			return true
+		}
+	}
+	// BMP: 42 4D
+	if data[0] == 0x42 && data[1] == 0x4D {
+		return true
+	}
+	// ICO: 00 00 01 00
+	if data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x01 && data[3] == 0x00 {
+		return true
+	}
+	return false
 }

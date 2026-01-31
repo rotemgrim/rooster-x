@@ -2,7 +2,7 @@ import {css, html, LitElement, PropertyValues} from 'lit';
 import {customElement, query, state} from 'lit/decorators.js';
 import {IpcService} from "../services/ipc.service";
 import Hls from 'hls.js';
-import {ChannelCategory, CategoryLabels, CategoryIcons, filterChannelsByCategory, getChannelCategories} from './channel-categories';
+import {ChannelCategory, CategoryLabels, CategoryIcons, filterChannelsByCategory, getChannelCategories, extractCleanChannelName} from './channel-categories';
 
 @customElement('rooster-channels')
 class RoosterChannels extends LitElement {
@@ -48,12 +48,36 @@ class RoosterChannels extends LitElement {
             cursor: pointer;
             position: relative;
             transform-origin: left;
-            padding: 0.1rem;
+            padding: 0.3rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .list li:hover {
             color: #f00;
-            scale: 1.2;
+            scale: 1.05;
+        }
+
+        .channel-logo {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            border-radius: 4px;
+            background: #222;
+            flex-shrink: 0;
+        }
+
+        .channel-placeholder {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #333;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            flex-shrink: 0;
         }
 
         .sidebar {
@@ -132,12 +156,25 @@ class RoosterChannels extends LitElement {
     }
 
     onChannelClick(e) {
-        let channelURI = e.target.getAttribute('rel');
+        const li = e.target.closest('li');
+        if (!li) return;
+        
+        let channelURI = li.getAttribute('rel');
         if (!channelURI) {
             return;
         }
+        
+        // Find the channel and fetch icon if missing (has placeholder)
+        const cleanName = li.getAttribute('data-clean-name');
+        const hasPlaceholder = li.querySelector('.channel-placeholder');
+        if (cleanName && hasPlaceholder) {
+            const channel = this.channels.find(c => extractCleanChannelName(c.name) === cleanName);
+            if (channel) {
+                this.fetchIconForChannel(channel.name, channel.logo || '', li);
+            }
+        }
+        
         channelURI = channelURI.replace(":80/", ":80/live/");
-        // const channelURI = "http://layerseventv.com:80/live/REMOVED_USERNAME/REMOVED_PASSWORD/832349.m3u8";
 
         if (!channelURI.endsWith(".m3u8")) {
             channelURI += ".m3u8";
@@ -151,13 +188,37 @@ class RoosterChannels extends LitElement {
         hls.attachMedia(this.video);
     }
 
+    private async fetchIconForChannel(channelName: string, logoUrl: string, li: HTMLElement) {
+        const cleanName = extractCleanChannelName(channelName);
+        console.log(`Fetching icon for "${channelName}" -> "${cleanName}" (logo: ${logoUrl})`);
+        
+        try {
+            const iconPath = await IpcService.fetchChannelIcon(channelName, cleanName, logoUrl);
+            if (iconPath) {
+                // Update the placeholder with the actual image
+                const placeholder = li.querySelector('.channel-placeholder');
+                if (placeholder) {
+                    const img = document.createElement('img');
+                    img.className = 'channel-logo';
+                    img.src = iconPath + '?' + Date.now(); // cache bust
+                    img.alt = '';
+                    placeholder.replaceWith(img);
+                }
+                console.log(`Icon saved: ${iconPath}`);
+            }
+        } catch (err) {
+            console.log(`Could not fetch icon for ${cleanName}:`, err);
+        }
+    }
+
     render() {
         if (this.isLoading) {
             return html`
                 <h1>Loading...</h1>
             `;
         }
-        const filteredChannels = filterChannelsByCategory(this.channels, this.selectedCategory);
+        const filteredChannels = filterChannelsByCategory(this.channels, this.selectedCategory)
+            .sort((a, b) => extractCleanChannelName(a.name).localeCompare(extractCleanChannelName(b.name)));
         return html`
             <div class="video-container">
                 <video id="video" controls autoplay></video>
@@ -182,11 +243,17 @@ class RoosterChannels extends LitElement {
                 </div>
                 <ul tabindex="0" id="list" class="list" @click="${this.onChannelClick}"
                     @mouseenter="${this.focusOnChannels}">
-                    ${filteredChannels.map(channel => html`
-                        <li rel="${channel.uri}">
-                            ${channel.name}
-                        </li>
-                    `)}
+                    ${filteredChannels.map((channel, index) => {
+                        const cleanName = extractCleanChannelName(channel.name);
+                        const iconPath = `/icons/${this.sanitizeFileName(cleanName)}.png`;
+                        return html`
+                            <li rel="${channel.uri}" data-clean-name="${cleanName}" data-index="${index + 1}">
+                                <img class="channel-logo" src="${iconPath}" alt="" 
+                                    @error="${(e: Event) => this.onLogoError(e, index + 1)}">
+                                <span>${cleanName}</span>
+                            </li>
+                        `;
+                    })}
                 </ul>
             </div>
         `;
@@ -195,6 +262,30 @@ class RoosterChannels extends LitElement {
     public focusOnChannels() {
         console.log("focusOnChannels");
         this.list?.focus();
+    }
+
+    private getChannelInitials(name: string): string {
+        const cleanName = extractCleanChannelName(name);
+        const words = cleanName.replace(/[^\w\s]/g, '').trim().split(/\s+/);
+        if (words.length >= 2) {
+            return (words[0][0] + words[1][0]).toUpperCase();
+        }
+        return cleanName.substring(0, 2).toUpperCase();
+    }
+
+    private sanitizeFileName(name: string): string {
+        return name.replace(/[/\\:*?"<>|]/g, '_').trim();
+    }
+
+    private onLogoError(e: Event, channelNumber: number) {
+        const img = e.target as HTMLImageElement;
+        const li = img.closest('li');
+        if (li) {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'channel-placeholder';
+            placeholder.textContent = String(channelNumber);
+            img.replaceWith(placeholder);
+        }
     }
 
     private loadChannels() {

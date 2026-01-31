@@ -103,3 +103,18 @@ export function filterChannelsByCategory(channels: any[], category: ChannelCateg
 export function getChannelCategories(): ChannelCategory[] {
     return Object.values(ChannelCategory);
 }
+
+export function extractCleanChannelName(name: string): string {
+    let clean = name
+        .replace(/^(IL|US|UK|FR|DE|ES):\s*/i, '')
+        .replace(/^(PARTNER\s*TV|FREE\s*TV|SCREEN\s*TV|CELLCOM\s*TV|YES|HOT)\s*/i, '')
+        .replace(/\s*(ᴴᴰ|HD|4K|ᵁᴴᴰ|UHD|◉)\s*/g, '')
+        .replace(/\s*(TO\s*GO|CHANNEL)\s*/gi, '')
+        .trim();
+    
+    if (clean.match(/^\d+$/)) {
+        return `Channel ${clean}`;
+    }
+    
+    return clean || name;
+}

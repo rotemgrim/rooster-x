@@ -34,6 +34,7 @@ func (s *Server) SetRoutes() {
 	s.on("get-imdb-rating", s.GetImdbRating)
 
 	s.on("get-channels", s.GetChannels)
+	s.on("fetch-channel-icon", s.FetchChannelIcon)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {
