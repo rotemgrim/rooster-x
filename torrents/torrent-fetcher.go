@@ -14,6 +14,7 @@ import (
 	gtmdb "go-poc/tmdb"
 	"go-poc/torrents/tpb"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -113,11 +114,37 @@ func fetchTorrentsFromSearch() {
 		ctx := context.Background()
 		err = dbTor.Insert(ctx, db.DB, boil.Infer())
 		if err != nil {
-			log.Printf("skipping (%s): %s", tor.Title, err)
+			log.Printf("skipping (%s) magnet=%s: %s", tor.Title, magnetInfohashPrefix(torrent.Magnet), err)
 			continue
 		}
 		log.Println("Adding to DB: ", tor.Title)
 	}
+}
+
+func magnetInfohashPrefix(magnet string) string {
+	idx := -1
+	colonCount := 0
+	for i := 0; i < len(magnet); i++ {
+		if magnet[i] == ':' {
+			colonCount++
+			if colonCount == 3 {
+				idx = i
+				break
+			}
+		}
+	}
+	if idx == -1 || idx+1 >= len(magnet) {
+		return "n/a"
+	}
+	rest := magnet[idx+1:]
+	if len(rest) > 6 {
+		rest = rest[:6]
+	}
+	rest = strings.TrimSpace(rest)
+	if rest == "" {
+		return "n/a"
+	}
+	return rest
 }
 
 func getTitle(md *m.MetaDatum, tor *ptn.TorrentInfo, file *m.TorrentFile) string {

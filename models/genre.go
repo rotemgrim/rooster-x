@@ -66,15 +66,26 @@ var GenreWhere = struct {
 
 // GenreRels is where relationship names are stored.
 var GenreRels = struct {
-}{}
+	MetaDataIdMetaData string
+}{
+	MetaDataIdMetaData: "MetaDataIdMetaData",
+}
 
 // genreR is where relationships are stored.
 type genreR struct {
+	MetaDataIdMetaData MetaDatumSlice `boil:"MetaDataIdMetaData" json:"MetaDataIdMetaData" toml:"MetaDataIdMetaData" yaml:"MetaDataIdMetaData"`
 }
 
 // NewStruct creates a new relationship struct
 func (*genreR) NewStruct() *genreR {
 	return &genreR{}
+}
+
+func (r *genreR) GetMetaDataIdMetaData() MetaDatumSlice {
+	if r == nil {
+		return nil
+	}
+	return r.MetaDataIdMetaData
 }
 
 // genreL is where Load methods for each relationship are stored.
@@ -391,6 +402,296 @@ func (q genreQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool
 	}
 
 	return count > 0, nil
+}
+
+// MetaDataIdMetaData retrieves all the metaDatum's MetaData with an executor via id column.
+func (o *Genre) MetaDataIdMetaData(mods ...qm.QueryMod) metaDatumQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.InnerJoin("\"metaDataGenre\" on \"metaData\".\"id\" = \"metaDataGenre\".\"metaDataId\""),
+		qm.Where("\"metaDataGenre\".\"genreId\"=?", o.ID),
+	)
+
+	return MetaData(queryMods...)
+}
+
+// LoadMetaDataIdMetaData allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (genreL) LoadMetaDataIdMetaData(ctx context.Context, e boil.ContextExecutor, singular bool, maybeGenre interface{}, mods queries.Applicator) error {
+	var slice []*Genre
+	var object *Genre
+
+	if singular {
+		var ok bool
+		object, ok = maybeGenre.(*Genre)
+		if !ok {
+			object = new(Genre)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeGenre)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeGenre))
+			}
+		}
+	} else {
+		s, ok := maybeGenre.(*[]*Genre)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeGenre)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeGenre))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &genreR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &genreR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.Select("\"metaData\".\"id\", \"metaData\".\"title\", \"metaData\".\"imdbId\", \"metaData\".\"tmdbId\", \"metaData\".\"languages\", \"metaData\".\"country\", \"metaData\".\"votes\", \"metaData\".\"series\", \"metaData\".\"rating\", \"metaData\".\"runtime\", \"metaData\".\"year\", \"metaData\".\"poster\", \"metaData\".\"metascore\", \"metaData\".\"plot\", \"metaData\".\"director\", \"metaData\".\"writer\", \"metaData\".\"actors\", \"metaData\".\"released\", \"metaData\".\"released_unix\", \"metaData\".\"trailer\", \"metaData\".\"type\", \"metaData\".\"name\", \"a\".\"genreId\""),
+		qm.From("\"metaData\""),
+		qm.InnerJoin("\"metaDataGenre\" as \"a\" on \"metaData\".\"id\" = \"a\".\"metaDataId\""),
+		qm.WhereIn("\"a\".\"genreId\" in ?", argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load metaData")
+	}
+
+	var resultSlice []*MetaDatum
+
+	var localJoinCols []int64
+	for results.Next() {
+		one := new(MetaDatum)
+		var localJoinCol int64
+
+		err = results.Scan(&one.ID, &one.Title, &one.ImdbId, &one.TMDBID, &one.Languages, &one.Country, &one.Votes, &one.Series, &one.Rating, &one.Runtime, &one.Year, &one.Poster, &one.Metascore, &one.Plot, &one.Director, &one.Writer, &one.Actors, &one.Released, &one.ReleasedUnix, &one.Trailer, &one.Type, &one.Name, &localJoinCol)
+		if err != nil {
+			return errors.Wrap(err, "failed to scan eager loaded results for metaData")
+		}
+		if err = results.Err(); err != nil {
+			return errors.Wrap(err, "failed to plebian-bind eager loaded slice metaData")
+		}
+
+		resultSlice = append(resultSlice, one)
+		localJoinCols = append(localJoinCols, localJoinCol)
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on metaData")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for metaData")
+	}
+
+	if len(metaDatumAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.MetaDataIdMetaData = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &metaDatumR{}
+			}
+			foreign.R.GenreIdGenres = append(foreign.R.GenreIdGenres, object)
+		}
+		return nil
+	}
+
+	for i, foreign := range resultSlice {
+		localJoinCol := localJoinCols[i]
+		for _, local := range slice {
+			if queries.Equal(local.ID, localJoinCol) {
+				local.R.MetaDataIdMetaData = append(local.R.MetaDataIdMetaData, foreign)
+				if foreign.R == nil {
+					foreign.R = &metaDatumR{}
+				}
+				foreign.R.GenreIdGenres = append(foreign.R.GenreIdGenres, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// AddMetaDataIdMetaData adds the given related objects to the existing relationships
+// of the genre, optionally inserting them as new records.
+// Appends related to o.R.MetaDataIdMetaData.
+// Sets related.R.GenreIdGenres appropriately.
+func (o *Genre) AddMetaDataIdMetaData(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MetaDatum) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		}
+	}
+
+	for _, rel := range related {
+		query := "insert into \"metaDataGenre\" (\"genreId\", \"metaDataId\") values (?, ?)"
+		values := []interface{}{o.ID, rel.ID}
+
+		if boil.IsDebug(ctx) {
+			writer := boil.DebugWriterFrom(ctx)
+			fmt.Fprintln(writer, query)
+			fmt.Fprintln(writer, values)
+		}
+		_, err = exec.ExecContext(ctx, query, values...)
+		if err != nil {
+			return errors.Wrap(err, "failed to insert into join table")
+		}
+	}
+	if o.R == nil {
+		o.R = &genreR{
+			MetaDataIdMetaData: related,
+		}
+	} else {
+		o.R.MetaDataIdMetaData = append(o.R.MetaDataIdMetaData, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &metaDatumR{
+				GenreIdGenres: GenreSlice{o},
+			}
+		} else {
+			rel.R.GenreIdGenres = append(rel.R.GenreIdGenres, o)
+		}
+	}
+	return nil
+}
+
+// SetMetaDataIdMetaData removes all previously related items of the
+// genre replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.GenreIdGenres's MetaDataIdMetaData accordingly.
+// Replaces o.R.MetaDataIdMetaData with related.
+// Sets related.R.GenreIdGenres's MetaDataIdMetaData accordingly.
+func (o *Genre) SetMetaDataIdMetaData(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MetaDatum) error {
+	query := "delete from \"metaDataGenre\" where \"genreId\" = ?"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	removeMetaDataIdMetaDataFromGenreIdGenresSlice(o, related)
+	if o.R != nil {
+		o.R.MetaDataIdMetaData = nil
+	}
+
+	return o.AddMetaDataIdMetaData(ctx, exec, insert, related...)
+}
+
+// RemoveMetaDataIdMetaData relationships from objects passed in.
+// Removes related items from R.MetaDataIdMetaData (uses pointer comparison, removal does not keep order)
+// Sets related.R.GenreIdGenres.
+func (o *Genre) RemoveMetaDataIdMetaData(ctx context.Context, exec boil.ContextExecutor, related ...*MetaDatum) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	query := fmt.Sprintf(
+		"delete from \"metaDataGenre\" where \"genreId\" = ? and \"metaDataId\" in (%s)",
+		strmangle.Placeholders(dialect.UseIndexPlaceholders, len(related), 2, 1),
+	)
+	values := []interface{}{o.ID}
+	for _, rel := range related {
+		values = append(values, rel.ID)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err = exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+	removeMetaDataIdMetaDataFromGenreIdGenresSlice(o, related)
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.MetaDataIdMetaData {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.MetaDataIdMetaData)
+			if ln > 1 && i < ln-1 {
+				o.R.MetaDataIdMetaData[i] = o.R.MetaDataIdMetaData[ln-1]
+			}
+			o.R.MetaDataIdMetaData = o.R.MetaDataIdMetaData[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+func removeMetaDataIdMetaDataFromGenreIdGenresSlice(o *Genre, related []*MetaDatum) {
+	for _, rel := range related {
+		if rel.R == nil {
+			continue
+		}
+		for i, ri := range rel.R.GenreIdGenres {
+			if !queries.Equal(o.ID, ri.ID) {
+				continue
+			}
+
+			ln := len(rel.R.GenreIdGenres)
+			if ln > 1 && i < ln-1 {
+				rel.R.GenreIdGenres[i] = rel.R.GenreIdGenres[ln-1]
+			}
+			rel.R.GenreIdGenres = rel.R.GenreIdGenres[:ln-1]
+			break
+		}
+	}
 }
 
 // Genres retrieves all the records using an executor.

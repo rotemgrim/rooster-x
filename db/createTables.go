@@ -29,7 +29,6 @@ func createMetaDataTable(db *sql.DB) {
 		title VARCHAR(255) COLLATE NOCASE,
 		imdbId VARCHAR(40) UNIQUE,
 		tmdbId INTEGER UNIQUE,
-		genres TEXT,
 		languages TEXT,
 		country TEXT,
 		votes INTEGER,

@@ -28,7 +28,6 @@ type MetaDatum struct {
 	Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
 	ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
 	TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
-	Genres       null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
 	Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
 	Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
 	Votes        null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
@@ -57,7 +56,6 @@ var MetaDatumColumns = struct {
 	Title        string
 	ImdbId       string
 	TMDBID       string
-	Genres       string
 	Languages    string
 	Country      string
 	Votes        string
@@ -81,7 +79,6 @@ var MetaDatumColumns = struct {
 	Title:        "title",
 	ImdbId:       "imdbId",
 	TMDBID:       "tmdbId",
-	Genres:       "genres",
 	Languages:    "languages",
 	Country:      "country",
 	Votes:        "votes",
@@ -107,7 +104,6 @@ var MetaDatumTableColumns = struct {
 	Title        string
 	ImdbId       string
 	TMDBID       string
-	Genres       string
 	Languages    string
 	Country      string
 	Votes        string
@@ -131,7 +127,6 @@ var MetaDatumTableColumns = struct {
 	Title:        "metaData.title",
 	ImdbId:       "metaData.imdbId",
 	TMDBID:       "metaData.tmdbId",
-	Genres:       "metaData.genres",
 	Languages:    "metaData.languages",
 	Country:      "metaData.country",
 	Votes:        "metaData.votes",
@@ -159,7 +154,6 @@ var MetaDatumWhere = struct {
 	Title        whereHelpernull_String
 	ImdbId       whereHelpernull_String
 	TMDBID       whereHelpernull_Int64
-	Genres       whereHelpernull_String
 	Languages    whereHelpernull_String
 	Country      whereHelpernull_String
 	Votes        whereHelpernull_Int64
@@ -183,7 +177,6 @@ var MetaDatumWhere = struct {
 	Title:        whereHelpernull_String{field: "\"metaData\".\"title\""},
 	ImdbId:       whereHelpernull_String{field: "\"metaData\".\"imdbId\""},
 	TMDBID:       whereHelpernull_Int64{field: "\"metaData\".\"tmdbId\""},
-	Genres:       whereHelpernull_String{field: "\"metaData\".\"genres\""},
 	Languages:    whereHelpernull_String{field: "\"metaData\".\"languages\""},
 	Country:      whereHelpernull_String{field: "\"metaData\".\"country\""},
 	Votes:        whereHelpernull_Int64{field: "\"metaData\".\"votes\""},
@@ -209,12 +202,14 @@ var MetaDatumRels = struct {
 	MetaDataIdAliases      string
 	MetaDataIdEpisodes     string
 	MetaDataIdMediaFiles   string
+	GenreIdGenres          string
 	MetaDataIdTorrentFiles string
 	MetaDataIdUserMetaData string
 }{
 	MetaDataIdAliases:      "MetaDataIdAliases",
 	MetaDataIdEpisodes:     "MetaDataIdEpisodes",
 	MetaDataIdMediaFiles:   "MetaDataIdMediaFiles",
+	GenreIdGenres:          "GenreIdGenres",
 	MetaDataIdTorrentFiles: "MetaDataIdTorrentFiles",
 	MetaDataIdUserMetaData: "MetaDataIdUserMetaData",
 }
@@ -224,6 +219,7 @@ type metaDatumR struct {
 	MetaDataIdAliases      AliasSlice         `boil:"MetaDataIdAliases" json:"MetaDataIdAliases" toml:"MetaDataIdAliases" yaml:"MetaDataIdAliases"`
 	MetaDataIdEpisodes     EpisodeSlice       `boil:"MetaDataIdEpisodes" json:"MetaDataIdEpisodes" toml:"MetaDataIdEpisodes" yaml:"MetaDataIdEpisodes"`
 	MetaDataIdMediaFiles   MediaFileSlice     `boil:"MetaDataIdMediaFiles" json:"MetaDataIdMediaFiles" toml:"MetaDataIdMediaFiles" yaml:"MetaDataIdMediaFiles"`
+	GenreIdGenres          GenreSlice         `boil:"GenreIdGenres" json:"GenreIdGenres" toml:"GenreIdGenres" yaml:"GenreIdGenres"`
 	MetaDataIdTorrentFiles TorrentFileSlice   `boil:"MetaDataIdTorrentFiles" json:"MetaDataIdTorrentFiles" toml:"MetaDataIdTorrentFiles" yaml:"MetaDataIdTorrentFiles"`
 	MetaDataIdUserMetaData UserMetaDatumSlice `boil:"MetaDataIdUserMetaData" json:"MetaDataIdUserMetaData" toml:"MetaDataIdUserMetaData" yaml:"MetaDataIdUserMetaData"`
 }
@@ -254,6 +250,13 @@ func (r *metaDatumR) GetMetaDataIdMediaFiles() MediaFileSlice {
 	return r.MetaDataIdMediaFiles
 }
 
+func (r *metaDatumR) GetGenreIdGenres() GenreSlice {
+	if r == nil {
+		return nil
+	}
+	return r.GenreIdGenres
+}
+
 func (r *metaDatumR) GetMetaDataIdTorrentFiles() TorrentFileSlice {
 	if r == nil {
 		return nil
@@ -272,9 +275,9 @@ func (r *metaDatumR) GetMetaDataIdUserMetaData() UserMetaDatumSlice {
 type metaDatumL struct{}
 
 var (
-	metaDatumAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name"}
+	metaDatumAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name"}
 	metaDatumColumnsWithoutDefault = []string{}
-	metaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "genres", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name"}
+	metaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name"}
 	metaDatumPrimaryKeyColumns     = []string{"id"}
 	metaDatumGeneratedColumns      = []string{"id"}
 )
@@ -624,6 +627,21 @@ func (o *MetaDatum) MetaDataIdMediaFiles(mods ...qm.QueryMod) mediaFileQuery {
 	)
 
 	return MediaFiles(queryMods...)
+}
+
+// GenreIdGenres retrieves all the genre's Genres with an executor via id column.
+func (o *MetaDatum) GenreIdGenres(mods ...qm.QueryMod) genreQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.InnerJoin("\"metaDataGenre\" on \"genre\".\"id\" = \"metaDataGenre\".\"genreId\""),
+		qm.Where("\"metaDataGenre\".\"metaDataId\"=?", o.ID),
+	)
+
+	return Genres(queryMods...)
 }
 
 // MetaDataIdTorrentFiles retrieves all the torrentFile's TorrentFiles with an executor via metaDataId column.
@@ -985,6 +1003,136 @@ func (metaDatumL) LoadMetaDataIdMediaFiles(ctx context.Context, e boil.ContextEx
 					foreign.R = &mediaFileR{}
 				}
 				foreign.R.MetaDataIdMetaDatum = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadGenreIdGenres allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (metaDatumL) LoadGenreIdGenres(ctx context.Context, e boil.ContextExecutor, singular bool, maybeMetaDatum interface{}, mods queries.Applicator) error {
+	var slice []*MetaDatum
+	var object *MetaDatum
+
+	if singular {
+		var ok bool
+		object, ok = maybeMetaDatum.(*MetaDatum)
+		if !ok {
+			object = new(MetaDatum)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeMetaDatum)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeMetaDatum))
+			}
+		}
+	} else {
+		s, ok := maybeMetaDatum.(*[]*MetaDatum)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeMetaDatum)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeMetaDatum))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &metaDatumR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &metaDatumR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.Select("\"genre\".\"id\", \"genre\".\"type\", \"genre\".\"count\", \"a\".\"metaDataId\""),
+		qm.From("\"genre\""),
+		qm.InnerJoin("\"metaDataGenre\" as \"a\" on \"genre\".\"id\" = \"a\".\"genreId\""),
+		qm.WhereIn("\"a\".\"metaDataId\" in ?", argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load genre")
+	}
+
+	var resultSlice []*Genre
+
+	var localJoinCols []int64
+	for results.Next() {
+		one := new(Genre)
+		var localJoinCol int64
+
+		err = results.Scan(&one.ID, &one.Type, &one.Count, &localJoinCol)
+		if err != nil {
+			return errors.Wrap(err, "failed to scan eager loaded results for genre")
+		}
+		if err = results.Err(); err != nil {
+			return errors.Wrap(err, "failed to plebian-bind eager loaded slice genre")
+		}
+
+		resultSlice = append(resultSlice, one)
+		localJoinCols = append(localJoinCols, localJoinCol)
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on genre")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for genre")
+	}
+
+	if len(genreAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.GenreIdGenres = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &genreR{}
+			}
+			foreign.R.MetaDataIdMetaData = append(foreign.R.MetaDataIdMetaData, object)
+		}
+		return nil
+	}
+
+	for i, foreign := range resultSlice {
+		localJoinCol := localJoinCols[i]
+		for _, local := range slice {
+			if queries.Equal(local.ID, localJoinCol) {
+				local.R.GenreIdGenres = append(local.R.GenreIdGenres, foreign)
+				if foreign.R == nil {
+					foreign.R = &genreR{}
+				}
+				foreign.R.MetaDataIdMetaData = append(foreign.R.MetaDataIdMetaData, local)
 				break
 			}
 		}
@@ -1598,6 +1746,151 @@ func (o *MetaDatum) RemoveMetaDataIdMediaFiles(ctx context.Context, exec boil.Co
 	}
 
 	return nil
+}
+
+// AddGenreIdGenres adds the given related objects to the existing relationships
+// of the metaDatum, optionally inserting them as new records.
+// Appends related to o.R.GenreIdGenres.
+// Sets related.R.MetaDataIdMetaData appropriately.
+func (o *MetaDatum) AddGenreIdGenres(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Genre) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		}
+	}
+
+	for _, rel := range related {
+		query := "insert into \"metaDataGenre\" (\"metaDataId\", \"genreId\") values (?, ?)"
+		values := []interface{}{o.ID, rel.ID}
+
+		if boil.IsDebug(ctx) {
+			writer := boil.DebugWriterFrom(ctx)
+			fmt.Fprintln(writer, query)
+			fmt.Fprintln(writer, values)
+		}
+		_, err = exec.ExecContext(ctx, query, values...)
+		if err != nil {
+			return errors.Wrap(err, "failed to insert into join table")
+		}
+	}
+	if o.R == nil {
+		o.R = &metaDatumR{
+			GenreIdGenres: related,
+		}
+	} else {
+		o.R.GenreIdGenres = append(o.R.GenreIdGenres, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &genreR{
+				MetaDataIdMetaData: MetaDatumSlice{o},
+			}
+		} else {
+			rel.R.MetaDataIdMetaData = append(rel.R.MetaDataIdMetaData, o)
+		}
+	}
+	return nil
+}
+
+// SetGenreIdGenres removes all previously related items of the
+// metaDatum replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MetaDataIdMetaData's GenreIdGenres accordingly.
+// Replaces o.R.GenreIdGenres with related.
+// Sets related.R.MetaDataIdMetaData's GenreIdGenres accordingly.
+func (o *MetaDatum) SetGenreIdGenres(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Genre) error {
+	query := "delete from \"metaDataGenre\" where \"metaDataId\" = ?"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	removeGenreIdGenresFromMetaDataIdMetaDataSlice(o, related)
+	if o.R != nil {
+		o.R.GenreIdGenres = nil
+	}
+
+	return o.AddGenreIdGenres(ctx, exec, insert, related...)
+}
+
+// RemoveGenreIdGenres relationships from objects passed in.
+// Removes related items from R.GenreIdGenres (uses pointer comparison, removal does not keep order)
+// Sets related.R.MetaDataIdMetaData.
+func (o *MetaDatum) RemoveGenreIdGenres(ctx context.Context, exec boil.ContextExecutor, related ...*Genre) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	query := fmt.Sprintf(
+		"delete from \"metaDataGenre\" where \"metaDataId\" = ? and \"genreId\" in (%s)",
+		strmangle.Placeholders(dialect.UseIndexPlaceholders, len(related), 2, 1),
+	)
+	values := []interface{}{o.ID}
+	for _, rel := range related {
+		values = append(values, rel.ID)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err = exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+	removeGenreIdGenresFromMetaDataIdMetaDataSlice(o, related)
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.GenreIdGenres {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.GenreIdGenres)
+			if ln > 1 && i < ln-1 {
+				o.R.GenreIdGenres[i] = o.R.GenreIdGenres[ln-1]
+			}
+			o.R.GenreIdGenres = o.R.GenreIdGenres[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+func removeGenreIdGenresFromMetaDataIdMetaDataSlice(o *MetaDatum, related []*Genre) {
+	for _, rel := range related {
+		if rel.R == nil {
+			continue
+		}
+		for i, ri := range rel.R.MetaDataIdMetaData {
+			if !queries.Equal(o.ID, ri.ID) {
+				continue
+			}
+
+			ln := len(rel.R.MetaDataIdMetaData)
+			if ln > 1 && i < ln-1 {
+				rel.R.MetaDataIdMetaData[i] = rel.R.MetaDataIdMetaData[ln-1]
+			}
+			rel.R.MetaDataIdMetaData = rel.R.MetaDataIdMetaData[:ln-1]
+			break
+		}
+	}
 }
 
 // AddMetaDataIdTorrentFiles adds the given related objects to the existing relationships

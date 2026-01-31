@@ -30,20 +30,21 @@ func SetLang(lang string) {
 	LANG = lang
 }
 
-func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
+func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, []string, error) {
 	// get metadata from internet
 	var newMd *m.MetaDatum
+	var genres []string
 	err := error(nil)
 
 	if tor.Episode > 0 && tor.Season > 0 {
-		newMd, err = getSeriesMetaData(tmdbClient, tor)
+		newMd, genres, err = getSeriesMetaData(tmdbClient, tor)
 	} else {
-		newMd, err = getMovieMetaData(tmdbClient, tor)
+		newMd, genres, err = getMovieMetaData(tmdbClient, tor)
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return newMd, nil
+	return newMd, genres, nil
 }
 
 func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.MetaDatum) (*m.Episode, error) {
@@ -89,7 +90,7 @@ func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.Meta
 	return epMd, nil
 }
 
-func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
+func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, []string, error) {
 	// check if metadata is already in cache
 	tmdbSearchResult := TMDB_TV_SEARCH_CACHE[tor.Title]
 	if tmdbSearchResult == nil {
@@ -105,7 +106,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 
 		tmpTmdbSearchResult, err := tmdbClient.GetSearchTVShow(tor.Title, options)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		TMDB_TV_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
 		tmdbSearchResult = tmpTmdbSearchResult
@@ -114,14 +115,14 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	}
 
 	if tmdbSearchResult.TotalResults == 0 || len(tmdbSearchResult.Results) == 0 {
-		return nil, fmt.Errorf("no series found for %s", tor.Title)
+		return nil, nil, fmt.Errorf("no series found for %s", tor.Title)
 	}
 
 	// check if metadata is not already id DB
 	ctx := context.Background()
 	md, err := m.MetaData(qm.Where("tmdbId = ?", int(tmdbSearchResult.Results[0].ID))).One(ctx, db.DB)
 	if err == nil {
-		return md, nil
+		return md, nil, nil
 	}
 
 	detailsOptions := map[string]string{
@@ -131,7 +132,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	log.Println("getting TMDB TV details for %s", tor.Title)
 	tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbSearchResult.Results[0].ID), detailsOptions)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newMd := &m.MetaDatum{}
@@ -142,8 +143,6 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	for _, genre := range tmdbDetails.Genres {
 		genresArr = append(genresArr, genre.Name)
 	}
-	// Keep for backward compatibility, but primarily use many-to-many
-	newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
 	newMd.ImdbId = null.StringFrom(tmdbDetails.TVExternalIDs.IMDbID)
 	newMd.TMDBID = null.Int64From(tmdbDetails.ID)
 	newMd.Series = null.BoolFrom(true)
@@ -164,8 +163,10 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	}
 
 	var actors []string
-	for _, actor := range tmdbDetails.Credits.Cast {
-		actors = append(actors, actor.Name)
+	if tmdbDetails.Credits.TVCredits != nil {
+		for _, actor := range tmdbDetails.Credits.Cast {
+			actors = append(actors, actor.Name)
+		}
 	}
 	newMd.Actors = null.StringFrom(strings.Join(actors, ","))
 
@@ -175,10 +176,10 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 	}
 	newMd.Country = null.StringFrom(strings.Join(countries, ","))
 
-	return newMd, nil
+	return newMd, genresArr, nil
 }
 
-func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, error) {
+func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, []string, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("PANIC in getMovieMetaData for '%s': %v", tor.Title, r)
@@ -203,7 +204,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 		log.Printf("GetSearchMovies returned, err: %v", err)
 		if err != nil {
 			log.Printf("Error from GetSearchMovies: %v", err)
-			return nil, err
+			return nil, nil, err
 		}
 		log.Printf("Caching search result for: %s", tor.Title)
 		TMDB_MOVIE_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
@@ -216,7 +217,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	log.Printf("Checking total results for: %s", tor.Title)
 	if tmdbSearchResult.TotalResults == 0 || len(tmdbSearchResult.Results) == 0 {
 		log.Printf("No movie found for: %s (TotalResults: %d, Results length: %d)", tor.Title, tmdbSearchResult.TotalResults, len(tmdbSearchResult.Results))
-		return nil, fmt.Errorf("no movie found for %s", tor.Title)
+		return nil, nil, fmt.Errorf("no movie found for %s", tor.Title)
 	}
 
 	log.Printf("Found %d results, checking DB for first result ID: %d", tmdbSearchResult.TotalResults, tmdbSearchResult.Results[0].ID)
@@ -225,7 +226,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	md, err := m.MetaData(qm.Where("tmdbId = ?", int(tmdbSearchResult.Results[0].ID))).One(ctx, db.DB)
 	log.Printf("DB check completed, err: %v", err)
 	if err == nil {
-		return md, nil
+		return md, nil, nil
 	}
 
 	detailsOptions := map[string]string{
@@ -237,7 +238,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	log.Printf("GetMovieDetails returned, err: %v", err)
 	if err != nil {
 		log.Printf("Error from GetMovieDetails: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Printf("Building metadata object for: %s", tor.Title)
@@ -252,8 +253,6 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	for _, genre := range tmdbDetails.Genres {
 		genresArr = append(genresArr, genre.Name)
 	}
-	// Keep for backward compatibility, but primarily use many-to-many
-	newMd.Genres = null.StringFrom(strings.Join(genresArr, ","))
 
 	log.Printf("Setting IDs...")
 	newMd.ImdbId = null.StringFrom(tmdbDetails.IMDbID)
@@ -280,8 +279,10 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 
 	log.Printf("Processing credits cast...")
 	var actors []string
-	for _, actor := range tmdbDetails.Credits.Cast {
-		actors = append(actors, actor.Name)
+	if tmdbDetails.Credits.MovieCredits != nil {
+		for _, actor := range tmdbDetails.Credits.Cast {
+			actors = append(actors, actor.Name)
+		}
 	}
 	newMd.Actors = null.StringFrom(strings.Join(actors, ","))
 
@@ -293,7 +294,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 	newMd.Country = null.StringFrom(strings.Join(countries, ","))
 
 	log.Printf("Successfully created metadata for: %s", tor.Title)
-	return newMd, nil
+	return newMd, genresArr, nil
 }
 
 //type MediaEntry interface {
@@ -371,7 +372,7 @@ func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *serve
 		}
 	} else {
 		s.BroadcastMessage(fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, tor.Title))
-		newMd, err := GetMediaFromTMDB(tmdbClient, *tor)
+		newMd, genres, err := GetMediaFromTMDB(tmdbClient, *tor)
 		if HandleMetaDataGettingErr(*file, err) {
 			return
 		}
@@ -386,9 +387,8 @@ func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *serve
 			}
 
 			// Save genres in many-to-many table
-			if newMd.Genres.Valid && newMd.Genres.String != "" {
-				genreNames := strings.Split(newMd.Genres.String, ",")
-				if err := db.SaveGenresForMetaData(newMd.ID.Int64, genreNames); err != nil {
+			if len(genres) > 0 {
+				if err := db.SaveGenresForMetaData(newMd.ID.Int64, genres); err != nil {
 					log.Printf("Warning: Could not save genres for metadata %d: %v", newMd.ID.Int64, err)
 				}
 			}
@@ -448,7 +448,7 @@ func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *se
 		}
 	} else {
 		s.BroadcastMessage(fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, tor.Title))
-		newMd, err := GetMediaFromTMDB(tmdbClient, *tor)
+		newMd, genres, err := GetMediaFromTMDB(tmdbClient, *tor)
 		if HandleMetaDataGettingErr(*file, err) {
 			return
 		}
@@ -463,9 +463,8 @@ func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *se
 			}
 
 			// Save genres in many-to-many table
-			if newMd.Genres.Valid && newMd.Genres.String != "" {
-				genreNames := strings.Split(newMd.Genres.String, ",")
-				if err := db.SaveGenresForMetaData(newMd.ID.Int64, genreNames); err != nil {
+			if len(genres) > 0 {
+				if err := db.SaveGenresForMetaData(newMd.ID.Int64, genres); err != nil {
 					log.Printf("Warning: Could not save genres for metadata %d: %v", newMd.ID.Int64, err)
 				}
 			}

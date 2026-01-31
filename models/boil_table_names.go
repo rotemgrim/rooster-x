@@ -4,23 +4,25 @@
 package models
 
 var TableNames = struct {
-	Alias        string
-	Episode      string
-	Genre        string
-	MediaFile    string
-	MetaData     string
-	TorrentFile  string
-	User         string
-	UserEpisode  string
-	UserMetaData string
+	Alias         string
+	Episode       string
+	Genre         string
+	MediaFile     string
+	MetaData      string
+	MetaDataGenre string
+	TorrentFile   string
+	User          string
+	UserEpisode   string
+	UserMetaData  string
 }{
-	Alias:        "alias",
-	Episode:      "episode",
-	Genre:        "genre",
-	MediaFile:    "mediaFile",
-	MetaData:     "metaData",
-	TorrentFile:  "torrentFile",
-	User:         "user",
-	UserEpisode:  "userEpisode",
-	UserMetaData: "userMetaData",
+	Alias:         "alias",
+	Episode:       "episode",
+	Genre:         "genre",
+	MediaFile:     "mediaFile",
+	MetaData:      "metaData",
+	MetaDataGenre: "metaDataGenre",
+	TorrentFile:   "torrentFile",
+	User:          "user",
+	UserEpisode:   "userEpisode",
+	UserMetaData:  "userMetaData",
 }

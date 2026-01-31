@@ -725,6 +725,90 @@ func testMetaDatumToManyMetaDataIdMediaFiles(t *testing.T) {
 	}
 }
 
+func testMetaDatumToManyGenreIdGenres(t *testing.T) {
+	var err error
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a MetaDatum
+	var b, c Genre
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, metaDatumDBTypes, true, metaDatumColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize MetaDatum struct: %s", err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = randomize.Struct(seed, &b, genreDBTypes, false, genreColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, genreDBTypes, false, genreColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = tx.Exec("insert into \"metaDataGenre\" (\"metaDataId\", \"genreId\") values (?, ?)", a.ID, b.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tx.Exec("insert into \"metaDataGenre\" (\"metaDataId\", \"genreId\") values (?, ?)", a.ID, c.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := a.GenreIdGenres().All(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bFound, cFound := false, false
+	for _, v := range check {
+		if queries.Equal(v.ID, b.ID) {
+			bFound = true
+		}
+		if queries.Equal(v.ID, c.ID) {
+			cFound = true
+		}
+	}
+
+	if !bFound {
+		t.Error("expected to find b")
+	}
+	if !cFound {
+		t.Error("expected to find c")
+	}
+
+	slice := MetaDatumSlice{&a}
+	if err = a.L.LoadGenreIdGenres(ctx, tx, false, (*[]*MetaDatum)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.GenreIdGenres); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	a.R.GenreIdGenres = nil
+	if err = a.L.LoadGenreIdGenres(ctx, tx, true, &a, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.GenreIdGenres); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	if t.Failed() {
+		t.Logf("%#v", check)
+	}
+}
+
 func testMetaDatumToManyMetaDataIdTorrentFiles(t *testing.T) {
 	var err error
 	ctx := context.Background()
@@ -1632,6 +1716,234 @@ func testMetaDatumToManyRemoveOpMetaDataIdMediaFiles(t *testing.T) {
 	}
 }
 
+func testMetaDatumToManyAddOpGenreIdGenres(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a MetaDatum
+	var b, c, d, e Genre
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*Genre{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, genreDBTypes, false, strmangle.SetComplement(genrePrimaryKeyColumns, genreColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreignersSplitByInsertion := [][]*Genre{
+		{&b, &c},
+		{&d, &e},
+	}
+
+	for i, x := range foreignersSplitByInsertion {
+		err = a.AddGenreIdGenres(ctx, tx, i != 0, x...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		first := x[0]
+		second := x[1]
+
+		if first.R.MetaDataIdMetaData[0] != &a {
+			t.Error("relationship was not added properly to the slice")
+		}
+		if second.R.MetaDataIdMetaData[0] != &a {
+			t.Error("relationship was not added properly to the slice")
+		}
+
+		if a.R.GenreIdGenres[i*2] != first {
+			t.Error("relationship struct slice not set to correct value")
+		}
+		if a.R.GenreIdGenres[i*2+1] != second {
+			t.Error("relationship struct slice not set to correct value")
+		}
+
+		count, err := a.GenreIdGenres().Count(ctx, tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64((i + 1) * 2); count != want {
+			t.Error("want", want, "got", count)
+		}
+	}
+}
+
+func testMetaDatumToManySetOpGenreIdGenres(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a MetaDatum
+	var b, c, d, e Genre
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*Genre{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, genreDBTypes, false, strmangle.SetComplement(genrePrimaryKeyColumns, genreColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err = a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.SetGenreIdGenres(ctx, tx, false, &b, &c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := a.GenreIdGenres().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	err = a.SetGenreIdGenres(ctx, tx, true, &d, &e)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = a.GenreIdGenres().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	// The following checks cannot be implemented since we have no handle
+	// to these when we call Set(). Leaving them here as wishful thinking
+	// and to let people know there's dragons.
+	//
+	// if len(b.R.MetaDataIdMetaData) != 0 {
+	// 	t.Error("relationship was not removed properly from the slice")
+	// }
+	// if len(c.R.MetaDataIdMetaData) != 0 {
+	// 	t.Error("relationship was not removed properly from the slice")
+	// }
+	if d.R.MetaDataIdMetaData[0] != &a {
+		t.Error("relationship was not added properly to the slice")
+	}
+	if e.R.MetaDataIdMetaData[0] != &a {
+		t.Error("relationship was not added properly to the slice")
+	}
+
+	if a.R.GenreIdGenres[0] != &d {
+		t.Error("relationship struct slice not set to correct value")
+	}
+	if a.R.GenreIdGenres[1] != &e {
+		t.Error("relationship struct slice not set to correct value")
+	}
+}
+
+func testMetaDatumToManyRemoveOpGenreIdGenres(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a MetaDatum
+	var b, c, d, e Genre
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, metaDatumDBTypes, false, strmangle.SetComplement(metaDatumPrimaryKeyColumns, metaDatumColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*Genre{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, genreDBTypes, false, strmangle.SetComplement(genrePrimaryKeyColumns, genreColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.AddGenreIdGenres(ctx, tx, true, foreigners...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := a.GenreIdGenres().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 4 {
+		t.Error("count was wrong:", count)
+	}
+
+	err = a.RemoveGenreIdGenres(ctx, tx, foreigners[:2]...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = a.GenreIdGenres().Count(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	if len(b.R.MetaDataIdMetaData) != 0 {
+		t.Error("relationship was not removed properly from the slice")
+	}
+	if len(c.R.MetaDataIdMetaData) != 0 {
+		t.Error("relationship was not removed properly from the slice")
+	}
+	if d.R.MetaDataIdMetaData[0] != &a {
+		t.Error("relationship was not added properly to the foreign struct")
+	}
+	if e.R.MetaDataIdMetaData[0] != &a {
+		t.Error("relationship was not added properly to the foreign struct")
+	}
+
+	if len(a.R.GenreIdGenres) != 2 {
+		t.Error("should have preserved two relationships")
+	}
+
+	// Removal doesn't do a stable deletion for performance so we have to flip the order
+	if a.R.GenreIdGenres[1] != &d {
+		t.Error("relationship to d should have been preserved")
+	}
+	if a.R.GenreIdGenres[0] != &e {
+		t.Error("relationship to e should have been preserved")
+	}
+}
+
 func testMetaDatumToManyAddOpMetaDataIdTorrentFiles(t *testing.T) {
 	var err error
 
@@ -2208,7 +2520,7 @@ func testMetaDataSelect(t *testing.T) {
 }
 
 var (
-	metaDatumDBTypes = map[string]string{`ID`: `INTEGER`, `Title`: `VARCHAR(255)`, `ImdbId`: `VARCHAR(40)`, `TMDBID`: `INTEGER`, `Genres`: `TEXT`, `Languages`: `TEXT`, `Country`: `TEXT`, `Votes`: `INTEGER`, `Series`: `BOOLEAN`, `Rating`: `REAL`, `Runtime`: `INTEGER`, `Year`: `INTEGER`, `Poster`: `TEXT`, `Metascore`: `TEXT`, `Plot`: `TEXT`, `Director`: `VARCHAR`, `Writer`: `VARCHAR`, `Actors`: `TEXT`, `Released`: `VARCHAR(255)`, `ReleasedUnix`: `INTEGER`, `Trailer`: `TEXT`, `Type`: `VARCHAR(40)`, `Name`: `VARCHAR(255)`}
+	metaDatumDBTypes = map[string]string{`ID`: `INTEGER`, `Title`: `VARCHAR(255)`, `ImdbId`: `VARCHAR(40)`, `TMDBID`: `INTEGER`, `Languages`: `TEXT`, `Country`: `TEXT`, `Votes`: `INTEGER`, `Series`: `BOOLEAN`, `Rating`: `REAL`, `Runtime`: `INTEGER`, `Year`: `INTEGER`, `Poster`: `TEXT`, `Metascore`: `TEXT`, `Plot`: `TEXT`, `Director`: `VARCHAR`, `Writer`: `VARCHAR`, `Actors`: `TEXT`, `Released`: `VARCHAR(255)`, `ReleasedUnix`: `INTEGER`, `Trailer`: `TEXT`, `Type`: `VARCHAR(40)`, `Name`: `VARCHAR(255)`}
 	_                = bytes.MinRead
 )
 

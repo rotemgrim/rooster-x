@@ -107,6 +107,14 @@ func checkIfMigrationNeeded(db *sql.DB) (bool, error) {
 		return false, nil
 	}
 
+	// Check if genres column exists (it may have been removed)
+	var colCount int
+	err = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('metaData') WHERE name='genres'`).Scan(&colCount)
+	if err != nil || colCount == 0 {
+		// Column doesn't exist, no migration needed
+		return false, nil
+	}
+
 	// Check if metaData has genres to migrate
 	err = db.QueryRow(`SELECT COUNT(*) FROM metaData WHERE genres IS NOT NULL AND genres != ''`).Scan(&count)
 	if err != nil {
@@ -121,11 +129,25 @@ func checkIfMigrationNeeded(db *sql.DB) (bool, error) {
 func migrateExistingGenreData(db *sql.DB) error {
 	log.Println("Migrating existing genre data...")
 
-	// Get all metadata with genres
-	ctx := context.Background()
-	metas, err := models.MetaData(models.MetaDatumWhere.Genres.IsNotNull()).All(ctx, db)
+	// Use raw SQL since the Genres column may not exist in the model anymore
+	rows, err := db.Query(`SELECT id, genres FROM metaData WHERE genres IS NOT NULL AND genres != ''`)
 	if err != nil {
 		return fmt.Errorf("could not get metadata: %w", err)
+	}
+	defer rows.Close()
+
+	type metaGenre struct {
+		id     int64
+		genres string
+	}
+	var metas []metaGenre
+	for rows.Next() {
+		var m metaGenre
+		if err := rows.Scan(&m.id, &m.genres); err != nil {
+			log.Printf("Error scanning row: %v", err)
+			continue
+		}
+		metas = append(metas, m)
 	}
 
 	log.Printf("Found %d metadata records with genres to migrate", len(metas))
@@ -141,12 +163,12 @@ func migrateExistingGenreData(db *sql.DB) error {
 
 	migrated := 0
 	for _, meta := range metas {
-		if !meta.Genres.Valid || meta.Genres.String == "" {
+		if meta.genres == "" {
 			continue
 		}
 
 		// Split genres by comma
-		genreNames := strings.Split(meta.Genres.String, ",")
+		genreNames := strings.Split(meta.genres, ",")
 		for _, genreName := range genreNames {
 			genreName = strings.TrimSpace(strings.ToLower(genreName))
 			if genreName == "" {
@@ -179,10 +201,10 @@ func migrateExistingGenreData(db *sql.DB) error {
 			// Create junction record
 			_, err := tx.Exec(
 				`INSERT OR IGNORE INTO metaDataGenre (metaDataId, genreId) VALUES (?, ?)`,
-				meta.ID.Int64, genreId,
+				meta.id, genreId,
 			)
 			if err != nil {
-				log.Printf("Error linking genre '%s' to metadata %d: %v", genreName, meta.ID.Int64, err)
+				log.Printf("Error linking genre '%s' to metadata %d: %v", genreName, meta.id, err)
 			}
 		}
 

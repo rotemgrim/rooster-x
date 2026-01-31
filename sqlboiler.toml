@@ -5,3 +5,4 @@ pkgname = "models"
 wipe = false
 add-global-variants = true
 add-panic-variants = true
+blacklist = ["sqlite_stat1", "sqlite_stat4"]
