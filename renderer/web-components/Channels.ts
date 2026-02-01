@@ -236,6 +236,8 @@ class RoosterChannels extends LitElement {
     @state() private hideBroken = false;
 
     private static BROKEN_CHANNELS_KEY = 'rooster-broken-channels';
+    private static SETTINGS_KEY = 'rooster-settings';
+    private lastChannelUri: string | null = null;
     @query("#video") private video: HTMLVideoElement;
     @query("#list") private list: HTMLUListElement;
 
@@ -246,7 +248,33 @@ class RoosterChannels extends LitElement {
             throw new Error("HLS is not supported");
         }
         this.loadBrokenChannels();
+        this.loadSettings();
         this.loadChannels();
+    }
+
+    private loadSettings() {
+        const stored = localStorage.getItem(RoosterChannels.SETTINGS_KEY);
+        if (stored) {
+            try {
+                const settings = JSON.parse(stored);
+                this.hideBroken = settings.hideBroken ?? false;
+                this.isGridView = settings.isGridView ?? false;
+                this.selectedCategory = settings.selectedCategory ?? ChannelCategory.ALL;
+                this.lastChannelUri = settings.lastChannelUri ?? null;
+            } catch (e) {
+                console.error('Failed to load settings:', e);
+            }
+        }
+    }
+
+    private saveSettings() {
+        const settings = {
+            hideBroken: this.hideBroken,
+            isGridView: this.isGridView,
+            selectedCategory: this.selectedCategory,
+            lastChannelUri: this.lastChannelUri
+        };
+        localStorage.setItem(RoosterChannels.SETTINGS_KEY, JSON.stringify(settings));
     }
 
     private loadBrokenChannels() {
@@ -275,6 +303,21 @@ class RoosterChannels extends LitElement {
         this.saveBrokenChannels();
     }
 
+    private toggleGridView() {
+        this.isGridView = !this.isGridView;
+        this.saveSettings();
+    }
+
+    private toggleHideBroken() {
+        this.hideBroken = !this.hideBroken;
+        this.saveSettings();
+    }
+
+    private selectCategory(category: ChannelCategory) {
+        this.selectedCategory = category;
+        this.saveSettings();
+    }
+
     protected updated(_changedProperties: PropertyValues) {
         super.updated(_changedProperties);
         this.focusOnChannels();
@@ -299,6 +342,13 @@ class RoosterChannels extends LitElement {
             }
         }
         
+        this.lastChannelUri = li.getAttribute('rel');
+        this.saveSettings();
+        this.playChannel(channelURI);
+    }
+
+    private playChannel(uri: string) {
+        let channelURI = uri;
         channelURI = channelURI.replace(":80/", ":80/live/");
 
         if (!channelURI.endsWith(".m3u8")) {
@@ -356,10 +406,10 @@ class RoosterChannels extends LitElement {
             </div>
             <div class="sidebar">
                 <div class="category-filter">
-                    <button class="view-toggle" @click="${() => this.isGridView = !this.isGridView}" title="${this.isGridView ? 'List View' : 'Grid View'}">
+                    <button class="view-toggle" @click="${() => this.toggleGridView()}" title="${this.isGridView ? 'List View' : 'Grid View'}">
                         ${this.isGridView ? '☰' : '⊞'}
                     </button>
-                    <button class="view-toggle" @click="${() => this.hideBroken = !this.hideBroken}" title="${this.hideBroken ? 'Show Broken' : 'Hide Broken'}">
+                    <button class="view-toggle" @click="${() => this.toggleHideBroken()}" title="${this.hideBroken ? 'Show Broken' : 'Hide Broken'}">
                         ${this.hideBroken ? '👁️' : '🚫'}
                     </button>
                     ${getChannelCategories().map(category => {
@@ -369,7 +419,7 @@ class RoosterChannels extends LitElement {
                         return html`
                             <button 
                                 class="category-btn ${category === this.selectedCategory ? 'active' : ''}"
-                                @click="${() => this.selectedCategory = category}"
+                                @click="${() => this.selectCategory(category)}"
                                 title="${CategoryLabels[category]}">
                                 <span class="icon">${CategoryIcons[category]}</span>
                                 <span class="label">${CategoryLabels[category]}</span>
@@ -445,6 +495,13 @@ class RoosterChannels extends LitElement {
             console.log("channels", channels);
             this.channels = JSON.parse(channels).channels;
             this.isLoading = false;
+            
+            // Auto-play last channel after render
+            if (this.lastChannelUri) {
+                requestAnimationFrame(() => {
+                    this.playChannel(this.lastChannelUri!);
+                });
+            }
         });
     }
 }
