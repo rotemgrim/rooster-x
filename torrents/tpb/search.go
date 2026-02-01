@@ -59,7 +59,7 @@ var searches = Searches{
 
 var proxyList = []ProxyUrl{
 	{Url: "https://thepiratebay.org", SiteType: Original},
-	//{Url: "https://thepiratebay.xyz", SiteType: Proxy},
+	{Url: "https://thepiratebay.xyz", SiteType: Proxy},
 	//{Url: "https://thepiratebay10.info", SiteType: Proxy},
 	//{Url: "https://thepiratebay0.org", SiteType: Proxy},
 	//{Url: "https://pirateproxylive.org", SiteType: Proxy},
@@ -87,7 +87,7 @@ func buildSearchURL(proxy ProxyUrl, in string) (string, error) {
 	return URL.String(), nil
 }
 
-func parseSearchPage(html string) ([]Torrent, error) {
+func parseSearchPage(html string, siteType PBType) ([]Torrent, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
 		return nil, fmt.Errorf("could not load html response into GoQuery: %v", err)
@@ -95,9 +95,12 @@ func parseSearchPage(html string) ([]Torrent, error) {
 
 	// torrents stores a list of torrents made up of the torrent description url,
 	// its name, its size, its seeders, and its leechers
-
-	//torrents := findTorrentsInHtmlProxy(doc)
-	torrents := findTorrentsInHtmlOriginal(doc)
+	var torrents []Torrent
+	if siteType == Original {
+		torrents = findTorrentsInHtmlOriginal(doc)
+	} else {
+		torrents = findTorrentsInHtmlProxy(doc)
+	}
 
 	log.Println("found torrents: ", len(torrents))
 	return torrents, nil
@@ -143,7 +146,7 @@ func Lookup(timeout time.Duration) ([]Torrent, error) {
 
 	// Create channels for communicating http response and termination
 	// event in case of error.
-	htmlCh := make(chan string)
+	htmlCh := make(chan htmlResult)
 	htmlErrCh := make(chan struct{})
 
 	// For each tpb proxy, launch the same request through a new
@@ -168,8 +171,8 @@ func Lookup(timeout time.Duration) ([]Torrent, error) {
 			msg := fmt.Sprintf("Fetching torrents from pirate bay [%d/%d] %s", i, len(searchesList), search)
 			log.Println(msg)
 
-			//go fetchUrlUsingGet(ctx, fullURL, htmlCh, htmlErrCh)
-			go fetchUrlUsingChromeDP(ctx, fullURL, htmlCh, htmlErrCh)
+			//go fetchUrlUsingGet(ctx, fullURL, proxy.SiteType, htmlCh, htmlErrCh)
+			go fetchUrlUsingChromeDP(ctx, fullURL, proxy.SiteType, htmlCh, htmlErrCh)
 		}
 	}
 
@@ -181,8 +184,8 @@ func Lookup(timeout time.Duration) ([]Torrent, error) {
 	for i := 0; i < len(proxyList)*4; i++ {
 		select {
 		case <-htmlErrCh:
-		case html := <-htmlCh:
-			tmpTorrents, err := parseSearchPage(html)
+		case result := <-htmlCh:
+			tmpTorrents, err := parseSearchPage(result.html, result.siteType)
 			if err != nil {
 				return nil, fmt.Errorf("error while parsing torrent search results: %v", err)
 			}
@@ -199,7 +202,12 @@ func Lookup(timeout time.Duration) ([]Torrent, error) {
 	return torrents, nil
 }
 
-func fetchUrlUsingGet(ctx context.Context, url string, htmlCh chan string, htmlErrCh chan struct{}) {
+type htmlResult struct {
+	html     string
+	siteType PBType
+}
+
+func fetchUrlUsingGet(ctx context.Context, url string, siteType PBType, htmlCh chan htmlResult, htmlErrCh chan struct{}) {
 	// fetch the html page using golang standard library
 	log.Println(url)
 	res, err := http.Get(url)
@@ -216,10 +224,10 @@ func fetchUrlUsingGet(ctx context.Context, url string, htmlCh chan string, htmlE
 		return
 	}
 	html := string(content)
-	htmlCh <- html
+	htmlCh <- htmlResult{html: html, siteType: siteType}
 }
 
-func fetchUrlUsingChromeDP(ctx context.Context, url string, htmlCh chan string, htmlErrCh chan struct{}) {
+func fetchUrlUsingChromeDP(ctx context.Context, url string, siteType PBType, htmlCh chan htmlResult, htmlErrCh chan struct{}) {
 	html, _, err := Fetch(ctx, url, nil)
 	if err != nil {
 		log.Println("could not download page: %w", err)
@@ -232,7 +240,7 @@ func fetchUrlUsingChromeDP(ctx context.Context, url string, htmlCh chan string, 
 		htmlErrCh <- struct{}{}
 		return
 	}
-	htmlCh <- html
+	htmlCh <- htmlResult{html: html, siteType: siteType}
 }
 
 func findTorrentsInHtmlProxy(doc *goquery.Document) []Torrent {

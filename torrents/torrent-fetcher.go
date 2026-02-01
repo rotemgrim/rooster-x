@@ -83,11 +83,7 @@ func fetchTorrentsFromSearch() {
 			continue
 		}
 
-		timeTemplate := "2006-01-02 15:04:05"
-		uploadedAt, err := time.Parse(timeTemplate, torrent.UplDate)
-		if err != nil {
-			uploadedAt = time.Now()
-		}
+		uploadedAt := parseUploadDate(torrent.UplDate)
 
 		// save the torrent to the database
 		dbTor := &m.TorrentFile{
@@ -119,6 +115,52 @@ func fetchTorrentsFromSearch() {
 		}
 		log.Println("Adding to DB: ", tor.Title)
 	}
+}
+
+// parseUploadDate handles various date formats from TPB sites:
+// - "2006-01-02 15:04:05" (original site)
+// - "Today 09:35" or "Today&nbsp;09:35" (proxy site)
+// - "Y-day 16:20" or "Y-day&nbsp;16:20" (proxy site)
+// - "01-25 14:30" (month-day format, proxy site)
+func parseUploadDate(dateStr string) time.Time {
+	// Normalize: replace &nbsp; with space
+	dateStr = strings.ReplaceAll(dateStr, "\u00a0", " ")
+	dateStr = strings.ReplaceAll(dateStr, "&nbsp;", " ")
+	dateStr = strings.TrimSpace(dateStr)
+
+	now := time.Now()
+
+	// Try original format first: "2006-01-02 15:04:05"
+	if t, err := time.Parse("2006-01-02 15:04:05", dateStr); err == nil {
+		return t
+	}
+
+	// Handle "Today HH:MM"
+	if strings.HasPrefix(dateStr, "Today") {
+		timeStr := strings.TrimPrefix(dateStr, "Today")
+		timeStr = strings.TrimSpace(timeStr)
+		if t, err := time.Parse("15:04", timeStr); err == nil {
+			return time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), 0, 0, now.Location())
+		}
+	}
+
+	// Handle "Y-day HH:MM" (yesterday)
+	if strings.HasPrefix(dateStr, "Y-day") {
+		timeStr := strings.TrimPrefix(dateStr, "Y-day")
+		timeStr = strings.TrimSpace(timeStr)
+		if t, err := time.Parse("15:04", timeStr); err == nil {
+			yesterday := now.AddDate(0, 0, -1)
+			return time.Date(yesterday.Year(), yesterday.Month(), yesterday.Day(), t.Hour(), t.Minute(), 0, 0, now.Location())
+		}
+	}
+
+	// Handle "MM-DD HH:MM" format (assumes current year)
+	if t, err := time.Parse("01-02 15:04", dateStr); err == nil {
+		return time.Date(now.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), 0, 0, now.Location())
+	}
+
+	// Fallback to now
+	return now
 }
 
 func magnetInfohashPrefix(magnet string) string {
