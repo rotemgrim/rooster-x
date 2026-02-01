@@ -33,7 +33,7 @@ export class FiltersPage extends LitElement {
     private filterChange(e) {
         const addToFilterConfig = {};
         addToFilterConfig[e.target.id] = e.target.checked;
-        this.rooster.filterConfig = Object.assign(this.rooster._filterConfig, addToFilterConfig);
+        this.rooster.filterConfig = {...this.rooster._filterConfig, ...addToFilterConfig};
     }
 
     private filterGenreChange(e) {
@@ -52,7 +52,7 @@ export class FiltersPage extends LitElement {
         }
         console.log("selectedArr", selectedArr);
         addToFilterConfig[e.target.id] = selectedArr;
-        this.rooster.filterConfig = Object.assign(this.rooster._filterConfig, addToFilterConfig);
+        this.rooster.filterConfig = {...this.rooster._filterConfig, ...addToFilterConfig};
     }
 
     private orderDirectrionChange(e) {

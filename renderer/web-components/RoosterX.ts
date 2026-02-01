@@ -383,19 +383,21 @@ export class RoosterX extends LitElement {
     }
 
     set filterConfig(data: any) {
+        // Capture old genres BEFORE updating state/localStorage
+        const oldGenres = [...(this._filterConfig?.noMediaWithoutGenres || [])];
+        const newGenres = data.noMediaWithoutGenres || [];
+        const genresChanged = JSON.stringify([...oldGenres].sort()) !== JSON.stringify([...newGenres].sort());
+        
+        console.log("filterConfig setter - oldGenres:", oldGenres, "newGenres:", newGenres, "genresChanged:", genresChanged);
+        
         this._filterConfig = data;
         // save filter config to local storage
         const localStorageKey = this.getLocalStorageKey("filterConfig");
         localStorage.setItem(localStorageKey, JSON.stringify(data));
         
-        // If genres changed, refetch from backend (uses junction table for efficiency)
-        // Otherwise just refresh with existing data
-        const oldGenres = this.filterConfig?.noMediaWithoutGenres || [];
-        const newGenres = data.noMediaWithoutGenres || [];
-        const genresChanged = JSON.stringify(oldGenres.sort()) !== JSON.stringify(newGenres.sort());
-        
         if (genresChanged) {
             // Refetch data from backend with new genre filter
+            console.log("Genres changed! Calling getMedia with genres:", this._filterConfig.noMediaWithoutGenres);
             this.getMedia();
         } else {
             // Just refresh with existing data (local filtering)
