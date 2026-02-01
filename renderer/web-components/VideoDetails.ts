@@ -22,6 +22,8 @@ export class VideoDetails extends LitElement {
     @property() public _searchResults: any[] = [];
     @property() public searchTitle: string;
     @property() public isLoading: boolean = false;
+    @property() public isLoadingRating: boolean = false;
+    @property() public isLoadingTrailer: boolean = false;
 
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
@@ -106,27 +108,37 @@ export class VideoDetails extends LitElement {
     }
 
     private getYouTubeTrailer() {
+        this.isLoadingTrailer = true;
         IpcService.getYouTubeTrailer(this.video.id, this.video.title, this.video.year)
             .then(res => {
                 if (res) {
                     console.log("trailer", res);
                     this.video.trailer = res as string;
+                    this.isLoadingTrailer = false;
                     this.requestUpdate();
                 }
             })
-            .catch(console.log);
+            .catch(err => {
+                console.log(err);
+                this.isLoadingTrailer = false;
+            })
     }
 
     private getIMDBRatingVotes() {
+        this.isLoadingRating = true;
         IpcService.getIMDBRating(this.video.id, this.video.imdbId)
             .then(res => {
                 if (res) {
                     this.video.rating = (res as {Score: number}).Score;
                     this.video.votes = (res as {Votes: number}).Votes;
+                    this.isLoadingRating = false;
                     this.requestUpdate();
                 }
             })
-            .catch(console.log);
+            .catch(err => {
+                console.log(err);
+                this.isLoadingRating = false;
+            })
     }
 
     private setMainDetailsFocus(event) {
@@ -361,7 +373,7 @@ export class VideoDetails extends LitElement {
                         <span class="votes">
                             ${this.formatNumber(this.video.votes)}
                             <small>/ votes </small>
-                            &nbsp <i class="material-icons" @click="${this.getIMDBRatingVotes}">refresh</i>
+                            &nbsp <i class="material-icons ${this.isLoadingRating ? 'rotate-center' : ''}" @click="${this.getIMDBRatingVotes}">refresh</i>
                         </span>
                     </div>
 
@@ -396,7 +408,7 @@ export class VideoDetails extends LitElement {
                                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                           allowfullscreen></iframe>
                                   `
-                                : ""}<i class="material-icons" @click="${this.getYouTubeTrailer}">refresh</i>
+                                : ""}<i class="material-icons ${this.isLoadingTrailer ? 'rotate-center' : ''}" @click="${this.getYouTubeTrailer}">refresh</i>
                         </div>
                     </div>
 
