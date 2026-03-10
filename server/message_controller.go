@@ -583,10 +583,16 @@ func (s *Server) GetImdbRating(c *websocket.Conn, req PayloadRequest) {
 	imdbId := req.Data.(map[string]interface{})["imdbId"].(string)
 	metaDataId := int64(req.Data.(map[string]interface{})["metaDataId"].(float64))
 
+	// Try IMDB first, then fall back to TMDB
 	rating, err := GetImdbRatingsFromImdb(imdbId)
-	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not get imdb rating %s", err))
-		return
+	if err != nil || rating.Score < 0 {
+		log.Printf("IMDB scraping failed for %s, trying TMDB fallback", imdbId)
+		rating, err = GetRatingsFromTMDB(imdbId)
+		if err != nil {
+			transmitPromiseReject(c, req, fmt.Sprintf("could not get rating from IMDB or TMDB: %s", err))
+			return
+		}
+		log.Printf("Got rating from TMDB for %s: %.1f", imdbId, rating.Score)
 	}
 
 	// update rating in db

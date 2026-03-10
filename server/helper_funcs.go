@@ -10,12 +10,14 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/db"
 	m "go-poc/models"
+	"go-poc/torrents/tpb"
 	"io"
 	"log"
 	"net/http"
 	url2 "net/url"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 func transmitPromiseResponse(c *websocket.Conn, req PayloadRequest, data interface{}) {
@@ -86,55 +88,110 @@ func GetYouTubeTrailer(title string, year int) (string, error) {
 }
 
 type ImdbRating struct {
-	Score float64
-	Votes int64
+	Score  float64
+	Votes  int64
+	Source string
+}
+
+var tmdbApiKey string
+
+func SetTmdbApiKey(key string) {
+	tmdbApiKey = key
+}
+
+type TMDBFindResponse struct {
+	MovieResults []struct {
+		ID          int64   `json:"id"`
+		VoteAverage float64 `json:"vote_average"`
+		VoteCount   int64   `json:"vote_count"`
+	} `json:"movie_results"`
+	TVResults []struct {
+		ID          int64   `json:"id"`
+		VoteAverage float64 `json:"vote_average"`
+		VoteCount   int64   `json:"vote_count"`
+	} `json:"tv_results"`
+}
+
+func GetRatingsFromTMDB(imdbId string) (ImdbRating, error) {
+	if tmdbApiKey == "" {
+		return ImdbRating{}, fmt.Errorf("TMDB API key not set")
+	}
+
+	url := fmt.Sprintf("https://api.themoviedb.org/3/find/%s?api_key=%s&external_source=imdb_id", imdbId, tmdbApiKey)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return ImdbRating{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return ImdbRating{}, fmt.Errorf("TMDB API returned status %d", resp.StatusCode)
+	}
+
+	var result TMDBFindResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return ImdbRating{}, err
+	}
+
+	// Check movie results first
+	if len(result.MovieResults) > 0 {
+		return ImdbRating{
+			Score:  result.MovieResults[0].VoteAverage,
+			Votes:  result.MovieResults[0].VoteCount,
+			Source: "tmdb",
+		}, nil
+	}
+
+	// Check TV results
+	if len(result.TVResults) > 0 {
+		return ImdbRating{
+			Score:  result.TVResults[0].VoteAverage,
+			Votes:  result.TVResults[0].VoteCount,
+			Source: "tmdb",
+		}, nil
+	}
+
+	return ImdbRating{}, fmt.Errorf("no results found in TMDB for %s", imdbId)
 }
 
 func GetImdbRatingsFromImdb(imdbId string) (ImdbRating, error) {
-	url := fmt.Sprintf("https://www.imdb.com/title/%s/", imdbId)
+	imdbUrl := fmt.Sprintf("https://www.imdb.com/title/%s/", imdbId)
 
-	// Create a new request
-	req, err := http.NewRequest("GET", url, nil)
+	// Use chromedp (headless browser) to bypass AWS WAF JavaScript challenge
+	log.Printf("Fetching IMDB rating for %s using chromedp", imdbId)
+	ctx := context.Background()
+	html, err := tpb.FetchWaitFor(ctx, imdbUrl, `script[type="application/ld+json"]`, 30*time.Second)
 	if err != nil {
-		log.Println("Error creating request:", err)
+		log.Printf("Error fetching IMDB page with chromedp for %s: %v", imdbId, err)
 		return ImdbRating{}, err
 	}
 
-	// Set the User-Agent header
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36")
+	log.Printf("IMDB chromedp response length for %s: %d", imdbId, len(html))
 
-	// Perform the request
-	client := &http.Client{}
-	response, err := client.Do(req)
-	if err != nil {
-		log.Println("Error fetching imdb page:", err)
-		return ImdbRating{}, err
-	}
-	defer response.Body.Close()
+	return parseImdbRating(imdbId, html)
+}
 
-	text, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Println("Error reading imdb page:", err)
-		return ImdbRating{}, err
-	}
-
-	//log.Printf("imdb url %s\n", url)
-	//log.Printf("response text for imdb %s\n", text)
-
+func parseImdbRating(imdbId string, html string) (ImdbRating, error) {
 	ratingValuePattern := regexp.MustCompile(`"aggregateRating":\{"@type":"AggregateRating".*?"ratingValue":(\d+(\.\d+)?)`)
 	ratingCountPattern := regexp.MustCompile(`"aggregateRating":\{"@type":"AggregateRating".*?"ratingCount":(\d+)`)
 
 	// Find matches
-	ratingValueMatch := ratingValuePattern.FindStringSubmatch(string(text))
-	ratingCountMatch := ratingCountPattern.FindStringSubmatch(string(text))
+	ratingValueMatch := ratingValuePattern.FindStringSubmatch(html)
+	ratingCountMatch := ratingCountPattern.FindStringSubmatch(html)
 
 	// Extract values if matches are found
 	var ratingValue, ratingCount string
 	if len(ratingValueMatch) > 1 {
 		ratingValue = ratingValueMatch[1]
+	} else {
+		log.Printf("IMDB rating value not found for %s, response length: %d", imdbId, len(html))
+		return ImdbRating{}, fmt.Errorf("rating value not found in IMDB page for %s", imdbId)
 	}
 	if len(ratingCountMatch) > 1 {
 		ratingCount = ratingCountMatch[1]
+	} else {
+		log.Printf("IMDB rating count not found for %s", imdbId)
 	}
 
 	score, err := strconv.ParseFloat(ratingValue, 63)
@@ -148,8 +205,9 @@ func GetImdbRatingsFromImdb(imdbId string) (ImdbRating, error) {
 	}
 
 	return ImdbRating{
-		Score: score,
-		Votes: votes,
+		Score:  score,
+		Votes:  votes,
+		Source: "imdb",
 	}, nil
 }
 
@@ -164,17 +222,21 @@ func ImdbRatingPoll() {
 		return
 	}
 
-	// Get the ratings
+	// Try IMDB first, then fall back to TMDB
 	rating, err := GetImdbRatingsFromImdb(metaData.ImdbId.String)
-	if err != nil {
-		// update the movie with the rating
-		metaData.Rating = null.Float64From(-2)
-		metaData.Votes = null.Int64From(-2)
-		_, err = metaData.Update(ctx, db.DB, boil.Whitelist("rating", "votes"))
+	if err != nil || rating.Score < 0 {
+		log.Printf("IMDB failed for %s, trying TMDB fallback", metaData.ImdbId.String)
+		rating, err = GetRatingsFromTMDB(metaData.ImdbId.String)
 		if err != nil {
-			log.Println("Error updating metaData with imdb rating:", err)
+			log.Printf("TMDB fallback also failed for %s: %v", metaData.ImdbId.String, err)
+			metaData.Rating = null.Float64From(-2)
+			metaData.Votes = null.Int64From(-2)
+			_, err = metaData.Update(ctx, db.DB, boil.Whitelist("rating", "votes"))
+			if err != nil {
+				log.Println("Error updating metaData with rating:", err)
+			}
+			return
 		}
-		return
 	}
 
 	// Update the movie with the rating

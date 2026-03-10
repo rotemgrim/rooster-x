@@ -79,6 +79,52 @@ func convertCookies(cookies []*network.Cookie) []*http.Cookie {
 	return newCookies
 }
 
+// FetchWaitFor opens a url and waits for a CSS selector to appear before returning the HTML.
+// This is useful for pages with JavaScript challenges (e.g. AWS WAF) that need to complete before content loads.
+func FetchWaitFor(ctx context.Context, url string, waitSelector string, timeout time.Duration) (string, error) {
+	var html string
+
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", true),
+		chromedp.Flag("disable-gpu", true),
+	)
+	allocCtx, allocCancel := chromedp.NewExecAllocator(ctx, opts...)
+	defer allocCancel()
+
+	ctx, cancel := chromedp.NewContext(allocCtx)
+	defer cancel()
+
+	ctx, cancel = context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	actions := []chromedp.Action{
+		chromedp.Emulate(device.Pixel2XL),
+		chromedp.Navigate(url),
+	}
+
+	if waitSelector != "" {
+		actions = append(actions, chromedp.WaitReady(waitSelector, chromedp.ByQuery))
+	} else {
+		actions = append(actions, chromedp.Sleep(5*time.Second))
+	}
+
+	actions = append(actions, chromedp.ActionFunc(func(ctx context.Context) error {
+		node, err := dom.GetDocument().Do(ctx)
+		if err != nil {
+			return err
+		}
+		html, err = dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
+		return err
+	}))
+
+	err := chromedp.Run(ctx, actions...)
+	if err != nil {
+		return "", fmt.Errorf("could not fetch page with wait: %w", err)
+	}
+
+	return html, nil
+}
+
 // setCookies retrieves Go http cookies and sets ChromeDP out of it.
 func setCookies(cookies []*http.Cookie) chromedp.Action {
 	return chromedp.ActionFunc(func(ctx context.Context) error {

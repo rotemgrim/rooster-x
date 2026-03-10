@@ -99,6 +99,7 @@ func onReady() {
 	ServerInstance := server.NewServer("static")
 	tmdbClient, err := tmdb.Init(config.TmdbApiKey)
 	gtmdb.SetLang(config.Lang)
+	server.SetTmdbApiKey(config.TmdbApiKey)
 
 	if err != nil {
 		log.Println("Error initializing tmdb client")
