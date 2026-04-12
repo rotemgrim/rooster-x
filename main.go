@@ -14,11 +14,13 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
 	"github.com/getlantern/systray"
 	"github.com/getlantern/systray/example/icon"
+	"github.com/skratchdot/open-golang/open"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v3"
 )
@@ -236,6 +238,8 @@ func trayInitialize() {
 	mTorrentFetch := systray.AddMenuItem("Fetch Torrents", "Fetch torrents from pirate bay")
 	mRefreshIPTV := systray.AddMenuItem("Refresh IPTV", "Refresh live streams from Xtream")
 	systray.AddSeparator()
+	mOpenLogs := systray.AddMenuItem("Open Logs", "Open the log file")
+	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("❌ Quit", "Quit the whole app")
 
 	go func() {
@@ -258,6 +262,9 @@ func trayInitialize() {
 					}
 					systray.SetIcon(RoosterIcon)
 				}()
+			case <-mOpenLogs.ClickedCh:
+				logPath, _ := filepath.Abs("tmp/rooster.log")
+				open.Run(logPath)
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				return
