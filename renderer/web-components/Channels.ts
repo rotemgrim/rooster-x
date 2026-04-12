@@ -469,15 +469,21 @@ class RoosterChannels extends LitElement {
                     @mouseenter="${this.focusOnChannels}">
                     ${repeat(filteredChannels, (channel) => channel.uri, (channel, index) => {
                         const cleanName = extractCleanChannelName(channel.name);
-                        const iconPath = `/icons/${this.sanitizeFileName(cleanName)}.png`;
+                        const localIconPath = `/icons/${this.sanitizeFileName(cleanName)}.png`;
                         const channelNum = index + 1;
                         const isBroken = this.brokenChannels.has(channel.uri);
                         return html`
                             <li rel="${channel.uri}" data-clean-name="${cleanName}" data-index="${channelNum}" class="${isBroken ? 'not-working' : ''}" title="${channel.name}">
                                 <span class="channel-placeholder">${channelNum}</span>
-                                <img class="channel-logo hidden" src="${iconPath}" alt="" 
-                                    @load="${(e: Event) => this.onLogoLoad(e)}"
-                                    @error="${(e: Event) => this.onLogoError(e)}">
+                                ${channel.logo ? html`
+                                    <img class="channel-logo hidden" src="${channel.logo}" data-fallback="${localIconPath}" alt="" 
+                                        @load="${(e: Event) => this.onLogoLoad(e)}"
+                                        @error="${(e: Event) => this.onLogoError(e)}">
+                                ` : html`
+                                    <img class="channel-logo hidden" src="${localIconPath}" alt="" 
+                                        @load="${(e: Event) => this.onLogoLoad(e)}"
+                                        @error="${(e: Event) => this.onLogoError(e)}">
+                                `}
                                 <span class="channel-name">${cleanName}</span>
                                 <button class="mark-broken-btn" @click="${(e: Event) => this.toggleBrokenChannel(channel.uri, e)}">
                                     ${isBroken ? '✓ Working' : '✗ Broken'}
@@ -538,8 +544,15 @@ class RoosterChannels extends LitElement {
 
     private onLogoError(e: Event) {
         const img = e.target as HTMLImageElement;
-        // Just remove the hidden img, keep the placeholder number
-        img.remove();
+        const fallback = img.getAttribute('data-fallback');
+        if (fallback) {
+            // Primary (stream_icon) failed — try local /icons/ fallback
+            img.removeAttribute('data-fallback');
+            img.src = fallback;
+        } else {
+            // Both sources failed — remove img, keep the placeholder number
+            img.remove();
+        }
     }
 
     private loadChannels() {
