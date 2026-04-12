@@ -25,6 +25,7 @@ func (s *Server) SetRoutes() {
 	s.on("get-episodes", s.GetAllEpisodes)
 	s.on("get-media-files", s.GetMediaFilesByMetaId)
 	s.on("open-external", s.OpenExternal)
+	s.on("open-in-mpv", s.OpenInMPV)
 	s.on("set-watched", s.SetWatched)
 	s.on("get-meta-data-by-file-id", s.GetMetaDataByFileId)
 	s.on("reprocess-genres", s.ReprocessGenresRequest)

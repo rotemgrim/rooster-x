@@ -3,11 +3,15 @@ package server
 import (
 	"embed"
 	"encoding/json"
-	"github.com/gorilla/websocket"
+	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 type Sweeper interface {
@@ -54,6 +58,8 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 		http.Handle("/icons/", http.StripPrefix("/icons/", iconsFS))
 
 		http.HandleFunc("/ws", s.wsHandler)
+		http.HandleFunc("/stream/", streamProxyHandler)
+		http.HandleFunc("/stream-ts/", streamSegmentHandler)
 	}()
 
 	//go func() {
@@ -144,4 +150,126 @@ func (s Server) BroadcastMessage(message string) {
 		}
 		log.Printf("broadcasted message: %s\n", message)
 	}
+}
+
+// streamProxyClient with connection pooling for the stream proxy
+var streamProxyClient = &http.Client{
+	// Don't follow redirects automatically for .m3u8 — we need to capture the redirect target
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
+}
+
+// streamFollowClient follows redirects normally (for .ts segments)
+var streamFollowClient = &http.Client{}
+
+// streamProxyHandler proxies stream requests to the Xtream server to avoid CORS.
+// URL format: /stream/live/{username}/{password}/{stream_id}.m3u8
+func streamProxyHandler(w http.ResponseWriter, r *http.Request) {
+	remotePath := strings.TrimPrefix(r.URL.Path, "/stream/")
+	if remotePath == "" {
+		http.Error(w, "invalid stream path", http.StatusBadRequest)
+		return
+	}
+
+	targetURL := fmt.Sprintf("%s/%s", xtreamServer, remotePath)
+
+	if strings.HasSuffix(r.URL.Path, ".m3u8") {
+		proxyM3U8(w, targetURL)
+	} else {
+		proxyPassthrough(w, targetURL)
+	}
+}
+
+// streamSegmentHandler proxies .ts segment requests to the actual stream host.
+// URL format: /stream-ts/{host}/{path}
+func streamSegmentHandler(w http.ResponseWriter, r *http.Request) {
+	remotePath := strings.TrimPrefix(r.URL.Path, "/stream-ts/")
+	if remotePath == "" {
+		http.Error(w, "invalid segment path", http.StatusBadRequest)
+		return
+	}
+	targetURL := "http://" + remotePath
+	proxyPassthrough(w, targetURL)
+}
+
+func proxyM3U8(w http.ResponseWriter, targetURL string) {
+	// First request may redirect — follow manually to capture the final host
+	resp, err := streamProxyClient.Get(targetURL)
+	if err != nil {
+		log.Println("Stream proxy error:", err)
+		http.Error(w, "failed to fetch stream", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Follow redirect if present
+	finalHost := ""
+	if resp.StatusCode == http.StatusFound || resp.StatusCode == http.StatusMovedPermanently || resp.StatusCode == http.StatusTemporaryRedirect {
+		location := resp.Header.Get("Location")
+		if location != "" {
+			resp2, err := streamFollowClient.Get(location)
+			if err != nil {
+				log.Println("Stream proxy redirect error:", err)
+				http.Error(w, "failed to follow redirect", http.StatusBadGateway)
+				return
+			}
+			resp.Body.Close()
+			resp = resp2
+			// Extract host from the final URL
+			if resp.Request != nil && resp.Request.URL != nil {
+				finalHost = resp.Request.URL.Host
+			}
+		}
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("Stream proxy read error:", err)
+		http.Error(w, "failed to read stream", http.StatusBadGateway)
+		return
+	}
+
+	// Rewrite segment URLs to go through our proxy
+	lines := strings.Split(string(body), "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if strings.Contains(trimmed, "://") {
+			// Absolute URL — proxy through /stream-ts/
+			trimmed = strings.TrimPrefix(trimmed, "http://")
+			trimmed = strings.TrimPrefix(trimmed, "https://")
+			lines[i] = "/stream-ts/" + trimmed
+		} else if finalHost != "" {
+			// Relative/absolute path — prepend the redirected host
+			lines[i] = "/stream-ts/" + finalHost + trimmed
+		}
+	}
+
+	rewritten := []byte(strings.Join(lines, "\n"))
+	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.WriteHeader(http.StatusOK)
+	w.Write(rewritten)
+}
+
+func proxyPassthrough(w http.ResponseWriter, targetURL string) {
+	resp, err := streamFollowClient.Get(targetURL)
+	if err != nil {
+		log.Println("Stream proxy error:", err)
+		http.Error(w, "failed to fetch segment", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
 }

@@ -109,6 +109,7 @@ func onReady() {
 	tmdbClient, err := tmdb.Init(config.TmdbApiKey)
 	gtmdb.SetLang(config.Lang)
 	server.SetTmdbApiKey(config.TmdbApiKey)
+	server.SetXtreamConfig(config.Xtream.Username, config.Xtream.Password, config.Xtream.Server)
 
 	if err != nil {
 		log.Println("Error initializing tmdb client")

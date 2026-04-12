@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 
@@ -312,6 +313,18 @@ func (s *Server) OpenExternal(c *websocket.Conn, req PayloadRequest) {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not open external %s", err))
 	}
 	transmitPromiseResponse(c, req, "Opening external")
+}
+
+func (s *Server) OpenInMPV(c *websocket.Conn, req PayloadRequest) {
+	url := req.Data.(map[string]interface{})["url"].(string)
+	log.Println("Opening in MPV:", url)
+	cmd := exec.Command("mpv", url)
+	err := cmd.Start()
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not open mpv: %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, "Opening in MPV")
 }
 
 func (s *Server) SetWatched(c *websocket.Conn, req PayloadRequest) {
@@ -620,8 +633,33 @@ type Channels struct {
 	Channels []Channel `json:"channels"`
 }
 
+type XtreamStream struct {
+	Num          int         `json:"num"`
+	Name         string      `json:"name"`
+	StreamType   string      `json:"stream_type"`
+	StreamID     int         `json:"stream_id"`
+	StreamIcon   string      `json:"stream_icon"`
+	CategoryID   string      `json:"category_id"`
+	EPGChannelID string      `json:"epg_channel_id"`
+	CustomSid    interface{} `json:"custom_sid"`
+	Added        string      `json:"added"`
+	IsAdult      int         `json:"is_adult"`
+	CategoryIDs  []int       `json:"category_ids"`
+	DirectSource string      `json:"direct_source"`
+	TVArchive    int         `json:"tv_archive"`
+	TVArchiveDur interface{} `json:"tv_archive_duration"`
+	ContainerExt string      `json:"container_extension"`
+}
+
 func (s *Server) GetChannels(c *websocket.Conn, req PayloadRequest) {
 
+	// prefer live_streams.json (Xtream) over m3u_filtered.json
+	if _, err := os.Stat("live_streams.json"); err == nil {
+		s.getChannelsFromXtream(c, req)
+		return
+	}
+
+	// fallback to m3u_filtered.json
 	if _, err := os.Stat("m3u_filtered.json"); os.IsNotExist(err) {
 		if _, err := os.Stat("streams.m3u"); os.IsNotExist(err) {
 			transmitPromiseReject(c, req, fmt.Sprintf("could not get channels %s", err))
@@ -698,6 +736,46 @@ func (s *Server) GetChannels(c *websocket.Conn, req PayloadRequest) {
 	}
 
 	transmitPromiseResponse(c, req, string(file))
+}
+
+func (s *Server) getChannelsFromXtream(c *websocket.Conn, req PayloadRequest) {
+	file, err := os.ReadFile("live_streams.json")
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not read live_streams.json: %s", err))
+		return
+	}
+
+	var streams []XtreamStream
+	if err := json.Unmarshal(file, &streams); err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not parse live_streams.json: %s", err))
+		return
+	}
+
+	var channels Channels
+	for _, stream := range streams {
+		proxyUri := fmt.Sprintf("/stream/live/%s/%s/%d.m3u8", xtreamUsername, xtreamPassword, stream.StreamID)
+		directUri := fmt.Sprintf("%s/live/%s/%s/%d.m3u8", xtreamServer, xtreamUsername, xtreamPassword, stream.StreamID)
+		channels.Channels = append(channels.Channels, Channel{
+			Name:     stream.Name,
+			Uri:      proxyUri,
+			Category: stream.CategoryID,
+			Logo:     stream.StreamIcon,
+			Tags: []struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			}{
+				{Key: "directUrl", Value: directUri},
+			},
+		})
+	}
+
+	result, err := json.Marshal(channels)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not marshal channels: %s", err))
+		return
+	}
+
+	transmitPromiseResponse(c, req, string(result))
 }
 
 type FetchIconRequest struct {

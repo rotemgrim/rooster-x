@@ -186,6 +186,26 @@ class RoosterChannels extends LitElement {
             border-color: #666;
         }
 
+        .mpv-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 1px solid #666;
+            border-radius: 6px;
+            padding: 0.4rem 0.8rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+
+        .mpv-btn:hover {
+            background: rgba(200, 0, 0, 0.8);
+            border-color: #f00;
+        }
+
         .list.grid-view {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
@@ -238,6 +258,7 @@ class RoosterChannels extends LitElement {
     private static BROKEN_CHANNELS_KEY = 'rooster-broken-channels';
     private static SETTINGS_KEY = 'rooster-settings';
     private lastChannelUri: string | null = null;
+    private hls: Hls | null = null;
     @query("#video") private video: HTMLVideoElement;
     @query("#list") private list: HTMLUListElement;
 
@@ -349,18 +370,29 @@ class RoosterChannels extends LitElement {
 
     private playChannel(uri: string) {
         let channelURI = uri;
-        channelURI = channelURI.replace(":80/", ":80/live/");
 
-        if (!channelURI.endsWith(".m3u8")) {
-            channelURI += ".m3u8";
+        // Only transform non-proxy URIs (legacy m3u support)
+        if (!channelURI.startsWith('/stream/')) {
+            channelURI = channelURI.replace(":80/", ":80/live/");
+            if (!channelURI.endsWith(".m3u8")) {
+                channelURI += ".m3u8";
+            }
         }
+
         console.log("channelURI", channelURI);
-        const hls = new Hls();
-        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+
+        // Destroy previous HLS instance to free connections
+        if (this.hls) {
+            this.hls.destroy();
+            this.hls = null;
+        }
+
+        this.hls = new Hls();
+        this.hls.on(Hls.Events.MEDIA_ATTACHED, () => {
             this.video.play();
         });
-        hls.loadSource(channelURI);
-        hls.attachMedia(this.video);
+        this.hls.loadSource(channelURI);
+        this.hls.attachMedia(this.video);
     }
 
     private async fetchIconForChannel(channelName: string, logoUrl: string, li: HTMLElement) {
@@ -401,8 +433,13 @@ class RoosterChannels extends LitElement {
                 return extractCleanChannelName(a.name).localeCompare(extractCleanChannelName(b.name));
             });
         return html`
-            <div class="video-container">
+            <div class="video-container" style="position:relative">
                 <video id="video" controls autoplay></video>
+                ${this.lastChannelUri ? html`
+                    <button class="mpv-btn" @click="${() => this.openInMPV()}" title="Open in MPV player">
+                        ▶ MPV
+                    </button>
+                ` : ''}
             </div>
             <div class="sidebar">
                 <div class="category-filter">
@@ -451,6 +488,21 @@ class RoosterChannels extends LitElement {
                 </ul>
             </div>
         `;
+    }
+
+    private openInMPV() {
+        if (this.lastChannelUri) {
+            // Destroy browser HLS instance to free the connection
+            if (this.hls) {
+                this.hls.destroy();
+                this.hls = null;
+            }
+            // Use the direct Xtream URL for MPV (no CORS in native apps)
+            const channel = this.channels.find(c => c.uri === this.lastChannelUri);
+            const directTag = channel?.tags?.find((t: any) => t.key === 'directUrl');
+            const url = directTag?.value || this.lastChannelUri;
+            IpcService.openInMPV(url);
+        }
     }
 
     public focusOnChannels() {

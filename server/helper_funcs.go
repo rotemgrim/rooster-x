@@ -17,6 +17,7 @@ import (
 	url2 "net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -97,6 +98,14 @@ var tmdbApiKey string
 
 func SetTmdbApiKey(key string) {
 	tmdbApiKey = key
+}
+
+var xtreamUsername, xtreamPassword, xtreamServer string
+
+func SetXtreamConfig(username, password, server string) {
+	xtreamUsername = username
+	xtreamPassword = password
+	xtreamServer = strings.TrimRight(server, "/")
 }
 
 type TMDBFindResponse struct {
