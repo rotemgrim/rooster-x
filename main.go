@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-poc/db"
 	EventBus "go-poc/event-bus"
+	"go-poc/iptv"
 	"go-poc/scheduler"
 	"go-poc/server"
 	gtmdb "go-poc/tmdb"
@@ -22,13 +23,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type XtreamConfig struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	Server   string `yaml:"server"`
+}
+
 type Config struct {
-	TmdbApiKey           string   `yaml:"tmdb_api_key"`
-	Lang                 string   `yaml:"lang"`
-	Directories          []string `yaml:"directories"`
-	FullDirectoriesSweep []string `yaml:"full_directories_sweep"`
-	TorrentsSweep        []string `yaml:"torrents_sweep"`
-	ImdbRatingPoll       string   `yaml:"imdb_rating_poll"`
+	TmdbApiKey           string       `yaml:"tmdb_api_key"`
+	Lang                 string       `yaml:"lang"`
+	Directories          []string     `yaml:"directories"`
+	FullDirectoriesSweep []string     `yaml:"full_directories_sweep"`
+	TorrentsSweep        []string     `yaml:"torrents_sweep"`
+	ImdbRatingPoll       string       `yaml:"imdb_rating_poll"`
+	Xtream               XtreamConfig `yaml:"xtream"`
 }
 
 type App struct {
@@ -36,6 +44,7 @@ type App struct {
 	Server          *server.Server
 	Walker          *walker.Walker
 	TorrentsFetcher *torrents.TorrentFetcher
+	XtreamClient    *iptv.XtreamClient
 }
 
 var app *App
@@ -112,11 +121,14 @@ func onReady() {
 	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org", ServerInstance, tmdbClient)
 
 	// create a new app
+	xtreamClient := iptv.NewXtreamClient(config.Xtream.Username, config.Xtream.Password, config.Xtream.Server)
+
 	app = &App{
 		Scheduler:       schedulerInstance,
 		Server:          ServerInstance,
 		Walker:          WalkerInstance,
 		TorrentsFetcher: TorrentsFetcher,
+		XtreamClient:    xtreamClient,
 	}
 
 	app.Walker.StartWatch()
@@ -179,6 +191,11 @@ torrents_sweep:
     - "30 19 * * *" # Every day at 19:30
 
 imdb_rating_poll: "* * * * *" # Every minute
+
+xtream:
+    username: ""
+    password: ""
+    server: ""
 `)
 
 		// write the default config to the file
@@ -216,6 +233,7 @@ func trayInitialize() {
 	systray.AddSeparator()
 	mSweep := systray.AddMenuItem("Sweep Files", "Run a full sweep on the file system")
 	mTorrentFetch := systray.AddMenuItem("Fetch Torrents", "Fetch torrents from pirate bay")
+	mRefreshIPTV := systray.AddMenuItem("Refresh IPTV", "Refresh live streams from Xtream")
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("❌ Quit", "Quit the whole app")
 
@@ -230,6 +248,15 @@ func trayInitialize() {
 			case <-mTorrentFetch.ClickedCh:
 				systray.SetIcon(icon.Data)
 				go app.TorrentsFetcher.GetTorrents()
+			case <-mRefreshIPTV.ClickedCh:
+				systray.SetIcon(icon.Data)
+				go func() {
+					err := app.XtreamClient.RefreshLiveStreams()
+					if err != nil {
+						log.Println("Error refreshing IPTV:", err)
+					}
+					systray.SetIcon(RoosterIcon)
+				}()
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				return
