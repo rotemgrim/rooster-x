@@ -78,12 +78,43 @@ export class VideoDetails extends LitElement {
     protected firstUpdated(): void {
         this.reloadVideo();
         console.log("firstUpdateed", this.video);
-        if (!this.video.trailer) {
-            this.getYouTubeTrailer();
-        }
-        if (!this.video.rating) {
-            this.getIMDBRatingVotes();
-        }
+        // The grid view ships a slim payload (card-only fields). Fetch the
+        // full record now so detail-only fields like plot, actors, tagline,
+        // backdrop, trailer, imdbId, runtime, etc. are available. The grid
+        // payload only carries: id, title, votes, series, rating, year,
+        // poster, released_unix, type, isWatched, mediaFiles, quality,
+        // resolution, uploadedAt/Date, downloadedAt/Date, trendingCount,
+        // genres.
+        IpcService.getMetaDataById({id: this.video.id})
+            .then((full: any) => {
+                if (!full) return;
+                // Merge into the existing reactive video object so card-side
+                // state (e.g. mediaFiles count) is preserved.
+                Object.assign(this.video, full);
+                // Re-apply poster URL prefix that prepareMedia adds for the
+                // grid view (the by-id endpoint returns the raw TMDB path).
+                if (this.video.poster && !this.video.poster.startsWith("http")) {
+                    this.video.poster = `https://image.tmdb.org/t/p/w300${this.video.poster}`;
+                }
+                if (!this.video.trailer) {
+                    this.getYouTubeTrailer();
+                }
+                if (!this.video.rating) {
+                    this.getIMDBRatingVotes();
+                }
+                this.requestUpdate();
+            })
+            .catch(err => {
+                console.error("Failed to load full metadata for video", this.video.id, err);
+                // Fallback: still kick off trailer/rating fetches based on
+                // what's already on the slim object.
+                if (!this.video.trailer) {
+                    this.getYouTubeTrailer();
+                }
+                if (!this.video.rating) {
+                    this.getIMDBRatingVotes();
+                }
+            });
     }
 
     public async connectedCallback() {

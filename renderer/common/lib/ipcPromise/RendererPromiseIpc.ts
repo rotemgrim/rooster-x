@@ -8,7 +8,7 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
     private socket: WebSocket;
     private isSocketConnected: boolean = false;
     private reconnectTimeout: number = 3000;
-    private queue: Record<string, {success: CallableFunction, failure: CallableFunction}> = {};
+    private queue: Record<string, {success: CallableFunction, failure: CallableFunction, chunk?: CallableFunction}> = {};
     private userId: number = 0;
 
     constructor(opts: { maxTimeoutMs?: number, reconnectTimeout?: number }) {
@@ -73,6 +73,17 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
                         cb.failure(response.data);
                         delete this.queue[response.replyChannel];
                         break;
+                    case "chunk":
+                        // Streaming response - dispatch to onChunk if provided,
+                        // but keep the queue entry so final success/failure can resolve.
+                        if (cb.chunk) {
+                            try {
+                                cb.chunk(response.data);
+                            } catch (e) {
+                                console.error("onChunk handler threw:", e);
+                            }
+                        }
+                        break;
                     default:
                         cb.failure(new Error(`Unexpected IPC call for in ${JSON.stringify(response)}`));
                         delete this.queue[response.replyChannel];
@@ -86,27 +97,34 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
         });
     };
 
-    public send(route: string, payload?: object): Promise<any> {
+    public send(route: string, payload?: object, onChunk?: (chunk: any) => void): Promise<any> {
 
         // If the socket is not connected, wait for it to connect
         if (!this.isSocketConnected) {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
-                    this.send(route, payload).then(resolve).catch(reject);
+                    this.send(route, payload, onChunk).then(resolve).catch(reject);
                 }, 300);
             });
         }
 
         return new Promise((resolve, reject) => {
             const replyChannel = `${route}#${uuid()}`;
-            this.queue[replyChannel] = {success: resolve, failure: reject};
+            this.queue[replyChannel] = {success: resolve, failure: reject, chunk: onChunk};
 
             console.log(`Sending message to server: ${route}`, payload);
             // ipcRenderer will send a message back to replyChannel when it finishes calculating
             this.socket.send(RendererPromiseIpc.prepareDataForSend(this.userId, replyChannel, route, payload));
 
             setTimeout(() => {
+                // Only time out if the request is still pending. Long-running
+                // streaming requests are expected and should not error out as
+                // long as they're still producing chunks or have completed.
+                if (!this.queue[replyChannel]) {
+                    return;
+                }
                 console.error(`Renderer PromiseIpc times out after ${(this.maxTimeoutMs / 1000)} seconds for: ${route}`);
+                delete this.queue[replyChannel];
                 reject(new Error(`${route} timed out.`));
             }, this.maxTimeoutMs);
         });

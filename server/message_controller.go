@@ -27,11 +27,12 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-type StatusResponse string // "success" or "failure"
+type StatusResponse string // "success", "failure", "msg", or "chunk"
 const (
 	StatusMsg     StatusResponse = "msg"
 	StatusSuccess StatusResponse = "success"
 	StatusFailure StatusResponse = "failure"
+	StatusChunk   StatusResponse = "chunk"
 )
 
 type PayloadResponse struct {
@@ -45,47 +46,38 @@ type MsgResponse struct {
 	Data   interface{}    `json:"data"`
 }
 
+// MediaDataExtended is the slim row shape returned by GetMedia for the grid
+// view. It contains only fields needed for rendering cards, plus the columns
+// used by client-side sort/group/filter (year, rating, votes, released_unix,
+// genres, isWatched, mediaFiles count, resolution, quality, uploadedAt,
+// downloadedAt, trendingCount, etc.).
+//
+// Heavy fields used only by the details panel (plot, actors, director,
+// writer, tagline, backdrop, trailer, released, metascore, imdbId, tmdbId,
+// languages, country, network, productionStatus, ageRating, name, runtime,
+// enrichState, enrichedAt) are intentionally omitted to keep the payload
+// small. The detail panel fetches the full record via the get-meta-data
+// route when a card is opened.
 type MediaDataExtended struct {
-	//models.MetaDatum
-	ID               null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
-	Title            null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
-	ImdbId           null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
-	TMDBID           null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
-	Genres           null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
-	Languages        null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
-	Country          null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
-	Votes            null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
-	Series           null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
-	Rating           null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
-	Runtime          null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
-	Year             null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
-	Poster           null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
-	Metascore        null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
-	Plot             null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
-	Director         null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
-	Writer           null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
-	Actors           null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
-	Released         null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
-	ReleasedUnix     null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
-	Trailer          null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
-	Type             null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
-	Name             null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
-	Network          null.String  `boil:"network" json:"network,omitempty" toml:"network" yaml:"network,omitempty"`
-	Tagline          null.String  `boil:"tagline" json:"tagline,omitempty" toml:"tagline" yaml:"tagline,omitempty"`
-	Backdrop         null.String  `boil:"backdrop" json:"backdrop,omitempty" toml:"backdrop" yaml:"backdrop,omitempty"`
-	ProductionStatus null.String  `boil:"productionStatus" json:"productionStatus,omitempty" toml:"productionStatus" yaml:"productionStatus,omitempty"`
-	AgeRating        null.String  `boil:"ageRating" json:"ageRating,omitempty" toml:"ageRating" yaml:"ageRating,omitempty"`
-	EnrichState      null.String  `boil:"enrichState" json:"enrichState,omitempty" toml:"enrichState" yaml:"enrichState,omitempty"`
-	EnrichedAt       null.Int64   `boil:"enrichedAt" json:"enrichedAt,omitempty" toml:"enrichedAt" yaml:"enrichedAt,omitempty"`
-	IsWatched        null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
-	DownloadedAt     null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
-	UploadedAt       null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
-	MediaFiles       null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
-	Quality          null.String  `boil:"quality" json:"quality,omitempty"`
-	Resolution       null.String  `boil:"resolution" json:"resolution,omitempty"`
-	UploadedDate     null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
-	DownloadedDate   null.String  `boil:"downloadedDate" json:"downloadedDate,omitempty"`
-	TrendingCount    null.Int     `boil:"trendingCount" json:"trendingCount,omitempty"`
+	ID             null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+	Title          null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+	Genres         null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
+	Votes          null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
+	Series         null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
+	Rating         null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
+	Year           null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
+	Poster         null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
+	ReleasedUnix   null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
+	Type           null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
+	IsWatched      null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
+	DownloadedAt   null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
+	UploadedAt     null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
+	MediaFiles     null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
+	Quality        null.String  `boil:"quality" json:"quality,omitempty"`
+	Resolution     null.String  `boil:"resolution" json:"resolution,omitempty"`
+	UploadedDate   null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
+	DownloadedDate null.String  `boil:"downloadedDate" json:"downloadedDate,omitempty"`
+	TrendingCount  null.Int     `boil:"trendingCount" json:"trendingCount,omitempty"`
 }
 
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
@@ -147,11 +139,67 @@ func (s *Server) GetAllMedia(c *websocket.Conn, req PayloadRequest) {
 	s.GetMedia(c, req, isTorrents.(bool), filter.(string), genreList)
 }
 
+// scanMediaRowPtrs returns a slice of pointers (one per column) used by
+// rows.Scan to populate a MediaDataExtended directly, by column name. Unknown
+// columns are routed to a discard sink so this is robust to small SELECT
+// shape changes (e.g. uploadedDate vs downloadedDate that differ between the
+// torrents and folders branches of GetMedia).
+func scanMediaRowPtrs(cols []string, m *MediaDataExtended, discard *interface{}) []interface{} {
+	ptrs := make([]interface{}, len(cols))
+	for i, col := range cols {
+		switch col {
+		case "id":
+			ptrs[i] = &m.ID
+		case "title":
+			ptrs[i] = &m.Title
+		case "votes":
+			ptrs[i] = &m.Votes
+		case "series":
+			ptrs[i] = &m.Series
+		case "rating":
+			ptrs[i] = &m.Rating
+		case "year":
+			ptrs[i] = &m.Year
+		case "poster":
+			ptrs[i] = &m.Poster
+		case "released_unix":
+			ptrs[i] = &m.ReleasedUnix
+		case "type":
+			ptrs[i] = &m.Type
+		case "isWatched":
+			ptrs[i] = &m.IsWatched
+		case "downloadedAt":
+			ptrs[i] = &m.DownloadedAt
+		case "uploadedAt":
+			ptrs[i] = &m.UploadedAt
+		case "mediaFiles":
+			ptrs[i] = &m.MediaFiles
+		case "quality":
+			ptrs[i] = &m.Quality
+		case "resolution":
+			ptrs[i] = &m.Resolution
+		case "uploadedDate":
+			ptrs[i] = &m.UploadedDate
+		case "downloadedDate":
+			ptrs[i] = &m.DownloadedDate
+		case "trendingCount":
+			ptrs[i] = &m.TrendingCount
+		case "genres":
+			ptrs[i] = &m.Genres
+		default:
+			ptrs[i] = discard
+		}
+	}
+	return ptrs
+}
+
 func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string, genres []string) {
-	var media []MediaDataExtended
 	var userId int = data.UserId
 	queryMods := []qm.QueryMod{
-		qm.Select("md.id, md.title, md.imdbId, md.tmdbId, md.languages, md.country, md.votes, md.series, md.rating, md.runtime, md.year, md.poster, md.metascore, md.plot, md.director, md.writer, md.actors, md.released, md.released_unix, md.trailer, md.type, md.name, md.network, md.tagline, md.backdrop, md.productionStatus, md.ageRating, md.enrichState, md.enrichedAt"),
+		// Only select columns needed for the grid view + client-side
+		// sort/group/filter. Detail-only fields are fetched on demand via
+		// the get-meta-data route.
+		qm.Select("md.id, md.title, md.votes, md.series, md.rating, md.year, md.poster, md.released_unix, md.type"),
 		qm.Select("umd.isWatched as isWatched"),
 		qm.Select("max(IFNULL(CAST(SUBSTR(sub.resolution, 0) AS int), 0)) as resolution"),
 		qm.Select("rtrim(replace(group_concat(DISTINCT sub.quality||','), ',,', ','), ',') as quality"),
@@ -225,25 +273,165 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	err := query.Bind(ctx, db.DB, &media)
+	// Build the raw SQL/args from the sqlboiler query and execute it ourselves
+	// so we can stream rows out as they arrive instead of binding the entire
+	// result set up-front. Note: because the query uses GROUP BY + ORDER BY on
+	// aggregates, SQLite still has to materialize and sort the full result
+	// before yielding the first row, so the *DB* part of the work doesn't
+	// shrink. What we save is:
+	//   - sqlboiler reflection per row (we use a hand-written column→field
+	//     scanner, ~2× faster on the Go side),
+	//   - peak memory (only one batch in RAM, not all rows at once),
+	//   - latency: scan + JSON marshal + WS write run concurrently with
+	//     subsequent rows being scanned, instead of strictly sequentially.
+	sqlStr, args := queries.BuildQuery(query)
+
+	queryStart := time.Now()
+	rows, err := db.DB.QueryContext(ctx, sqlStr, args...)
 	if err != nil {
-		text, _ := queries.BuildQuery(query)
 		if ctx.Err() == context.DeadlineExceeded {
 			log.Printf("⚠ Query timeout after 30s (filter: %s, torrents: %v, genres: %v)", filter, isTorrents, genres)
 			transmitPromiseReject(c, data, "Query timed out - too complex. Try fewer filters or wait for database optimization.")
 		} else {
 			log.Printf("Query error: %v", err)
-			transmitPromiseReject(c, data, fmt.Sprintf("could not get media:\n%s\n\nquery: %s", err, text))
+			transmitPromiseReject(c, data, fmt.Sprintf("could not get media:\n%s\n\nquery: %s", err, sqlStr))
 		}
 		return
 	}
+	defer rows.Close()
 
-	log.Printf("✓ Returned %d results (filter: %s, torrents: %v, genres: %v)", len(media), filter, isTorrents, genres)
-	transmitPromiseResponse(c, data, media)
+	cols, err := rows.Columns()
+	if err != nil {
+		transmitPromiseReject(c, data, fmt.Sprintf("could not read column metadata: %s", err))
+		return
+	}
+
+	const batchSize = 200
+	batch := make([]MediaDataExtended, 0, batchSize)
+	total := 0
+	var firstRowAt time.Time
+	streamStart := time.Now()
+	var discard interface{}
+
+	for rows.Next() {
+		var m MediaDataExtended
+		ptrs := scanMediaRowPtrs(cols, &m, &discard)
+		if err := rows.Scan(ptrs...); err != nil {
+			log.Printf("Row scan error: %v", err)
+			transmitPromiseReject(c, data, fmt.Sprintf("could not scan row: %s", err))
+			return
+		}
+		if total == 0 {
+			firstRowAt = time.Now()
+		}
+		batch = append(batch, m)
+		total++
+		if len(batch) >= batchSize {
+			if err := transmitPromiseChunk(c, data, batch); err != nil {
+				return // connection error
+			}
+			batch = make([]MediaDataExtended, 0, batchSize)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("Rows iteration error: %v", err)
+		transmitPromiseReject(c, data, fmt.Sprintf("rows iteration failed: %s", err))
+		return
+	}
+
+	// Flush trailing batch (if any).
+	if len(batch) > 0 {
+		if err := transmitPromiseChunk(c, data, batch); err != nil {
+			return
+		}
+	}
+
+	if total == 0 {
+		log.Printf("✓ Returned 0 results in %v (filter: %s, torrents: %v, genres: %v)", time.Since(queryStart), filter, isTorrents, genres)
+		transmitPromiseResponse(c, data, []MediaDataExtended{})
+		return
+	}
+
+	ttfr := firstRowAt.Sub(queryStart)
+	totalElapsed := time.Since(streamStart)
+	log.Printf("✓ Streamed %d results (filter: %s, torrents: %v, genres: %v) | ttfr=%v total=%v",
+		total, filter, isTorrents, genres, ttfr, totalElapsed)
+	// Final success message signals end-of-stream to the client.
+	transmitPromiseResponse(c, data, map[string]interface{}{
+		"streamed": true,
+		"total":    total,
+	})
 }
 
 func (s *Server) GetAllTorrents(c *websocket.Conn, data PayloadRequest) {
 	s.GetMedia(c, data, true, "all", []string{})
+}
+
+// GetMetaDataById returns the full metadata record (including detail-only
+// fields like plot, actors, tagline, backdrop, trailer, imdbId, etc.) for a
+// single id. Used by the details panel which the slim list payload doesn't
+// cover.
+func (s *Server) GetMetaDataById(c *websocket.Conn, req PayloadRequest) {
+	payload, ok := req.Data.(map[string]interface{})
+	if !ok {
+		transmitPromiseReject(c, req, "invalid payload")
+		return
+	}
+	idF, ok := payload["id"].(float64)
+	if !ok {
+		transmitPromiseReject(c, req, "id is required")
+		return
+	}
+	id := int64(idF)
+
+	type fullMeta struct {
+		ID               null.Int64   `boil:"id" json:"id,omitempty"`
+		Title            null.String  `boil:"title" json:"title,omitempty"`
+		ImdbId           null.String  `boil:"imdbId" json:"imdbId,omitempty"`
+		TMDBID           null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty"`
+		Languages        null.String  `boil:"languages" json:"languages,omitempty"`
+		Country          null.String  `boil:"country" json:"country,omitempty"`
+		Votes            null.Int64   `boil:"votes" json:"votes,omitempty"`
+		Series           null.Bool    `boil:"series" json:"series,omitempty"`
+		Rating           null.Float64 `boil:"rating" json:"rating,omitempty"`
+		Runtime          null.Int64   `boil:"runtime" json:"runtime,omitempty"`
+		Year             null.Int64   `boil:"year" json:"year,omitempty"`
+		Poster           null.String  `boil:"poster" json:"poster,omitempty"`
+		Metascore        null.String  `boil:"metascore" json:"metascore,omitempty"`
+		Plot             null.String  `boil:"plot" json:"plot,omitempty"`
+		Director         null.String  `boil:"director" json:"director,omitempty"`
+		Writer           null.String  `boil:"writer" json:"writer,omitempty"`
+		Actors           null.String  `boil:"actors" json:"actors,omitempty"`
+		Released         null.String  `boil:"released" json:"released,omitempty"`
+		ReleasedUnix     null.Int64   `boil:"released_unix" json:"released_unix,omitempty"`
+		Trailer          null.String  `boil:"trailer" json:"trailer,omitempty"`
+		Type             null.String  `boil:"type" json:"type,omitempty"`
+		Name             null.String  `boil:"name" json:"name,omitempty"`
+		Network          null.String  `boil:"network" json:"network,omitempty"`
+		Tagline          null.String  `boil:"tagline" json:"tagline,omitempty"`
+		Backdrop         null.String  `boil:"backdrop" json:"backdrop,omitempty"`
+		ProductionStatus null.String  `boil:"productionStatus" json:"productionStatus,omitempty"`
+		AgeRating        null.String  `boil:"ageRating" json:"ageRating,omitempty"`
+		EnrichState      null.String  `boil:"enrichState" json:"enrichState,omitempty"`
+		EnrichedAt       null.Int64   `boil:"enrichedAt" json:"enrichedAt,omitempty"`
+		IsWatched        null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
+		Genres           null.String  `boil:"genres" json:"genres,omitempty"`
+	}
+
+	var result fullMeta
+	err := models.NewQuery(
+		qm.Select("md.*"),
+		qm.Select("umd.isWatched as isWatched"),
+		qm.Select("(SELECT group_concat(g.type, ',') FROM metaDataGenre mg INNER JOIN genre g ON g.id = mg.genreId WHERE mg.metaDataId = md.id) as genres"),
+		qm.From("metaData as md"),
+		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = ?", req.UserId),
+		qm.Where("md.id = ?", id),
+	).BindG(context.Background(), &result)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not get meta data: %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, result)
 }
 
 func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {

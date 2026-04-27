@@ -38,6 +38,24 @@ func transmitPromiseResponse(c *websocket.Conn, req PayloadRequest, data interfa
 	}
 }
 
+func transmitPromiseChunk(c *websocket.Conn, req PayloadRequest, data interface{}) error {
+	response := PayloadResponse{
+		ReplyChannel: req.ReplyChannel,
+		Status:       StatusChunk,
+		Data:         data,
+	}
+	jsonResult, err := json.Marshal(response)
+	if err != nil {
+		log.Println("Error marshalling chunk:", err)
+		return err
+	}
+	err = c.WriteMessage(websocket.TextMessage, jsonResult)
+	if err != nil {
+		log.Println("Error writing chunk message:", err)
+	}
+	return err
+}
+
 func transmitPromiseReject(c *websocket.Conn, req PayloadRequest, data interface{}) {
 	response := PayloadResponse{
 		ReplyChannel: req.ReplyChannel,

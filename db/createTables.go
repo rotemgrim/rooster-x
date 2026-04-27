@@ -36,6 +36,11 @@ func createTablesIfNotExist(db *sql.DB) {
 	if err := MigrateRenameStatusAndAddEnrich(db); err != nil {
 		log.Printf("Warning: enrichment columns migration failed: %v", err)
 	}
+
+	// Composite indexes used by GetMedia (trendingCount + max-aggregates).
+	if err := MigrateAddPerfIndexes(db); err != nil {
+		log.Printf("Warning: perf indexes migration failed: %v", err)
+	}
 }
 
 func createMetaDataTable(db *sql.DB) {

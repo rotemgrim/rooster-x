@@ -397,6 +397,33 @@ func MigrateRenameStatusAndAddEnrich(db *sql.DB) error {
 	return nil
 }
 
+// MigrateAddPerfIndexes creates composite indexes that significantly speed up
+// the GetMedia query (trendingCount correlated subquery + mediaFile/torrentFile
+// joins with aggregate max()). Safe to run multiple times.
+func MigrateAddPerfIndexes(db *sql.DB) error {
+	stmts := []string{
+		// Composite index supporting the trendingCount subquery:
+		// SELECT COUNT(*) FROM torrentFile WHERE metaDataId = ? AND seenAt > ?
+		`CREATE INDEX IF NOT EXISTS idx_torrentFile_metaDataId_seenAt ON torrentFile(metaDataId, seenAt)`,
+		// Composite index supporting the LEFT JOIN + max(downloadedAt) aggregate
+		// in the folders view of GetMedia.
+		`CREATE INDEX IF NOT EXISTS idx_mediaFile_metaDataId_downloadedAt ON mediaFile(metaDataId, downloadedAt)`,
+		// Composite index supporting LEFT JOIN + max(uploadedAt) in torrents view.
+		`CREATE INDEX IF NOT EXISTS idx_torrentFile_metaDataId_uploadedAt ON torrentFile(metaDataId, uploadedAt)`,
+	}
+	for _, s := range stmts {
+		if _, err := db.Exec(s); err != nil {
+			return fmt.Errorf("could not create perf index (%s): %w", s, err)
+		}
+	}
+	// Refresh planner statistics so the new indexes get picked up.
+	if _, err := db.Exec(`ANALYZE torrentFile; ANALYZE mediaFile;`); err != nil {
+		log.Printf("Warning: ANALYZE failed: %v", err)
+	}
+	log.Println("✓ Performance indexes ensured")
+	return nil
+}
+
 // RollbackMigration restores the old genre table (emergency use only)
 func RollbackMigration(db *sql.DB) error {
 	log.Println("Rolling back genre migration...")

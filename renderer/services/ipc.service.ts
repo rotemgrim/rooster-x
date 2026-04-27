@@ -126,9 +126,9 @@ export class IpcService {
         filter: "movies" | "series" | "all",
         isTorrents: boolean,
         genres?: string[]
-    }): Promise<any> {
+    }, onBatch?: (batch: any[]) => void): Promise<any> {
         return new Promise((resolve, reject) => {
-            promiseIpc.send("get-media", {...payload}).then(resolve).catch(reject);
+            promiseIpc.send("get-media", {...payload}, onBatch).then(resolve).catch(reject);
         });
     }
 

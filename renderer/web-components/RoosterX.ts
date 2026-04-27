@@ -87,6 +87,13 @@ export class RoosterX extends LitElement {
     private visibleGroupsData: {groupName: string; startY: number; endY: number; rowsInGroup: number; totalVideos: number}[] = [];
     private isGroupExpanded: Map<string, boolean> = new Map<string, boolean>();
 
+    // Streaming support: monotonically increasing stream id used to ignore
+    // chunks belonging to a superseded request (e.g. user changes view/filter
+    // mid-stream).
+    private currentStreamId: number = 0;
+    // rAF handle for debouncing per-chunk refreshMedia calls.
+    private streamRefreshRaf: number = 0;
+
     public createRenderRoot() {
         window["RoosterX"] = this;
         return this;
@@ -96,16 +103,10 @@ export class RoosterX extends LitElement {
         super();
         this._sideBar = false;
         this._panel = "";
-        this.isLoading = true;
-        IpcService.getMedia({
+        this.streamMedia({
             filter: "all",
             isTorrents: this._showTorrents,
             genres: this._filterConfig.noMediaWithoutGenres,
-        }).then(media => {
-            this.media = media;
-            this.isLoading = false;
-        }).catch(() => {
-            this.isLoading = false;
         });
         document.addEventListener("click", <HTMLElement>(e) => {
             if (
@@ -434,11 +435,13 @@ export class RoosterX extends LitElement {
         return `${prefix}-${this._showTorrents ? "torr" : "down"}-${this.user.id}`;
     }
 
-    public refreshMedia(data?) {
+    public refreshMedia(data?, preserveGroupState: boolean = false) {
         console.log("refreshMedia", data);
         this._orderConfig = this.orderConfig || this._orderConfig;
         this._filterConfig = this.filterConfig || this._filterConfig;
-        this.isGroupExpanded = new Map<string, boolean>();
+        if (!preserveGroupState) {
+            this.isGroupExpanded = new Map<string, boolean>();
+        }
         if (this._showTorrents) {
             if (data) {
                 this._filteredMedia = this.prepareMediaTorrents(data);
@@ -537,27 +540,30 @@ export class RoosterX extends LitElement {
     }
 
     private sortMedia(list: IMetaDataExtended[]): IMetaDataExtended[] {
-        if (!list) {
+        if (!list || list.length === 0) {
             return [];
         }
-        const linqList = new List<IMetaDataExtended>([...list]);
-        let newList: List<IMetaDataExtended>;
-
-        if (this._orderConfig.directionDescending) {
-            newList = linqList.OrderByDescending((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
-        } else {
-            newList = linqList.OrderBy((x: IMetaDataExtended): any => x[this._orderConfig.orderBy]);
-        }
-
-        let mediaArray = newList.ToArray();
-        let result;
-        if (this._orderConfig.showUnwatchedFirst) {
-            // sort by watched boolean
-            mediaArray = _.orderBy(mediaArray, [m => (m.isWatched ? 0 : 1)], "desc");
-            // mediaArray = _.orderBy(mediaArray, ["isWatched"], ["desc"]);
-        }
-        result = mediaArray;
-
+        // Native Array.sort with a single combined comparator. Significantly
+        // faster than linqts + lodash chained passes (no intermediate
+        // allocations, single O(n log n) pass).
+        const orderKey = this._orderConfig.orderBy;
+        const dirSign = this._orderConfig.directionDescending ? -1 : 1;
+        const showUnwatchedFirst = !!this._orderConfig.showUnwatchedFirst;
+        const result = list.slice();
+        result.sort((a, b) => {
+            if (showUnwatchedFirst) {
+                const aw = a.isWatched ? 1 : 0;
+                const bw = b.isWatched ? 1 : 0;
+                if (aw !== bw) return aw - bw; // unwatched (0) first
+            }
+            const av = a[orderKey];
+            const bv = b[orderKey];
+            if (av === bv) return 0;
+            if (av == null) return 1;
+            if (bv == null) return -1;
+            if (av < bv) return -1 * dirSign;
+            return 1 * dirSign;
+        });
         return result;
     }
 
@@ -565,34 +571,13 @@ export class RoosterX extends LitElement {
         if (!metaDataList) {
             return [];
         }
-        const newList: IMetaDataExtended[] = [...metaDataList];
+        // Note: the GetMedia payload is flat (no nested torrentFiles/mediaFiles
+        // arrays) so the previous _.maxBy(...) latestChange computation was
+        // dead code and has been removed.
+        const newList: IMetaDataExtended[] = metaDataList as IMetaDataExtended[];
         for (const me of newList) {
-            // me.poster = me.poster ? `https://image.tmdb.org/t/p/original${me.poster}` : "";
             if (me.poster && !me.poster.startsWith("http")) {
                 me.poster = `https://image.tmdb.org/t/p/w300${me.poster}`;
-            }
-            // check if media is watched
-            // if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
-            //     me.isWatched = true;
-            // }
-
-            let latestMedia: MediaFile | TorrentFile | undefined;
-            if (this._showTorrents) {
-                latestMedia = _.maxBy(me.torrentFiles, o => {
-                    return new Date(o.uploadedAt).getTime();
-                });
-            } else {
-                latestMedia = _.maxBy(me.mediaFiles, o => {
-                    return new Date(o.downloadedAt).getTime();
-                });
-            }
-
-            if (latestMedia && this._showTorrents) {
-                // @ts-ignore
-                me.latestChange = new Date(latestMedia.uploadedAt).getTime();
-            } else if (latestMedia) {
-                // @ts-ignore
-                me.latestChange = new Date(latestMedia.downloadedAt).getTime();
             }
         }
         return newList;
@@ -602,23 +587,10 @@ export class RoosterX extends LitElement {
         if (!metaDataList) {
             return [];
         }
-        const newList: IMetaDataExtended[] = [...metaDataList];
+        const newList: IMetaDataExtended[] = metaDataList as IMetaDataExtended[];
         for (const me of newList) {
-            // me.poster = me.poster ? `https://image.tmdb.org/t/p/original${me.poster}` : "";
             if (me.poster && !me.poster.startsWith("http")) {
                 me.poster = `https://image.tmdb.org/t/p/w300${me.poster}`;
-            }
-            // check if media is watched
-            // if (me.userMetaData.filter(x => x.isWatched && x.userId === this.user.id).length > 0) {
-            //     me.isWatched = true;
-            // }
-
-            // get latest max date downloaded / changed
-            const latestMediaFile: TorrentFile | undefined = _.maxBy(me.torrentFiles, o => {
-                return o.uploadedAt;
-            });
-            if (latestMediaFile) {
-                me.latestChange = latestMediaFile.uploadedAt;
             }
         }
         return newList;
@@ -676,21 +648,19 @@ export class RoosterX extends LitElement {
         if (this.view === "folders") {
             this.foldersViewScrollPos = this.videos.parentElement?.scrollTop || 0;
         }
-        this.isLoading = true;
         this._showTorrents = true;
         this.view = "torrents";
-        IpcService.getMedia({
+        this.streamMedia({
             filter: "all",
             isTorrents: this._showTorrents,
             genres: this._filterConfig.noMediaWithoutGenres,
-        }).then(torrents => {
-            this._torrents = torrents;
-            this.refreshMedia(this._torrents);
-            this.isLoading = false;
-            this.updateComplete.then(() => {
-                RoosterX.setFocusToVideos();
-                this.videos.parentElement?.scrollTo({top: this.torrentsViewScrollPos, behavior: "smooth"});
-            });
+        }, {
+            onComplete: () => {
+                this.updateComplete.then(() => {
+                    RoosterX.setFocusToVideos();
+                    this.videos.parentElement?.scrollTo({top: this.torrentsViewScrollPos, behavior: "smooth"});
+                });
+            },
         });
         this.closeSideBar();
     }
@@ -699,50 +669,112 @@ export class RoosterX extends LitElement {
         if (this.view === "torrents") {
             this.torrentsViewScrollPos = this.videos.parentElement?.scrollTop || 0;
         }
-        this.isLoading = true;
         this._showTorrents = false;
         this.view = "folders";
-        IpcService.getMedia({
+        this.streamMedia({
             filter: "all",
             isTorrents: this._showTorrents,
             genres: this._filterConfig.noMediaWithoutGenres,
-        }).then(media => {
-            this.media = media;
-            this.isLoading = false;
-            this.updateComplete.then(() => {
-                RoosterX.setFocusToVideos();
-                this.videos.parentElement?.scrollTo({top: this.foldersViewScrollPos, behavior: "smooth"});
-            });
+        }, {
+            onComplete: () => {
+                this.updateComplete.then(() => {
+                    RoosterX.setFocusToVideos();
+                    this.videos.parentElement?.scrollTo({top: this.foldersViewScrollPos, behavior: "smooth"});
+                });
+            },
         });
         this.closeSideBar && this.closeSideBar();
     }
 
+    /**
+     * Streaming variant of getMedia. Resets the relevant collection, requests
+     * the data over IPC, and appends each chunk as it arrives. Group expand
+     * state is preserved between chunks to avoid clobbering user clicks
+     * mid-stream. The spinner is cleared on the first chunk so the user sees
+     * content as soon as possible.
+     */
+    private streamMedia(payload: {filter: "movies" | "series" | "all", isTorrents: boolean, genres?: string[]}, opts?: {onComplete?: () => void}) {
+        const streamId = ++this.currentStreamId;
+        if (this.streamRefreshRaf) {
+            cancelAnimationFrame(this.streamRefreshRaf);
+            this.streamRefreshRaf = 0;
+        }
+
+        // Reset the appropriate collection at stream start.
+        if (payload.isTorrents) {
+            this._torrents = [];
+        } else {
+            this._media = [];
+        }
+        this._filteredMedia = [];
+        this.isLoading = true;
+
+        let firstChunk = true;
+        const scheduleRefresh = () => {
+            if (this.streamRefreshRaf) return;
+            this.streamRefreshRaf = requestAnimationFrame(() => {
+                this.streamRefreshRaf = 0;
+                if (streamId !== this.currentStreamId) return;
+                const dataset = payload.isTorrents ? this._torrents : this._media;
+                this.refreshMedia(dataset, /* preserveGroupState */ true);
+            });
+        };
+
+        const onBatch = (batch: any[]) => {
+            // Drop chunks belonging to an outdated stream.
+            if (streamId !== this.currentStreamId) return;
+            if (!batch || !batch.length) return;
+            if (payload.isTorrents) {
+                this._torrents = this._torrents.concat(batch);
+            } else {
+                this._media = this._media.concat(batch);
+            }
+            if (firstChunk) {
+                firstChunk = false;
+                this.isLoading = false;
+            }
+            scheduleRefresh();
+        };
+
+        return IpcService.getMedia(payload, onBatch).then(() => {
+            if (streamId !== this.currentStreamId) return;
+            const dataset = payload.isTorrents ? this._torrents : this._media;
+            this.refreshMedia(dataset, /* preserveGroupState */ true);
+            this.isLoading = false;
+            opts?.onComplete && opts.onComplete();
+        }).catch(err => {
+            if (streamId !== this.currentStreamId) return;
+            console.error("streamMedia failed:", err);
+            this.isLoading = false;
+        });
+    }
+
     public getMedia() {
-        IpcService.getMedia({
+        this.streamMedia({
             filter: "all",
             isTorrents: this._showTorrents,
             genres: this._filterConfig.noMediaWithoutGenres,
-        }).then(media => (this.media = media));
+        });
         RoosterX.setFocusToVideos();
         this.closeSideBar && this.closeSideBar();
     }
 
     private getMovies() {
-        IpcService.getMedia({
+        this.streamMedia({
             filter: "movies",
             isTorrents: this._showTorrents,
             genres: this._filterConfig.noMediaWithoutGenres,
-        }).then(media => (this.media = media));
+        });
         RoosterX.setFocusToVideos();
         this.closeSideBar();
     }
 
     private getSeries() {
-        IpcService.getMedia({
+        this.streamMedia({
             filter: "series",
             isTorrents: this._showTorrents,
             genres: this._filterConfig.noMediaWithoutGenres,
-        }).then(media => (this.media = media));
+        });
         RoosterX.setFocusToVideos();
         this.closeSideBar();
     }
