@@ -38,6 +38,7 @@ type Config struct {
 	FullDirectoriesSweep []string     `yaml:"full_directories_sweep"`
 	TorrentsSweep        []string     `yaml:"torrents_sweep"`
 	ImdbRatingPoll       string       `yaml:"imdb_rating_poll"`
+	MetadataEnrichPoll   string       `yaml:"metadata_enrich_poll"`
 	Xtream               XtreamConfig `yaml:"xtream"`
 }
 
@@ -110,6 +111,15 @@ func onReady() {
 	ServerInstance := server.NewServer("static")
 	tmdbClient, err := tmdb.Init(config.TmdbApiKey)
 	gtmdb.SetLang(config.Lang)
+	gtmdb.SetEnrichmentClient(tmdbClient)
+	gtmdb.SetEnrichmentBroadcaster(func(msg string) {
+		ServerInstance.BroadcastMessage(msg)
+	})
+	gtmdb.SetEnrichmentLifecycle(
+		func() { systray.SetIcon(icon.Data) },
+		func() { systray.SetIcon(RoosterIcon) },
+	)
+	server.EnrichMetadataFn = gtmdb.EnrichOne
 	server.SetTmdbApiKey(config.TmdbApiKey)
 	server.SetXtreamConfig(config.Xtream.Username, config.Xtream.Password, config.Xtream.Server)
 
@@ -149,6 +159,14 @@ func onReady() {
 	// schedule the imdb ratings fetcher
 	if config.ImdbRatingPoll != "" {
 		app.Scheduler.Schedule(config.ImdbRatingPoll, server.ImdbRatingPoll)
+	}
+
+	// schedule periodic metadata enrichment from TMDB.
+	// By default this is a nightly window (2-4 AM); see config.yaml.
+	if config.MetadataEnrichPoll != "" {
+		app.Scheduler.Schedule(config.MetadataEnrichPoll, func() {
+			gtmdb.RunEnrichmentSweep(500)
+		})
 	}
 
 	// create a channel to listen for signals
@@ -195,6 +213,8 @@ torrents_sweep:
 
 imdb_rating_poll: "* * * * *" # Every minute
 
+metadata_enrich_poll: "0 2-3 * * *" # Nightly at 02:00 and 03:00 (within the 2-4 AM window)
+
 xtream:
     username: ""
     password: ""
@@ -237,6 +257,7 @@ func trayInitialize() {
 	mSweep := systray.AddMenuItem("Sweep Files", "Run a full sweep on the file system")
 	mTorrentFetch := systray.AddMenuItem("Fetch Torrents", "Fetch torrents from pirate bay")
 	mRefreshIPTV := systray.AddMenuItem("Refresh IPTV", "Refresh live streams from Xtream")
+	mEnrich := systray.AddMenuItem("Enrich Metadata", "Refresh metadata for items needing enrichment")
 	systray.AddSeparator()
 	mOpenLogs := systray.AddMenuItem("Open Logs", "Open the log file")
 	systray.AddSeparator()
@@ -262,6 +283,9 @@ func trayInitialize() {
 					}
 					systray.SetIcon(RoosterIcon)
 				}()
+			case <-mEnrich.ClickedCh:
+				// Tray icon swap is handled by the lifecycle hooks set in onReady.
+				go gtmdb.RunEnrichmentSweep(500)
 			case <-mOpenLogs.ClickedCh:
 				logPath, _ := filepath.Abs("tmp/rooster.log")
 				open.Run(logPath)

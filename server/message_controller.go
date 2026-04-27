@@ -47,38 +47,45 @@ type MsgResponse struct {
 
 type MediaDataExtended struct {
 	//models.MetaDatum
-	ID             null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
-	Title          null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
-	ImdbId         null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
-	TMDBID         null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
-	Genres         null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
-	Languages      null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
-	Country        null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
-	Votes          null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
-	Series         null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
-	Rating         null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
-	Runtime        null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
-	Year           null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
-	Poster         null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
-	Metascore      null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
-	Plot           null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
-	Director       null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
-	Writer         null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
-	Actors         null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
-	Released       null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
-	ReleasedUnix   null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
-	Trailer        null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
-	Type           null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
-	Name           null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
-	IsWatched      null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
-	DownloadedAt   null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
-	UploadedAt     null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
-	MediaFiles     null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
-	Quality        null.String  `boil:"quality" json:"quality,omitempty"`
-	Resolution     null.String  `boil:"resolution" json:"resolution,omitempty"`
-	UploadedDate   null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
-	DownloadedDate null.String  `boil:"downloadedDate" json:"downloadedDate,omitempty"`
-	TrendingCount  null.Int     `boil:"trendingCount" json:"trendingCount,omitempty"`
+	ID               null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+	Title            null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+	ImdbId           null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
+	TMDBID           null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
+	Genres           null.String  `boil:"genres" json:"genres,omitempty" toml:"genres" yaml:"genres,omitempty"`
+	Languages        null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
+	Country          null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
+	Votes            null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
+	Series           null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
+	Rating           null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
+	Runtime          null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
+	Year             null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
+	Poster           null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
+	Metascore        null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
+	Plot             null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
+	Director         null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
+	Writer           null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
+	Actors           null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
+	Released         null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
+	ReleasedUnix     null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
+	Trailer          null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
+	Type             null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
+	Name             null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
+	Network          null.String  `boil:"network" json:"network,omitempty" toml:"network" yaml:"network,omitempty"`
+	Tagline          null.String  `boil:"tagline" json:"tagline,omitempty" toml:"tagline" yaml:"tagline,omitempty"`
+	Backdrop         null.String  `boil:"backdrop" json:"backdrop,omitempty" toml:"backdrop" yaml:"backdrop,omitempty"`
+	ProductionStatus null.String  `boil:"productionStatus" json:"productionStatus,omitempty" toml:"productionStatus" yaml:"productionStatus,omitempty"`
+	AgeRating        null.String  `boil:"ageRating" json:"ageRating,omitempty" toml:"ageRating" yaml:"ageRating,omitempty"`
+	EnrichState      null.String  `boil:"enrichState" json:"enrichState,omitempty" toml:"enrichState" yaml:"enrichState,omitempty"`
+	EnrichedAt       null.Int64   `boil:"enrichedAt" json:"enrichedAt,omitempty" toml:"enrichedAt" yaml:"enrichedAt,omitempty"`
+	IsWatched        null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
+	DownloadedAt     null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
+	UploadedAt       null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
+	MediaFiles       null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
+	Quality          null.String  `boil:"quality" json:"quality,omitempty"`
+	Resolution       null.String  `boil:"resolution" json:"resolution,omitempty"`
+	UploadedDate     null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
+	DownloadedDate   null.String  `boil:"downloadedDate" json:"downloadedDate,omitempty"`
+	TrendingCount    null.Int     `boil:"trendingCount" json:"trendingCount,omitempty"`
 }
 
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
@@ -144,7 +151,7 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	var media []MediaDataExtended
 	var userId int = data.UserId
 	queryMods := []qm.QueryMod{
-		qm.Select("md.id, md.title, md.imdbId, md.tmdbId, md.languages, md.country, md.votes, md.series, md.rating, md.runtime, md.year, md.poster, md.metascore, md.plot, md.director, md.writer, md.actors, md.released, md.released_unix, md.trailer, md.type, md.name"),
+		qm.Select("md.id, md.title, md.imdbId, md.tmdbId, md.languages, md.country, md.votes, md.series, md.rating, md.runtime, md.year, md.poster, md.metascore, md.plot, md.director, md.writer, md.actors, md.released, md.released_unix, md.trailer, md.type, md.name, md.network, md.tagline, md.backdrop, md.productionStatus, md.ageRating, md.enrichState, md.enrichedAt"),
 		qm.Select("umd.isWatched as isWatched"),
 		qm.Select("max(IFNULL(CAST(SUBSTR(sub.resolution, 0) AS int), 0)) as resolution"),
 		qm.Select("rtrim(replace(group_concat(DISTINCT sub.quality||','), ',,', ','), ',') as quality"),
@@ -569,6 +576,41 @@ func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId 
 
 func (s *Server) RouteNotFound(c *websocket.Conn, data PayloadRequest) {
 	transmitPromiseReject(c, data, "Route not found")
+}
+
+// EnrichMetadataFn is wired up by main.go to gtmdb.EnrichOne to avoid
+// circular imports between the server and tmdb packages.
+var EnrichMetadataFn func(metaDataId int64, force bool) (*models.MetaDatum, error)
+
+func (s *Server) EnrichMetaData(c *websocket.Conn, req PayloadRequest) {
+	if EnrichMetadataFn == nil {
+		transmitPromiseReject(c, req, "enrichment not initialized")
+		return
+	}
+
+	payload, ok := req.Data.(map[string]interface{})
+	if !ok {
+		transmitPromiseReject(c, req, "invalid payload")
+		return
+	}
+
+	idF, ok := payload["metaDataId"].(float64)
+	if !ok {
+		transmitPromiseReject(c, req, "metaDataId required")
+		return
+	}
+	force := false
+	if v, ok := payload["force"].(bool); ok {
+		force = v
+	}
+
+	md, err := EnrichMetadataFn(int64(idF), force)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("enrichment failed: %v", err))
+		return
+	}
+
+	transmitPromiseResponse(c, req, md)
 }
 
 func (s *Server) GetTrailer(c *websocket.Conn, req PayloadRequest) {

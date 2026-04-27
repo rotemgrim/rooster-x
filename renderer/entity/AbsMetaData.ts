@@ -88,4 +88,32 @@ export abstract class AbsMetaData {
     @Column({type: "text", nullable: true})
     public trailer?: string;
 
+    /** distributor / network (TV) or production company (movie) */
+    @Column({type: "text", nullable: true})
+    public network?: string;
+
+    /** marketing tagline / one-liner */
+    @Column({type: "text", nullable: true})
+    public tagline?: string;
+
+    /** backdrop / hero image path (relative TMDB path) */
+    @Column({type: "text", nullable: true})
+    public backdrop?: string;
+
+    /** production status (e.g. Released, Returning Series, Ended) */
+    @Column({type: "varchar", length: 40, nullable: true})
+    public productionStatus?: string;
+
+    /** age rating / certification (e.g. PG-13, TV-MA) */
+    @Column({type: "varchar", length: 20, nullable: true})
+    public ageRating?: string;
+
+    /** enrichment state: NULL/"needed" / "ok" / "unavailable" */
+    @Column({type: "varchar", length: 20, nullable: true})
+    public enrichState?: string;
+
+    /** unix timestamp of last enrichment attempt */
+    @Column({type: "int", nullable: true})
+    public enrichedAt?: number;
+
 }

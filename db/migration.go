@@ -282,6 +282,121 @@ func SaveGenresForMetaData(metaDataId int64, genreNames []string) error {
 	return nil
 }
 
+// MigrateAddNetworkColumn adds the `network` column to the metaData table
+// for existing DBs that were created before this column was introduced.
+// Safe to run multiple times.
+func MigrateAddNetworkColumn(db *sql.DB) error {
+	var colCount int
+	err := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('metaData') WHERE name='network'`).Scan(&colCount)
+	if err != nil {
+		return fmt.Errorf("could not check for network column: %w", err)
+	}
+	if colCount > 0 {
+		// Column already exists
+		return nil
+	}
+
+	log.Println("Adding 'network' column to metaData table...")
+	_, err = db.Exec(`ALTER TABLE metaData ADD COLUMN network TEXT`)
+	if err != nil {
+		return fmt.Errorf("could not add network column: %w", err)
+	}
+	log.Println("✓ Added 'network' column to metaData")
+	return nil
+}
+
+// MigrateAddExtraMetaColumns adds tagline/backdrop/status/ageRating columns
+// to the metaData table for existing DBs. Safe to run multiple times.
+func MigrateAddExtraMetaColumns(db *sql.DB) error {
+	cols := map[string]string{
+		"tagline":   "TEXT",
+		"backdrop":  "TEXT",
+		"status":    "VARCHAR(40)",
+		"ageRating": "VARCHAR(20)",
+	}
+	for name, typ := range cols {
+		var colCount int
+		err := db.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('metaData') WHERE name=?`, name,
+		).Scan(&colCount)
+		if err != nil {
+			return fmt.Errorf("could not check for %s column: %w", name, err)
+		}
+		if colCount > 0 {
+			continue
+		}
+
+		log.Printf("Adding '%s' column to metaData table...", name)
+		_, err = db.Exec(fmt.Sprintf(`ALTER TABLE metaData ADD COLUMN %s %s`, name, typ))
+		if err != nil {
+			return fmt.Errorf("could not add %s column: %w", name, err)
+		}
+		log.Printf("✓ Added '%s' column to metaData", name)
+	}
+	return nil
+}
+
+// MigrateRenameStatusAndAddEnrich renames the legacy `status` column on
+// metaData to `productionStatus` (to avoid a name clash with the entity
+// scan-status field) and adds `enrichState`/`enrichedAt` for the metadata
+// enrichment job. Safe to run multiple times.
+func MigrateRenameStatusAndAddEnrich(db *sql.DB) error {
+	// Rename status -> productionStatus if needed.
+	var oldExists, newExists int
+	if err := db.QueryRow(
+		`SELECT COUNT(*) FROM pragma_table_info('metaData') WHERE name='status'`,
+	).Scan(&oldExists); err != nil {
+		return fmt.Errorf("could not check status column: %w", err)
+	}
+	if err := db.QueryRow(
+		`SELECT COUNT(*) FROM pragma_table_info('metaData') WHERE name='productionStatus'`,
+	).Scan(&newExists); err != nil {
+		return fmt.Errorf("could not check productionStatus column: %w", err)
+	}
+	if oldExists > 0 && newExists == 0 {
+		log.Println("Renaming metaData.status -> metaData.productionStatus...")
+		if _, err := db.Exec(`ALTER TABLE metaData RENAME COLUMN status TO productionStatus`); err != nil {
+			return fmt.Errorf("rename status column failed: %w", err)
+		}
+		log.Println("✓ Renamed metaData.status -> metaData.productionStatus")
+	} else if oldExists > 0 && newExists > 0 {
+		// Both exist (shouldn't happen) — drop the old.
+		log.Println("Both status and productionStatus columns exist; dropping status...")
+		if _, err := db.Exec(`ALTER TABLE metaData DROP COLUMN status`); err != nil {
+			log.Printf("Warning: could not drop legacy status column: %v", err)
+		}
+	}
+
+	// Add enrichState / enrichedAt if missing.
+	cols := map[string]string{
+		"enrichState": "VARCHAR(20)",
+		"enrichedAt":  "INTEGER",
+	}
+	for name, typ := range cols {
+		var c int
+		if err := db.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('metaData') WHERE name=?`, name,
+		).Scan(&c); err != nil {
+			return fmt.Errorf("could not check %s column: %w", name, err)
+		}
+		if c > 0 {
+			continue
+		}
+		log.Printf("Adding '%s' column to metaData table...", name)
+		if _, err := db.Exec(fmt.Sprintf(`ALTER TABLE metaData ADD COLUMN %s %s`, name, typ)); err != nil {
+			return fmt.Errorf("could not add %s column: %w", name, err)
+		}
+		log.Printf("✓ Added '%s' column to metaData", name)
+	}
+
+	// Index for the sweep query.
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_metaData_enrichState ON metaData(enrichState)`); err != nil {
+		log.Printf("Warning: could not create enrichState index: %v", err)
+	}
+
+	return nil
+}
+
 // RollbackMigration restores the old genre table (emergency use only)
 func RollbackMigration(db *sql.DB) error {
 	log.Println("Rolling back genre migration...")

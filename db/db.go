@@ -13,6 +13,13 @@ import (
 
 const filename = "db.sqlite" // ":memory:"
 
+// SQLite DSN pragmas:
+//   - journal_mode=WAL    : readers don't block writers and vice versa
+//   - busy_timeout=10000  : retry for up to 10s on lock contention instead of failing immediately
+//   - synchronous=NORMAL  : safe + faster than FULL under WAL
+//   - foreign_keys=ON
+const dsn = "file:" + filename + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(10000)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(1)"
+
 //var MediaRepo MediaRepo
 
 var DB *sql.DB
@@ -20,10 +27,14 @@ var CTX context.Context
 
 func Init() {
 	var err error
-	DB, err = sql.Open("sqlite", filename)
+	DB, err = sql.Open("sqlite", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
+	// With WAL, many readers + one writer can work concurrently.
+	// busy_timeout (set via DSN) handles transient write contention.
+	DB.SetMaxOpenConns(10)
+	DB.SetMaxIdleConns(5)
 
 	// Set boil DB before creating tables (needed for migration)
 	boil.SetDB(DB)

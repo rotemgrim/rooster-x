@@ -2,6 +2,7 @@ package gtmdb
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"go-poc/db"
 	m "go-poc/models"
@@ -127,7 +128,7 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 
 	detailsOptions := map[string]string{
 		"language":           LANG,
-		"append_to_response": "external_ids,genres,episodes,credits",
+		"append_to_response": "external_ids,genres,episodes,credits,content_ratings",
 	}
 	log.Println("getting TMDB TV details for %s", tor.Title)
 	tmdbDetails, err := tmdbClient.GetTVDetails(int(tmdbSearchResult.Results[0].ID), detailsOptions)
@@ -175,6 +176,53 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDat
 		countries = append(countries, country)
 	}
 	newMd.Country = null.StringFrom(strings.Join(countries, ","))
+
+	type networkEntry struct {
+		Name string `json:"name"`
+		Logo string `json:"logo,omitempty"`
+	}
+	var networks []networkEntry
+	for _, n := range tmdbDetails.Networks {
+		if n.Name != "" {
+			networks = append(networks, networkEntry{Name: n.Name, Logo: n.LogoPath})
+		}
+	}
+	if len(networks) > 0 {
+		if jb, err := json.Marshal(networks); err == nil {
+			newMd.Network = null.StringFrom(string(jb))
+		}
+	}
+
+	if tmdbDetails.Tagline != "" {
+		newMd.Tagline = null.StringFrom(tmdbDetails.Tagline)
+	}
+	if tmdbDetails.BackdropPath != "" {
+		newMd.Backdrop = null.StringFrom(tmdbDetails.BackdropPath)
+	}
+	if tmdbDetails.Status != "" {
+		newMd.ProductionStatus = null.StringFrom(tmdbDetails.Status)
+	}
+	if tmdbDetails.ContentRatings != nil && tmdbDetails.ContentRatings.TVContentRatingsResults != nil {
+		// Prefer US rating, otherwise first non-empty
+		var rating string
+		for _, r := range tmdbDetails.ContentRatings.Results {
+			if r.Iso3166_1 == "US" && r.Rating != "" {
+				rating = r.Rating
+				break
+			}
+		}
+		if rating == "" {
+			for _, r := range tmdbDetails.ContentRatings.Results {
+				if r.Rating != "" {
+					rating = r.Rating
+					break
+				}
+			}
+		}
+		if rating != "" {
+			newMd.AgeRating = null.StringFrom(rating)
+		}
+	}
 
 	return newMd, genresArr, nil
 }
@@ -292,6 +340,66 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatu
 		countries = append(countries, country)
 	}
 	newMd.Country = null.StringFrom(strings.Join(countries, ","))
+
+	log.Printf("Processing production companies...")
+	type companyEntry struct {
+		Name string `json:"name"`
+		Logo string `json:"logo,omitempty"`
+	}
+	var companies []companyEntry
+	for _, c := range tmdbDetails.ProductionCompanies {
+		if c.Name != "" {
+			companies = append(companies, companyEntry{Name: c.Name, Logo: c.LogoPath})
+		}
+	}
+	if len(companies) > 0 {
+		if jb, err := json.Marshal(companies); err == nil {
+			newMd.Network = null.StringFrom(string(jb))
+		}
+	}
+
+	if tmdbDetails.Tagline != "" {
+		newMd.Tagline = null.StringFrom(tmdbDetails.Tagline)
+	}
+	if tmdbDetails.BackdropPath != "" {
+		newMd.Backdrop = null.StringFrom(tmdbDetails.BackdropPath)
+	}
+	if tmdbDetails.Status != "" {
+		newMd.ProductionStatus = null.StringFrom(tmdbDetails.Status)
+	}
+	if tmdbDetails.ReleaseDates != nil && tmdbDetails.ReleaseDates.MovieReleaseDatesResults != nil {
+		// Prefer US certification, otherwise first non-empty
+		var cert string
+		for _, r := range tmdbDetails.ReleaseDates.Results {
+			if r.Iso3166_1 == "US" {
+				for _, rd := range r.ReleaseDates {
+					if rd.Certification != "" {
+						cert = rd.Certification
+						break
+					}
+				}
+				if cert != "" {
+					break
+				}
+			}
+		}
+		if cert == "" {
+			for _, r := range tmdbDetails.ReleaseDates.Results {
+				for _, rd := range r.ReleaseDates {
+					if rd.Certification != "" {
+						cert = rd.Certification
+						break
+					}
+				}
+				if cert != "" {
+					break
+				}
+			}
+		}
+		if cert != "" {
+			newMd.AgeRating = null.StringFrom(cert)
+		}
+	}
 
 	log.Printf("Successfully created metadata for: %s", tor.Title)
 	return newMd, genresArr, nil

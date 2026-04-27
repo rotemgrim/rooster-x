@@ -24,6 +24,7 @@ export class VideoDetails extends LitElement {
     @property() public isLoading: boolean = false;
     @property() public isLoadingRating: boolean = false;
     @property() public isLoadingTrailer: boolean = false;
+    @property() public isEnriching: boolean = false;
 
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
@@ -123,6 +124,29 @@ export class VideoDetails extends LitElement {
                 this.isLoadingTrailer = false;
             })
     }
+
+    private refreshMetadata = () => {
+        if (this.isEnriching) return;
+        this.isEnriching = true;
+        IpcService.enrichMetadata(this.video.id, true)
+            .then((updated: any) => {
+                if (updated) {
+                    // Server returns raw TMDB paths (e.g. "/abc.jpg"); prefix them
+                    // to match the URL form used elsewhere in the renderer.
+                    if (updated.poster && !String(updated.poster).startsWith("http")) {
+                        updated.poster = `https://image.tmdb.org/t/p/w300${updated.poster}`;
+                    }
+                    Object.assign(this.video, updated);
+                    this.requestUpdate();
+                }
+            })
+            .catch(err => {
+                console.log("enrich-metadata failed", err);
+            })
+            .finally(() => {
+                this.isEnriching = false;
+            });
+    };
 
     private getIMDBRatingVotes() {
         this.isLoadingRating = true;
@@ -337,6 +361,65 @@ export class VideoDetails extends LitElement {
         return html`<span class="separator">|</span>`;
     }
 
+    private static getRatingChip(vid: MetaData) {
+        if (vid.rating && typeof vid.rating === "number" && vid.rating > 0) {
+            return html`<span class="rating-chip" title="IMDb rating">★ ${vid.rating.toFixed(1)}</span>
+                ${VideoDetails.getSep()}`;
+        }
+        return html``;
+    }
+
+    private static getField(label: string, value?: string | null) {
+        if (value && value.toString().trim()) {
+            return html`<span class="md-field" title="${label}">
+                    <small>${label}:</small> ${value}
+                </span>
+                ${VideoDetails.getSep()}`;
+        }
+        return html``;
+    }
+
+    private static parseNetworks(raw?: string | null): {name: string; logo?: string}[] {
+        if (!raw) return [];
+        const s = raw.toString().trim();
+        if (!s) return [];
+        if (s.startsWith("[")) {
+            try {
+                const arr = JSON.parse(s);
+                if (Array.isArray(arr)) {
+                    return arr
+                        .map(x => ({name: (x?.name || "").toString(), logo: x?.logo || ""}))
+                        .filter(x => x.name);
+                }
+            } catch {
+                // fall through to plain-text path
+            }
+        }
+        // Legacy plain comma-separated names
+        return s
+            .split(",")
+            .map(n => ({name: n.trim()}))
+            .filter(x => x.name);
+    }
+
+    private static getNetworkField(label: string, raw?: string | null) {
+        const items = VideoDetails.parseNetworks(raw);
+        if (items.length === 0) return html``;
+        return html`<span class="md-field network-field" title="${label}">
+                ${items.map(
+                    it => html`<span class="network-item" title="${it.name}">
+                        ${it.logo
+                            ? html`<img
+                                  class="network-logo"
+                                  src="https://image.tmdb.org/t/p/w92${it.logo}"
+                                  alt="${it.name}" />`
+                            : html`<span class="network-name">${it.name}</span>`}
+                    </span>`,
+                )}
+            </span>
+            ${VideoDetails.getSep()}`;
+    }
+
     public render() {
         return html` <did-watched
                 .rooster=${this.rooster}
@@ -380,18 +463,38 @@ export class VideoDetails extends LitElement {
                     <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
                     <div class="subs" @click=${this.subsSearch}>Subs</div>
                 </div>
-                <div class="main-details" tabindex="0">
+                <div
+                    class="main-details"
+                    tabindex="0">
                     <div class="header">
                         <div class="left">
-                            <h1>${this.video.title}</h1>
+                            <h1>
+                                ${this.video.title}
+                                <i
+                                    class="material-icons refresh-meta ${this.isEnriching ? "rotate-center" : ""}"
+                                    title="Refresh metadata from TMDB"
+                                    @click="${this.refreshMetadata}">cloud_download</i>
+                            </h1>
+                            ${this.video.tagline
+                                ? html`<p class="tagline"><em>“${this.video.tagline}”</em></p>`
+                                : ""}
                             <p>${this.video.plot}</p>
                             <div class="small-details">
-                                <div class="genres">${this.video.genres}</div>
-                                ${VideoDetails.getSep()}
+                                ${this.video.ageRating
+                                    ? html`<span class="age-rating-chip" title="Age rating">${this.video.ageRating}</span>
+                                          ${VideoDetails.getSep()}`
+                                    : ""}
+                                ${this.video.genres
+                                    ? html`<div class="genres">${this.video.genres}</div>
+                                          ${VideoDetails.getSep()}`
+                                    : ""}
                                 <div>
                                     ${VideoDetails.getRuntime(this.video)} ${VideoDetails.getYear(this.video)}
-                                    ${this.video.languages}
                                 </div>
+                                ${VideoDetails.getNetworkField(
+                                    this.video.type === "series" ? "Network" : "Studio",
+                                    this.video.network,
+                                )}
                             </div>
                         </div>
                         <div class="trailer"
@@ -439,10 +542,45 @@ export class VideoDetails extends LitElement {
                           </div>`
                         : ""}
                     <br /><br />
-                    <p>Actors: <small title="${this.video.actors}">${this.video.actors?.slice(0, 80)}...</small></p>
+                    <div class="info-grid"
+                        style="display: grid;
+                               grid-template-columns: max-content 1fr;
+                               column-gap: 24px;
+                               row-gap: 10px;
+                               align-items: baseline;
+                               max-width: 1100px;
+                               margin: 0 0 16px;
+                               padding: 16px 20px;
+                               border-radius: 8px;
+                               background: rgba(255,255,255,0.04);
+                               border: 1px solid rgba(255,255,255,0.08);
+                               font-size: 15px;">
+                        ${this.video.director
+                            ? html`<span style="opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; font-size: 12px;">Director</span>
+                                   <span>${this.video.director}</span>`
+                            : ""}
+                        ${this.video.productionStatus
+                            ? html`<span style="opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; font-size: 12px;">Status</span>
+                                   <span>${this.video.productionStatus}</span>`
+                            : ""}
+                        ${this.video.country
+                            ? html`<span style="opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; font-size: 12px;">Country</span>
+                                   <span>${this.video.country}</span>`
+                            : ""}
+                        ${this.video.released
+                            ? html`<span style="opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; font-size: 12px;">Released</span>
+                                   <span>${this.video.released}</span>`
+                            : ""}
+                        ${this.video.languages
+                            ? html`<span style="opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; font-size: 12px;">Languages</span>
+                                   <span>${this.video.languages}</span>`
+                            : ""}
+                        ${this.video.actors
+                            ? html`<span style="opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; font-size: 12px;">Cast</span>
+                                   <span title="${this.video.actors}" style="line-height: 1.5;">${this.video.actors.split(",").slice(0, 8).join(", ")}${this.video.actors.split(",").length > 8 ? "…" : ""}</span>`
+                            : ""}
+                    </div>
                     <br />
-                    <p>Made in ${this.video.country} | Released at ${this.video.released}</p>
-                    <br /><br />
 
                     ${this.video.imdbId ? html` <div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
                     <div class="trailer" @click=${this.trailerSearch}>Trailer</div>

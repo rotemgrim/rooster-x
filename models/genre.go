@@ -474,7 +474,7 @@ func (genreL) LoadMetaDataIdMetaData(ctx context.Context, e boil.ContextExecutor
 	}
 
 	query := NewQuery(
-		qm.Select("\"metaData\".\"id\", \"metaData\".\"title\", \"metaData\".\"imdbId\", \"metaData\".\"tmdbId\", \"metaData\".\"languages\", \"metaData\".\"country\", \"metaData\".\"votes\", \"metaData\".\"series\", \"metaData\".\"rating\", \"metaData\".\"runtime\", \"metaData\".\"year\", \"metaData\".\"poster\", \"metaData\".\"metascore\", \"metaData\".\"plot\", \"metaData\".\"director\", \"metaData\".\"writer\", \"metaData\".\"actors\", \"metaData\".\"released\", \"metaData\".\"released_unix\", \"metaData\".\"trailer\", \"metaData\".\"type\", \"metaData\".\"name\", \"a\".\"genreId\""),
+		qm.Select("\"metaData\".\"id\", \"metaData\".\"title\", \"metaData\".\"imdbId\", \"metaData\".\"tmdbId\", \"metaData\".\"languages\", \"metaData\".\"country\", \"metaData\".\"votes\", \"metaData\".\"series\", \"metaData\".\"rating\", \"metaData\".\"runtime\", \"metaData\".\"year\", \"metaData\".\"poster\", \"metaData\".\"metascore\", \"metaData\".\"plot\", \"metaData\".\"director\", \"metaData\".\"writer\", \"metaData\".\"actors\", \"metaData\".\"released\", \"metaData\".\"released_unix\", \"metaData\".\"trailer\", \"metaData\".\"type\", \"metaData\".\"name\", \"metaData\".\"network\", \"metaData\".\"tagline\", \"metaData\".\"backdrop\", \"metaData\".\"productionStatus\", \"metaData\".\"ageRating\", \"metaData\".\"enrichState\", \"metaData\".\"enrichedAt\", \"a\".\"genreId\""),
 		qm.From("\"metaData\""),
 		qm.InnerJoin("\"metaDataGenre\" as \"a\" on \"metaData\".\"id\" = \"a\".\"metaDataId\""),
 		qm.WhereIn("\"a\".\"genreId\" in ?", argsSlice...),
@@ -495,7 +495,7 @@ func (genreL) LoadMetaDataIdMetaData(ctx context.Context, e boil.ContextExecutor
 		one := new(MetaDatum)
 		var localJoinCol int64
 
-		err = results.Scan(&one.ID, &one.Title, &one.ImdbId, &one.TMDBID, &one.Languages, &one.Country, &one.Votes, &one.Series, &one.Rating, &one.Runtime, &one.Year, &one.Poster, &one.Metascore, &one.Plot, &one.Director, &one.Writer, &one.Actors, &one.Released, &one.ReleasedUnix, &one.Trailer, &one.Type, &one.Name, &localJoinCol)
+		err = results.Scan(&one.ID, &one.Title, &one.ImdbId, &one.TMDBID, &one.Languages, &one.Country, &one.Votes, &one.Series, &one.Rating, &one.Runtime, &one.Year, &one.Poster, &one.Metascore, &one.Plot, &one.Director, &one.Writer, &one.Actors, &one.Released, &one.ReleasedUnix, &one.Trailer, &one.Type, &one.Name, &one.Network, &one.Tagline, &one.Backdrop, &one.ProductionStatus, &one.AgeRating, &one.EnrichState, &one.EnrichedAt, &localJoinCol)
 		if err != nil {
 			return errors.Wrap(err, "failed to scan eager loaded results for metaData")
 		}

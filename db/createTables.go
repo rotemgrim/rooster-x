@@ -21,6 +21,21 @@ func createTablesIfNotExist(db *sql.DB) {
 		log.Printf("Warning: Genre migration failed: %v", err)
 		// Don't fatal - allow app to continue with old schema
 	}
+
+	// Add network column to existing metaData tables (safe to run multiple times)
+	if err := MigrateAddNetworkColumn(db); err != nil {
+		log.Printf("Warning: network column migration failed: %v", err)
+	}
+
+	// Add tagline/backdrop/status/ageRating columns (safe to run multiple times)
+	if err := MigrateAddExtraMetaColumns(db); err != nil {
+		log.Printf("Warning: extra metaData columns migration failed: %v", err)
+	}
+
+	// Rename status->productionStatus and add enrichState/enrichedAt
+	if err := MigrateRenameStatusAndAddEnrich(db); err != nil {
+		log.Printf("Warning: enrichment columns migration failed: %v", err)
+	}
 }
 
 func createMetaDataTable(db *sql.DB) {
@@ -46,7 +61,14 @@ func createMetaDataTable(db *sql.DB) {
 		released_unix INTEGER,
 		trailer TEXT,
 		type VARCHAR(40),
-		name VARCHAR(255)
+		name VARCHAR(255),
+		network TEXT,
+		tagline TEXT,
+		backdrop TEXT,
+		productionStatus VARCHAR(40),
+		ageRating VARCHAR(20),
+		enrichState VARCHAR(20),
+		enrichedAt INTEGER
 	);
 		CREATE INDEX IF NOT EXISTS idx_type ON metaData(type);
 		CREATE INDEX IF NOT EXISTS idx_tmdbId ON metaData(tmdbId);

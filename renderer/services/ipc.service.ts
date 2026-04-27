@@ -266,6 +266,12 @@ export class IpcService {
         // }
     }
 
+    public static enrichMetadata(metaDataId: number, force: boolean = true): Promise<MetaData> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("enrich-metadata", {metaDataId, force}).then(resolve as any).catch(reject);
+        });
+    }
+
     public static async getYouTubeTrailer(metaDataId: number, title: string, year?: number) {
          return new Promise((resolve, reject) => {
             const payload = {metaDataId, title, year};

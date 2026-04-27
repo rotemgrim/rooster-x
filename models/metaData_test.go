@@ -2520,7 +2520,7 @@ func testMetaDataSelect(t *testing.T) {
 }
 
 var (
-	metaDatumDBTypes = map[string]string{`ID`: `INTEGER`, `Title`: `VARCHAR(255)`, `ImdbId`: `VARCHAR(40)`, `TMDBID`: `INTEGER`, `Languages`: `TEXT`, `Country`: `TEXT`, `Votes`: `INTEGER`, `Series`: `BOOLEAN`, `Rating`: `REAL`, `Runtime`: `INTEGER`, `Year`: `INTEGER`, `Poster`: `TEXT`, `Metascore`: `TEXT`, `Plot`: `TEXT`, `Director`: `VARCHAR`, `Writer`: `VARCHAR`, `Actors`: `TEXT`, `Released`: `VARCHAR(255)`, `ReleasedUnix`: `INTEGER`, `Trailer`: `TEXT`, `Type`: `VARCHAR(40)`, `Name`: `VARCHAR(255)`}
+	metaDatumDBTypes = map[string]string{`ID`: `INTEGER`, `Title`: `VARCHAR(255)`, `ImdbId`: `VARCHAR(40)`, `TMDBID`: `INTEGER`, `Languages`: `TEXT`, `Country`: `TEXT`, `Votes`: `INTEGER`, `Series`: `BOOLEAN`, `Rating`: `REAL`, `Runtime`: `INTEGER`, `Year`: `INTEGER`, `Poster`: `TEXT`, `Metascore`: `TEXT`, `Plot`: `TEXT`, `Director`: `VARCHAR`, `Writer`: `VARCHAR`, `Actors`: `TEXT`, `Released`: `VARCHAR(255)`, `ReleasedUnix`: `INTEGER`, `Trailer`: `TEXT`, `Type`: `VARCHAR(40)`, `Name`: `VARCHAR(255)`, `Network`: `TEXT`, `Tagline`: `TEXT`, `Backdrop`: `TEXT`, `ProductionStatus`: `VARCHAR(40)`, `AgeRating`: `VARCHAR(20)`, `EnrichState`: `VARCHAR(20)`, `EnrichedAt`: `INTEGER`}
 	_                = bytes.MinRead
 )
 

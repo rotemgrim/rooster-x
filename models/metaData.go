@@ -24,177 +24,226 @@ import (
 
 // MetaDatum is an object representing the database table.
 type MetaDatum struct {
-	ID           null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
-	Title        null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
-	ImdbId       null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
-	TMDBID       null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
-	Languages    null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
-	Country      null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
-	Votes        null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
-	Series       null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
-	Rating       null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
-	Runtime      null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
-	Year         null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
-	Poster       null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
-	Metascore    null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
-	Plot         null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
-	Director     null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
-	Writer       null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
-	Actors       null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
-	Released     null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
-	ReleasedUnix null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
-	Trailer      null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
-	Type         null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
-	Name         null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
+	ID               null.Int64   `boil:"id" json:"id,omitempty" toml:"id" yaml:"id,omitempty"`
+	Title            null.String  `boil:"title" json:"title,omitempty" toml:"title" yaml:"title,omitempty"`
+	ImdbId           null.String  `boil:"imdbId" json:"imdbId,omitempty" toml:"imdbId" yaml:"imdbId,omitempty"`
+	TMDBID           null.Int64   `boil:"tmdbId" json:"tmdbId,omitempty" toml:"tmdbId" yaml:"tmdbId,omitempty"`
+	Languages        null.String  `boil:"languages" json:"languages,omitempty" toml:"languages" yaml:"languages,omitempty"`
+	Country          null.String  `boil:"country" json:"country,omitempty" toml:"country" yaml:"country,omitempty"`
+	Votes            null.Int64   `boil:"votes" json:"votes,omitempty" toml:"votes" yaml:"votes,omitempty"`
+	Series           null.Bool    `boil:"series" json:"series,omitempty" toml:"series" yaml:"series,omitempty"`
+	Rating           null.Float64 `boil:"rating" json:"rating,omitempty" toml:"rating" yaml:"rating,omitempty"`
+	Runtime          null.Int64   `boil:"runtime" json:"runtime,omitempty" toml:"runtime" yaml:"runtime,omitempty"`
+	Year             null.Int64   `boil:"year" json:"year,omitempty" toml:"year" yaml:"year,omitempty"`
+	Poster           null.String  `boil:"poster" json:"poster,omitempty" toml:"poster" yaml:"poster,omitempty"`
+	Metascore        null.String  `boil:"metascore" json:"metascore,omitempty" toml:"metascore" yaml:"metascore,omitempty"`
+	Plot             null.String  `boil:"plot" json:"plot,omitempty" toml:"plot" yaml:"plot,omitempty"`
+	Director         null.String  `boil:"director" json:"director,omitempty" toml:"director" yaml:"director,omitempty"`
+	Writer           null.String  `boil:"writer" json:"writer,omitempty" toml:"writer" yaml:"writer,omitempty"`
+	Actors           null.String  `boil:"actors" json:"actors,omitempty" toml:"actors" yaml:"actors,omitempty"`
+	Released         null.String  `boil:"released" json:"released,omitempty" toml:"released" yaml:"released,omitempty"`
+	ReleasedUnix     null.Int64   `boil:"released_unix" json:"released_unix,omitempty" toml:"released_unix" yaml:"released_unix,omitempty"`
+	Trailer          null.String  `boil:"trailer" json:"trailer,omitempty" toml:"trailer" yaml:"trailer,omitempty"`
+	Type             null.String  `boil:"type" json:"type,omitempty" toml:"type" yaml:"type,omitempty"`
+	Name             null.String  `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
+	Network          null.String  `boil:"network" json:"network,omitempty" toml:"network" yaml:"network,omitempty"`
+	Tagline          null.String  `boil:"tagline" json:"tagline,omitempty" toml:"tagline" yaml:"tagline,omitempty"`
+	Backdrop         null.String  `boil:"backdrop" json:"backdrop,omitempty" toml:"backdrop" yaml:"backdrop,omitempty"`
+	ProductionStatus null.String  `boil:"productionStatus" json:"productionStatus,omitempty" toml:"productionStatus" yaml:"productionStatus,omitempty"`
+	AgeRating        null.String  `boil:"ageRating" json:"ageRating,omitempty" toml:"ageRating" yaml:"ageRating,omitempty"`
+	EnrichState      null.String  `boil:"enrichState" json:"enrichState,omitempty" toml:"enrichState" yaml:"enrichState,omitempty"`
+	EnrichedAt       null.Int64   `boil:"enrichedAt" json:"enrichedAt,omitempty" toml:"enrichedAt" yaml:"enrichedAt,omitempty"`
 
 	R *metaDatumR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L metaDatumL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var MetaDatumColumns = struct {
-	ID           string
-	Title        string
-	ImdbId       string
-	TMDBID       string
-	Languages    string
-	Country      string
-	Votes        string
-	Series       string
-	Rating       string
-	Runtime      string
-	Year         string
-	Poster       string
-	Metascore    string
-	Plot         string
-	Director     string
-	Writer       string
-	Actors       string
-	Released     string
-	ReleasedUnix string
-	Trailer      string
-	Type         string
-	Name         string
+	ID               string
+	Title            string
+	ImdbId           string
+	TMDBID           string
+	Languages        string
+	Country          string
+	Votes            string
+	Series           string
+	Rating           string
+	Runtime          string
+	Year             string
+	Poster           string
+	Metascore        string
+	Plot             string
+	Director         string
+	Writer           string
+	Actors           string
+	Released         string
+	ReleasedUnix     string
+	Trailer          string
+	Type             string
+	Name             string
+	Network          string
+	Tagline          string
+	Backdrop         string
+	ProductionStatus string
+	AgeRating        string
+	EnrichState      string
+	EnrichedAt       string
 }{
-	ID:           "id",
-	Title:        "title",
-	ImdbId:       "imdbId",
-	TMDBID:       "tmdbId",
-	Languages:    "languages",
-	Country:      "country",
-	Votes:        "votes",
-	Series:       "series",
-	Rating:       "rating",
-	Runtime:      "runtime",
-	Year:         "year",
-	Poster:       "poster",
-	Metascore:    "metascore",
-	Plot:         "plot",
-	Director:     "director",
-	Writer:       "writer",
-	Actors:       "actors",
-	Released:     "released",
-	ReleasedUnix: "released_unix",
-	Trailer:      "trailer",
-	Type:         "type",
-	Name:         "name",
+	ID:               "id",
+	Title:            "title",
+	ImdbId:           "imdbId",
+	TMDBID:           "tmdbId",
+	Languages:        "languages",
+	Country:          "country",
+	Votes:            "votes",
+	Series:           "series",
+	Rating:           "rating",
+	Runtime:          "runtime",
+	Year:             "year",
+	Poster:           "poster",
+	Metascore:        "metascore",
+	Plot:             "plot",
+	Director:         "director",
+	Writer:           "writer",
+	Actors:           "actors",
+	Released:         "released",
+	ReleasedUnix:     "released_unix",
+	Trailer:          "trailer",
+	Type:             "type",
+	Name:             "name",
+	Network:          "network",
+	Tagline:          "tagline",
+	Backdrop:         "backdrop",
+	ProductionStatus: "productionStatus",
+	AgeRating:        "ageRating",
+	EnrichState:      "enrichState",
+	EnrichedAt:       "enrichedAt",
 }
 
 var MetaDatumTableColumns = struct {
-	ID           string
-	Title        string
-	ImdbId       string
-	TMDBID       string
-	Languages    string
-	Country      string
-	Votes        string
-	Series       string
-	Rating       string
-	Runtime      string
-	Year         string
-	Poster       string
-	Metascore    string
-	Plot         string
-	Director     string
-	Writer       string
-	Actors       string
-	Released     string
-	ReleasedUnix string
-	Trailer      string
-	Type         string
-	Name         string
+	ID               string
+	Title            string
+	ImdbId           string
+	TMDBID           string
+	Languages        string
+	Country          string
+	Votes            string
+	Series           string
+	Rating           string
+	Runtime          string
+	Year             string
+	Poster           string
+	Metascore        string
+	Plot             string
+	Director         string
+	Writer           string
+	Actors           string
+	Released         string
+	ReleasedUnix     string
+	Trailer          string
+	Type             string
+	Name             string
+	Network          string
+	Tagline          string
+	Backdrop         string
+	ProductionStatus string
+	AgeRating        string
+	EnrichState      string
+	EnrichedAt       string
 }{
-	ID:           "metaData.id",
-	Title:        "metaData.title",
-	ImdbId:       "metaData.imdbId",
-	TMDBID:       "metaData.tmdbId",
-	Languages:    "metaData.languages",
-	Country:      "metaData.country",
-	Votes:        "metaData.votes",
-	Series:       "metaData.series",
-	Rating:       "metaData.rating",
-	Runtime:      "metaData.runtime",
-	Year:         "metaData.year",
-	Poster:       "metaData.poster",
-	Metascore:    "metaData.metascore",
-	Plot:         "metaData.plot",
-	Director:     "metaData.director",
-	Writer:       "metaData.writer",
-	Actors:       "metaData.actors",
-	Released:     "metaData.released",
-	ReleasedUnix: "metaData.released_unix",
-	Trailer:      "metaData.trailer",
-	Type:         "metaData.type",
-	Name:         "metaData.name",
+	ID:               "metaData.id",
+	Title:            "metaData.title",
+	ImdbId:           "metaData.imdbId",
+	TMDBID:           "metaData.tmdbId",
+	Languages:        "metaData.languages",
+	Country:          "metaData.country",
+	Votes:            "metaData.votes",
+	Series:           "metaData.series",
+	Rating:           "metaData.rating",
+	Runtime:          "metaData.runtime",
+	Year:             "metaData.year",
+	Poster:           "metaData.poster",
+	Metascore:        "metaData.metascore",
+	Plot:             "metaData.plot",
+	Director:         "metaData.director",
+	Writer:           "metaData.writer",
+	Actors:           "metaData.actors",
+	Released:         "metaData.released",
+	ReleasedUnix:     "metaData.released_unix",
+	Trailer:          "metaData.trailer",
+	Type:             "metaData.type",
+	Name:             "metaData.name",
+	Network:          "metaData.network",
+	Tagline:          "metaData.tagline",
+	Backdrop:         "metaData.backdrop",
+	ProductionStatus: "metaData.productionStatus",
+	AgeRating:        "metaData.ageRating",
+	EnrichState:      "metaData.enrichState",
+	EnrichedAt:       "metaData.enrichedAt",
 }
 
 // Generated where
 
 var MetaDatumWhere = struct {
-	ID           whereHelpernull_Int64
-	Title        whereHelpernull_String
-	ImdbId       whereHelpernull_String
-	TMDBID       whereHelpernull_Int64
-	Languages    whereHelpernull_String
-	Country      whereHelpernull_String
-	Votes        whereHelpernull_Int64
-	Series       whereHelpernull_Bool
-	Rating       whereHelpernull_Float64
-	Runtime      whereHelpernull_Int64
-	Year         whereHelpernull_Int64
-	Poster       whereHelpernull_String
-	Metascore    whereHelpernull_String
-	Plot         whereHelpernull_String
-	Director     whereHelpernull_String
-	Writer       whereHelpernull_String
-	Actors       whereHelpernull_String
-	Released     whereHelpernull_String
-	ReleasedUnix whereHelpernull_Int64
-	Trailer      whereHelpernull_String
-	Type         whereHelpernull_String
-	Name         whereHelpernull_String
+	ID               whereHelpernull_Int64
+	Title            whereHelpernull_String
+	ImdbId           whereHelpernull_String
+	TMDBID           whereHelpernull_Int64
+	Languages        whereHelpernull_String
+	Country          whereHelpernull_String
+	Votes            whereHelpernull_Int64
+	Series           whereHelpernull_Bool
+	Rating           whereHelpernull_Float64
+	Runtime          whereHelpernull_Int64
+	Year             whereHelpernull_Int64
+	Poster           whereHelpernull_String
+	Metascore        whereHelpernull_String
+	Plot             whereHelpernull_String
+	Director         whereHelpernull_String
+	Writer           whereHelpernull_String
+	Actors           whereHelpernull_String
+	Released         whereHelpernull_String
+	ReleasedUnix     whereHelpernull_Int64
+	Trailer          whereHelpernull_String
+	Type             whereHelpernull_String
+	Name             whereHelpernull_String
+	Network          whereHelpernull_String
+	Tagline          whereHelpernull_String
+	Backdrop         whereHelpernull_String
+	ProductionStatus whereHelpernull_String
+	AgeRating        whereHelpernull_String
+	EnrichState      whereHelpernull_String
+	EnrichedAt       whereHelpernull_Int64
 }{
-	ID:           whereHelpernull_Int64{field: "\"metaData\".\"id\""},
-	Title:        whereHelpernull_String{field: "\"metaData\".\"title\""},
-	ImdbId:       whereHelpernull_String{field: "\"metaData\".\"imdbId\""},
-	TMDBID:       whereHelpernull_Int64{field: "\"metaData\".\"tmdbId\""},
-	Languages:    whereHelpernull_String{field: "\"metaData\".\"languages\""},
-	Country:      whereHelpernull_String{field: "\"metaData\".\"country\""},
-	Votes:        whereHelpernull_Int64{field: "\"metaData\".\"votes\""},
-	Series:       whereHelpernull_Bool{field: "\"metaData\".\"series\""},
-	Rating:       whereHelpernull_Float64{field: "\"metaData\".\"rating\""},
-	Runtime:      whereHelpernull_Int64{field: "\"metaData\".\"runtime\""},
-	Year:         whereHelpernull_Int64{field: "\"metaData\".\"year\""},
-	Poster:       whereHelpernull_String{field: "\"metaData\".\"poster\""},
-	Metascore:    whereHelpernull_String{field: "\"metaData\".\"metascore\""},
-	Plot:         whereHelpernull_String{field: "\"metaData\".\"plot\""},
-	Director:     whereHelpernull_String{field: "\"metaData\".\"director\""},
-	Writer:       whereHelpernull_String{field: "\"metaData\".\"writer\""},
-	Actors:       whereHelpernull_String{field: "\"metaData\".\"actors\""},
-	Released:     whereHelpernull_String{field: "\"metaData\".\"released\""},
-	ReleasedUnix: whereHelpernull_Int64{field: "\"metaData\".\"released_unix\""},
-	Trailer:      whereHelpernull_String{field: "\"metaData\".\"trailer\""},
-	Type:         whereHelpernull_String{field: "\"metaData\".\"type\""},
-	Name:         whereHelpernull_String{field: "\"metaData\".\"name\""},
+	ID:               whereHelpernull_Int64{field: "\"metaData\".\"id\""},
+	Title:            whereHelpernull_String{field: "\"metaData\".\"title\""},
+	ImdbId:           whereHelpernull_String{field: "\"metaData\".\"imdbId\""},
+	TMDBID:           whereHelpernull_Int64{field: "\"metaData\".\"tmdbId\""},
+	Languages:        whereHelpernull_String{field: "\"metaData\".\"languages\""},
+	Country:          whereHelpernull_String{field: "\"metaData\".\"country\""},
+	Votes:            whereHelpernull_Int64{field: "\"metaData\".\"votes\""},
+	Series:           whereHelpernull_Bool{field: "\"metaData\".\"series\""},
+	Rating:           whereHelpernull_Float64{field: "\"metaData\".\"rating\""},
+	Runtime:          whereHelpernull_Int64{field: "\"metaData\".\"runtime\""},
+	Year:             whereHelpernull_Int64{field: "\"metaData\".\"year\""},
+	Poster:           whereHelpernull_String{field: "\"metaData\".\"poster\""},
+	Metascore:        whereHelpernull_String{field: "\"metaData\".\"metascore\""},
+	Plot:             whereHelpernull_String{field: "\"metaData\".\"plot\""},
+	Director:         whereHelpernull_String{field: "\"metaData\".\"director\""},
+	Writer:           whereHelpernull_String{field: "\"metaData\".\"writer\""},
+	Actors:           whereHelpernull_String{field: "\"metaData\".\"actors\""},
+	Released:         whereHelpernull_String{field: "\"metaData\".\"released\""},
+	ReleasedUnix:     whereHelpernull_Int64{field: "\"metaData\".\"released_unix\""},
+	Trailer:          whereHelpernull_String{field: "\"metaData\".\"trailer\""},
+	Type:             whereHelpernull_String{field: "\"metaData\".\"type\""},
+	Name:             whereHelpernull_String{field: "\"metaData\".\"name\""},
+	Network:          whereHelpernull_String{field: "\"metaData\".\"network\""},
+	Tagline:          whereHelpernull_String{field: "\"metaData\".\"tagline\""},
+	Backdrop:         whereHelpernull_String{field: "\"metaData\".\"backdrop\""},
+	ProductionStatus: whereHelpernull_String{field: "\"metaData\".\"productionStatus\""},
+	AgeRating:        whereHelpernull_String{field: "\"metaData\".\"ageRating\""},
+	EnrichState:      whereHelpernull_String{field: "\"metaData\".\"enrichState\""},
+	EnrichedAt:       whereHelpernull_Int64{field: "\"metaData\".\"enrichedAt\""},
 }
 
 // MetaDatumRels is where relationship names are stored.
@@ -275,9 +324,9 @@ func (r *metaDatumR) GetMetaDataIdUserMetaData() UserMetaDatumSlice {
 type metaDatumL struct{}
 
 var (
-	metaDatumAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name"}
+	metaDatumAllColumns            = []string{"id", "title", "imdbId", "tmdbId", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name", "network", "tagline", "backdrop", "productionStatus", "ageRating", "enrichState", "enrichedAt"}
 	metaDatumColumnsWithoutDefault = []string{}
-	metaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name"}
+	metaDatumColumnsWithDefault    = []string{"id", "title", "imdbId", "tmdbId", "languages", "country", "votes", "series", "rating", "runtime", "year", "poster", "metascore", "plot", "director", "writer", "actors", "released", "released_unix", "trailer", "type", "name", "network", "tagline", "backdrop", "productionStatus", "ageRating", "enrichState", "enrichedAt"}
 	metaDatumPrimaryKeyColumns     = []string{"id"}
 	metaDatumGeneratedColumns      = []string{"id"}
 )
