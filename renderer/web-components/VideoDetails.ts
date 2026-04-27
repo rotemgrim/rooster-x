@@ -43,33 +43,27 @@ export class VideoDetails extends LitElement {
     public static getRuntime(vid: MetaData) {
         let min = vid.runtime; // in minutes
         if (min === 0 || !min) {
-            return "";
+            return html``;
         }
 
         const hr = parseInt((min / 60).toString(), 10);
         min = min - hr * 60;
-        const hMin = min + "min ";
-        const hHour = hr + "h ";
         let humanTime = "";
-        if (hr > 0) {
-            humanTime += hHour;
-        }
-        if (min > 0) {
-            humanTime += hMin;
-        }
+        if (hr > 0) humanTime += hr + "h ";
+        if (min > 0) humanTime += min + "min";
         if (humanTime) {
-            return html`${humanTime} ${VideoDetails.getSep()}`;
+            return html`<span class="runtime" title="Runtime">${humanTime.trim()}</span>`;
         }
         return html``;
     }
 
     public static getYear(vid: MetaData) {
         if (vid.year) {
-            return html`${vid.year} ${VideoDetails.getSep()}`;
+            return html`<span class="year" title="Year">${vid.year}</span>`;
         } else if (vid.released) {
             const tmp = vid.released.toString().split("-");
             if (tmp.length > 0) {
-                return html`${tmp[0]} ${VideoDetails.getSep()}`;
+                return html`<span class="year" title="Released">${tmp[0]}</span>`;
             }
         }
         return html``;
@@ -357,28 +351,6 @@ export class VideoDetails extends LitElement {
             });
     }
 
-    private static getSep() {
-        return html`<span class="separator">|</span>`;
-    }
-
-    private static getRatingChip(vid: MetaData) {
-        if (vid.rating && typeof vid.rating === "number" && vid.rating > 0) {
-            return html`<span class="rating-chip" title="IMDb rating">★ ${vid.rating.toFixed(1)}</span>
-                ${VideoDetails.getSep()}`;
-        }
-        return html``;
-    }
-
-    private static getField(label: string, value?: string | null) {
-        if (value && value.toString().trim()) {
-            return html`<span class="md-field" title="${label}">
-                    <small>${label}:</small> ${value}
-                </span>
-                ${VideoDetails.getSep()}`;
-        }
-        return html``;
-    }
-
     private static parseNetworks(raw?: string | null): {name: string; logo?: string}[] {
         if (!raw) return [];
         const s = raw.toString().trim();
@@ -403,21 +375,19 @@ export class VideoDetails extends LitElement {
     }
 
     private static getNetworkField(label: string, raw?: string | null) {
-        const items = VideoDetails.parseNetworks(raw);
+        const items = VideoDetails.parseNetworks(raw).filter(it => it.logo);
         if (items.length === 0) return html``;
         return html`<span class="md-field network-field" title="${label}">
-                ${items.map(
-                    it => html`<span class="network-item" title="${it.name}">
-                        ${it.logo
-                            ? html`<img
-                                  class="network-logo"
-                                  src="https://image.tmdb.org/t/p/w92${it.logo}"
-                                  alt="${it.name}" />`
-                            : html`<span class="network-name">${it.name}</span>`}
-                    </span>`,
-                )}
-            </span>
-            ${VideoDetails.getSep()}`;
+            ${items.map(
+                it => html`<span class="network-item" title="${it.name}">
+                    <img
+                        class="network-logo"
+                        src="https://image.tmdb.org/t/p/w92${it.logo}"
+                        alt="${it.name}"
+                        loading="lazy" />
+                </span>`,
+            )}
+        </span>`;
     }
 
     public render() {
@@ -481,16 +451,17 @@ export class VideoDetails extends LitElement {
                             <p>${this.video.plot}</p>
                             <div class="small-details">
                                 ${this.video.ageRating
-                                    ? html`<span class="age-rating-chip" title="Age rating">${this.video.ageRating}</span>
-                                          ${VideoDetails.getSep()}`
+                                    ? html`<span class="age-rating-chip" title="Age rating">${this.video.ageRating}</span>`
                                     : ""}
                                 ${this.video.genres
-                                    ? html`<div class="genres">${this.video.genres}</div>
-                                          ${VideoDetails.getSep()}`
+                                    ? html`<span class="genres" title="Genres">${this.video.genres
+                                          .split(",")
+                                          .map(g => g.trim())
+                                          .filter(Boolean)
+                                          .join(", ")}</span>`
                                     : ""}
-                                <div>
-                                    ${VideoDetails.getRuntime(this.video)} ${VideoDetails.getYear(this.video)}
-                                </div>
+                                ${VideoDetails.getRuntime(this.video)}
+                                ${VideoDetails.getYear(this.video)}
                                 ${VideoDetails.getNetworkField(
                                     this.video.type === "series" ? "Network" : "Studio",
                                     this.video.network,
