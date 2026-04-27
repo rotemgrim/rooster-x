@@ -96,11 +96,17 @@ export class RoosterX extends LitElement {
         super();
         this._sideBar = false;
         this._panel = "";
+        this.isLoading = true;
         IpcService.getMedia({
             filter: "all",
             isTorrents: this._showTorrents,
             genres: this._filterConfig.noMediaWithoutGenres,
-        }).then(media => (this.media = media));
+        }).then(media => {
+            this.media = media;
+            this.isLoading = false;
+        }).catch(() => {
+            this.isLoading = false;
+        });
         document.addEventListener("click", <HTMLElement>(e) => {
             if (
                 e &&
