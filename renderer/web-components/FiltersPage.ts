@@ -58,19 +58,19 @@ export class FiltersPage extends LitElement {
     private orderDirectrionChange(e) {
         const addToOrderConfig = {};
         addToOrderConfig[e.target.id] = e.target.checked;
-        this.rooster.orderConfig = Object.assign(this.rooster._orderConfig, addToOrderConfig);
+        this.rooster.orderConfig = {...this.rooster._orderConfig, ...addToOrderConfig};
     }
 
     private orderByChange(e) {
         const addToOrderConfig = {};
         addToOrderConfig[e.target.id] = e.target.value;
-        this.rooster.orderConfig = Object.assign(this.rooster._orderConfig, addToOrderConfig);
+        this.rooster.orderConfig = {...this.rooster._orderConfig, ...addToOrderConfig};
     }
 
     private groupByChange(e) {
         const addToOrderConfig = {};
         addToOrderConfig[e.target.id] = e.target.value;
-        this.rooster.orderConfig = Object.assign(this.rooster._orderConfig, addToOrderConfig);
+        this.rooster.orderConfig = {...this.rooster._orderConfig, ...addToOrderConfig};
     }
 
     public render() {
@@ -89,10 +89,10 @@ export class FiltersPage extends LitElement {
                             <select @change=${this.orderByChange} id="orderBy">
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "trendingCount"}
                                     value="trendingCount">Trending</option>
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "latestChange"}
-                                    value="latestChange">Download Date</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "uploadedDate"}
-                                    value="uploadedDate">Uploaded Date</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "downloadedAt"}
+                                    value="downloadedAt">Download Date</option>
+                                <option ?selected=${this.rooster._orderConfig.orderBy === "uploadedAt"}
+                                    value="uploadedAt">Uploaded Date</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "rating"}
                                     value="rating">IMDB Score</option>
                                 <option ?selected=${this.rooster._orderConfig.orderBy === "votes"}
@@ -174,6 +174,13 @@ export class FiltersPage extends LitElement {
                                 ?checked="${this.rooster._filterConfig.noMediaWithoutMetaData}"
                                 class="tgl tgl-light" type="checkbox"/>
                             <label class="tgl-btn" for="noMediaWithoutMetaData"></label>
+                        </li>
+                        <li>
+                            <h3>Show debug info on posters</h3>
+                            <input @change=${this.filterChange} id="showDebug"
+                                ?checked="${this.rooster._filterConfig.showDebug}"
+                                class="tgl tgl-light" type="checkbox"/>
+                            <label class="tgl-btn" for="showDebug"></label>
                         </li>
                     </ul>
                 </div>

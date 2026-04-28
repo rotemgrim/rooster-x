@@ -195,20 +195,50 @@ func scanMediaRowPtrs(cols []string, m *MediaDataExtended, discard *interface{})
 
 func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string, genres []string) {
 	var userId int = data.UserId
+
+	// trendingCount cutoff: torrentFile rows whose seenAt is within the last
+	// 48h. Pass as a bound parameter rather than embedding strftime('%s', ...)
+	// in the SQL: sqlboiler's join-clause builder runs the clause through
+	// fmt.Sprintf, which mangles literal '%s' into '%!s(MISSING)' and breaks
+	// the WHERE comparison so every meta ends up with trendingCount=0.
+	trendingCutoff := time.Now().Unix() - 48*3600
+
+	// All per-metaData aggregates are computed in derived tables (one row
+	// per metaDataId), then LEFT JOINed once. This avoids:
+	//   - correlated subqueries that ran once per outer row (trendingCount,
+	//     genres),
+	//   - cross-product row inflation when joining mediaFile AND torrentFile
+	//     in folders mode (which silently inflated count(sub.id)),
+	//   - the GROUP BY md.id pass over an exploded join.
 	queryMods := []qm.QueryMod{
 		// Only select columns needed for the grid view + client-side
 		// sort/group/filter. Detail-only fields are fetched on demand via
 		// the get-meta-data route.
 		qm.Select("md.id, md.title, md.votes, md.series, md.rating, md.year, md.poster, md.released_unix, md.type"),
 		qm.Select("umd.isWatched as isWatched"),
-		qm.Select("max(IFNULL(CAST(SUBSTR(sub.resolution, 0) AS int), 0)) as resolution"),
-		qm.Select("rtrim(replace(group_concat(DISTINCT sub.quality||','), ',,', ','), ',') as quality"),
-
-		qm.Select("(SELECT COUNT(*) FROM torrentFile as tf WHERE tf.metaDataId = md.id AND tf.seenAt > strftime('%s', 'now', '-48 hours')) as trendingCount"),
-
-		qm.Select("(SELECT group_concat(g.type, ',') FROM metaDataGenre mg INNER JOIN genre g ON g.id = mg.genreId WHERE mg.metaDataId = md.id) as genres"),
+		qm.Select("IFNULL(tc.tCount, 0) as trendingCount"),
+		qm.Select("gn.genreList as genres"),
 
 		qm.From("metaData as md"),
+
+		// trendingCount: aggregated once via index range scan on
+		// idx_torrentFile_metaDataId_seenAt.
+		qm.LeftOuterJoin(
+			"(SELECT metaDataId, COUNT(*) AS tCount "+
+				"FROM torrentFile "+
+				"WHERE seenAt > ? "+
+				"GROUP BY metaDataId) AS tc ON tc.metaDataId = md.id",
+			trendingCutoff,
+		),
+
+		// genres: aggregated once via metaDataGenre + genre, instead of
+		// being a correlated subquery in the SELECT list.
+		qm.LeftOuterJoin(
+			"(SELECT mg.metaDataId, group_concat(g.type, ',') AS genreList " +
+				"FROM metaDataGenre mg " +
+				"INNER JOIN genre g ON g.id = mg.genreId " +
+				"GROUP BY mg.metaDataId) AS gn ON gn.metaDataId = md.id",
+		),
 	}
 
 	// CRITICAL: Add genre filter FIRST, before expensive JOINs
@@ -241,29 +271,56 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 		queryMods = append(queryMods, qm.Where("md.series = true"))
 	}
 
-	// NOW add the expensive JOINs after filtering
+	// userMetaData join is 1:1 (PK is userId+metaDataId, ON clause includes
+	// both), so no aggregation needed.
 	queryMods = append(queryMods,
 		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = ?", userId),
-		qm.GroupBy("md.id"),
-		qm.OrderBy("trendingCount DESC"),
 	)
 
 	if isTorrents {
-		//queryMods = append(queryMods, qm.From("torrentFile as sub"))
-		queryMods = append(queryMods, qm.LeftOuterJoin("torrentFile as sub on sub.metaDataId = md.id"))
-		queryMods = append(queryMods, qm.Select("DATETIME(max(sub.seenAt), 'unixepoch') as uploadedAt, "+
-			"DATE(seenAt, 'unixepoch') as uploadedDate,"+
-			"count(sub.id) as mediaFiles"))
-		queryMods = append(queryMods, qm.OrderBy(" max(sub.uploadedAt) DESC"))
+		// Per-metaDataId torrentFile aggregate: most recent seenAt for
+		// uploadedAt/uploadedDate, plus count, max-resolution, and
+		// distinct-quality concat.
+		queryMods = append(queryMods, qm.LeftOuterJoin(
+			"(SELECT metaDataId, "+
+				"DATETIME(max(seenAt), 'unixepoch') AS uploadedAt, "+
+				"DATE(max(seenAt), 'unixepoch') AS uploadedDate, "+
+				"max(uploadedAt) AS sortDate, "+
+				"COUNT(*) AS mediaFiles, "+
+				"max(IFNULL(CAST(SUBSTR(resolution, 0) AS int), 0)) AS resolution, "+
+				"rtrim(replace(group_concat(DISTINCT quality||','), ',,', ','), ',') AS quality "+
+				"FROM torrentFile "+
+				"GROUP BY metaDataId) AS sa ON sa.metaDataId = md.id",
+		))
+		queryMods = append(queryMods,
+			qm.Select("sa.uploadedAt as uploadedAt, sa.uploadedDate as uploadedDate, sa.mediaFiles as mediaFiles, IFNULL(sa.resolution, 0) as resolution, IFNULL(sa.quality, '') as quality"),
+			qm.OrderBy("trendingCount DESC"),
+			qm.OrderBy("sa.sortDate DESC"),
+		)
 	} else {
-		//queryMods = append(queryMods, qm.From("mediaFile as sub"))
-		queryMods = append(queryMods, qm.LeftOuterJoin("mediaFile as sub on sub.metaDataId = md.id"))
-		queryMods = append(queryMods, qm.LeftOuterJoin("torrentFile as tf on tf.metaDataId = md.id"))
-		queryMods = append(queryMods, qm.Select("max(sub.downloadedAt) as downloadedAt, "+
-			"DATE(SUBSTR(downloadedAt, 1, 19)) as downloadedDate,"+
-			"DATE(tf.seenAt, 'unixepoch') as uploadedDate,"+
-			"count(sub.id) as mediaFiles"))
-		queryMods = append(queryMods, qm.OrderBy(" max(sub.downloadedAt) DESC"))
+		// Per-metaDataId mediaFile aggregate.
+		queryMods = append(queryMods, qm.LeftOuterJoin(
+			"(SELECT metaDataId, "+
+				"max(downloadedAt) AS downloadedAt, "+
+				"DATE(SUBSTR(max(downloadedAt), 1, 19)) AS downloadedDate, "+
+				"COUNT(*) AS mediaFiles, "+
+				"max(IFNULL(CAST(SUBSTR(resolution, 0) AS int), 0)) AS resolution, "+
+				"rtrim(replace(group_concat(DISTINCT quality||','), ',,', ','), ',') AS quality "+
+				"FROM mediaFile "+
+				"GROUP BY metaDataId) AS sa ON sa.metaDataId = md.id",
+		))
+		// Separate aggregate for the uploadedDate column (folders view
+		// shows last torrent seen-date alongside download data).
+		queryMods = append(queryMods, qm.LeftOuterJoin(
+			"(SELECT metaDataId, DATE(max(seenAt), 'unixepoch') AS uploadedDate "+
+				"FROM torrentFile "+
+				"GROUP BY metaDataId) AS ta ON ta.metaDataId = md.id",
+		))
+		queryMods = append(queryMods,
+			qm.Select("sa.downloadedAt as downloadedAt, sa.downloadedDate as downloadedDate, ta.uploadedDate as uploadedDate, sa.mediaFiles as mediaFiles, IFNULL(sa.resolution, 0) as resolution, IFNULL(sa.quality, '') as quality"),
+			qm.OrderBy("trendingCount DESC"),
+			qm.OrderBy("sa.downloadedAt DESC"),
+		)
 	}
 	queryMods = append(queryMods, qm.OrderBy("md.id DESC"))
 

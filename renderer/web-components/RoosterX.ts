@@ -33,6 +33,7 @@ interface FilterConfig {
     noMediaWithoutFiles: boolean;
     noMediaWithoutMetaData: boolean;
     noMediaWithoutGenres: string[];
+    showDebug?: boolean;
 }
 
 type GroupMetaData = {
@@ -60,6 +61,7 @@ export class RoosterX extends LitElement {
         noMediaWithoutFiles: true,
         noMediaWithoutMetaData: true,
         noMediaWithoutGenres: [],
+        showDebug: false,
     };
     @property() public _orderConfig: OrderConfig = {
         directionDescending: true,
@@ -816,7 +818,7 @@ export class RoosterX extends LitElement {
     }
 
     private getVideoCard(v: IMetaDataExtended) {
-        return html`<video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`;
+        return html`<video-card id="v${v.id}" .video=${v} .rooster=${this} .showDebug=${!!this._filterConfig?.showDebug}></video-card>`;
     }
 
     private toggleGroup(e) {
@@ -929,7 +931,7 @@ export class RoosterX extends LitElement {
                                     arr,
                                     v => "" + v.id + (this._showTorrents ? "-tor" : ""),
                                     (v, i) =>
-                                        html` <video-card id="v${v.id}" .video=${v} .rooster=${this}></video-card>`,
+                                        html` <video-card id="v${v.id}" .video=${v} .rooster=${this} .showDebug=${!!this._filterConfig?.showDebug}></video-card>`,
                                 )}
                             </div>
                         </div>`,

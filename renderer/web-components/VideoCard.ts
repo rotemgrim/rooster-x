@@ -10,6 +10,7 @@ export class VideoCard extends LitElement {
 
     @property() public rooster: RoosterX;
     @property() public video: IMetaDataExtended;
+    @property({type: Boolean}) public showDebug: boolean = false;
 
     @property({attribute: "show-details", reflect: true})
     public isShowDetails: boolean;
@@ -72,7 +73,12 @@ export class VideoCard extends LitElement {
             })}" ${this.video.isWatched ? "watched" : ""}">
                 <div class="filter"></div>
                 <div class="watch-btn" tabindex="-1" title="${this.video.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
-<!--                <span style="color: white;">${this.video.trendingCount}</span>-->
+                ${this.showDebug ? html`
+                    <div style="position:absolute;top:4px;left:4px;z-index:5;background:rgba(0,0,0,0.7);color:#fff;font:600 11px/1.2 monospace;padding:3px 5px;border-radius:3px;pointer-events:none;text-shadow:0 1px 1px rgba(0,0,0,0.8);">
+                        <div>t: ${this.video.trendingCount ?? 0}</div>
+                        <div>u: ${(this.video as any).uploadedAt ?? (this.video as any).uploadedDate ?? "-"}</div>
+                    </div>
+                ` : ""}
                 ${this.video.poster ?
                     html`<img src="${this.video.poster}" alt="${this.video.title}" />` :
                     html`<div class="img-missing"><span>${this.video.title}</span></div>`}
