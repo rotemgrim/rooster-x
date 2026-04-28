@@ -45,6 +45,9 @@ type GroupMetaData = {
     isExpanded: boolean;
 }
 
+type View = "folders" | "torrents" | "channels";
+type Route = {view: View | null; id: number | null};
+
 // @ts-ignore
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
@@ -106,15 +109,24 @@ export class RoosterX extends LitElement {
         this._sideBar = false;
         this._panel = "";
 
-        // Restore the last view the user was on (folders / torrents / channels)
-        // so deep links like /movie/1202 hit the right dataset on refresh.
-        const lastView = this.getLastView();
-        if (lastView === "torrents") {
-            this._showTorrents = true;
-            this.view = "torrents";
-        } else if (lastView === "channels") {
-            this.view = "channels";
+        // ----- Routing: URL is the source of truth -----
+        // Routes:
+        //   /                          -> default to last-view (localStorage) or folders
+        //   /folders | /torrents | /channels
+        //   /<view>/<movie|series|tv|episode>/<id>
+        const route = this.parseRoute();
+        let initialView: View;
+        if (route.view) {
+            initialView = route.view;
+        } else {
+            // Bare "/" -> use last-view hint, else folders.
+            initialView = this.getLastView() || "folders";
+            // Normalize URL so future navigation has a proper view prefix.
+            history.replaceState({view: initialView}, "", `/${initialView}`);
         }
+        this.view = initialView;
+        this._showTorrents = initialView === "torrents";
+        this.saveLastView(initialView);
 
         this.streamMedia({
             filter: "all",
@@ -122,10 +134,7 @@ export class RoosterX extends LitElement {
             genres: this._filterConfig.noMediaWithoutGenres,
         }, {
             onComplete: () => {
-                // Deep-link support: if the page was loaded directly on a
-                // route like /movie/1202, open the matching card after the
-                // initial media stream completes. If the id isn't present
-                // in the current view's dataset, just clear the URL.
+                // Deep-link support: if URL has /<view>/<type>/<id>, open it.
                 this.openCardFromUrl();
             },
         });
@@ -149,12 +158,20 @@ export class RoosterX extends LitElement {
 
         window.addEventListener("popstate", e => {
             console.log("popstate", e.state);
+            const r = this.parseRoute();
 
-            const id = (e.state && e.state.id) || this.parseIdFromPath();
+            // If view changed (back/forward across views), switch dataset.
+            if (r.view && r.view !== this.view) {
+                this.applyView(r.view, /* push */ false);
+                // Card opening (if any) happens after stream completes via
+                // applyView's onComplete -> openCardFromUrl().
+                return;
+            }
 
+            // Same view: handle card open/close based on URL id.
+            const id = r.id;
             if (id) {
                 const videoCard = document.getElementById(`v${id}`) as VideoCard;
-                // get all video cards and close them
                 // @ts-ignore
                 const openVideoCards = [...document.querySelectorAll("video-card[show-details=true]")] as VideoCard[];
                 for (const card of openVideoCards) {
@@ -166,10 +183,8 @@ export class RoosterX extends LitElement {
             } else {
                 // @ts-ignore
                 const videoCards = document.querySelectorAll("video-card[show-details=true]") as VideoCard[];
-                if (videoCards.length > 0) {
-                    for (const videoCard of videoCards) {
-                        videoCard.closeDetails(true);
-                    }
+                for (const videoCard of videoCards) {
+                    videoCard.closeDetails(true);
                 }
             }
         });
@@ -383,19 +398,30 @@ export class RoosterX extends LitElement {
     }
 
     /**
-     * Parse the current URL pathname for an SPA route like /movie/123 or
-     * /series/55 and return the numeric id, or null if the URL doesn't match.
+     * Parse the current URL pathname into {view, id}. Supported shapes:
+     *   /folders | /torrents | /channels
+     *   /<view>/<movie|series|tv|episode>/<id>
      */
-    private parseIdFromPath(): number | null {
-        const m = window.location.pathname.match(/^\/(movie|series|tv|episode)\/(\d+)/);
-        if (!m) return null;
-        const id = Number(m[2]);
-        return Number.isFinite(id) ? id : null;
+    private parseRoute(): Route {
+        const m = window.location.pathname.match(
+            /^\/(folders|torrents|channels)(?:\/(?:movie|series|tv|episode)\/(\d+))?\/?$/,
+        );
+        if (!m) return {view: null, id: null};
+        const id = m[2] ? Number(m[2]) : null;
+        return {
+            view: m[1] as View,
+            id: id !== null && Number.isFinite(id) ? id : null,
+        };
+    }
+
+    /** The base URL for the current view, used by VideoCard for pushState. */
+    public currentViewPath(): string {
+        return `/${this.view}`;
     }
 
     private static LAST_VIEW_KEY = "roosterx-last-view";
 
-    private getLastView(): "folders" | "torrents" | "channels" | null {
+    private getLastView(): View | null {
         try {
             const v = localStorage.getItem(RoosterX.LAST_VIEW_KEY);
             if (v === "folders" || v === "torrents" || v === "channels") return v;
@@ -403,35 +429,82 @@ export class RoosterX extends LitElement {
         return null;
     }
 
-    private saveLastView(view: "folders" | "torrents" | "channels") {
+    private saveLastView(view: View) {
         try {
             localStorage.setItem(RoosterX.LAST_VIEW_KEY, view);
         } catch (_) {}
     }
 
     /**
-     * Deep-link entry point: after initial data loads, look at the URL and
-     * open the matching <video-card> if present. Because cards are rendered
-     * with virtual scrolling, we may need to wait a few frames for the card
-     * to appear and scroll it into view. If the id isn't in the current
-     * view's dataset, the URL is cleared (replaced with "/").
+     * Switch to a view. Updates state, optionally pushes a history entry,
+     * persists last-view, and (for data views) re-streams data. After the
+     * stream completes, openCardFromUrl is invoked so back/forward to a
+     * /<view>/<type>/<id> URL still opens the correct card.
      */
-    private openCardFromUrl() {
-        const id = this.parseIdFromPath();
-        if (!id) return;
+    private applyView(view: View, push: boolean) {
+        // Save scroll position of the outgoing data view.
+        if (this.view === "folders" && view !== "folders") {
+            this.foldersViewScrollPos = this.videos?.parentElement?.scrollTop || 0;
+        } else if (this.view === "torrents" && view !== "torrents") {
+            this.torrentsViewScrollPos = this.videos?.parentElement?.scrollTop || 0;
+        }
 
-        // If the id isn't in the current dataset at all, clear the URL.
-        const list = this._showTorrents ? this._torrents : this._media;
-        const inDataset = Array.isArray(list) && (list as IMetaDataExtended[]).some(m => m.id === id);
-        if (!inDataset) {
-            console.warn("Deep link: id not found in current view, clearing URL:", id);
-            history.replaceState({}, "", "/");
+        this.view = view;
+        this._showTorrents = view === "torrents";
+        this.saveLastView(view);
+
+        if (push) {
+            history.pushState({view}, "", `/${view}`);
+        }
+
+        if (view === "channels") {
+            this.closeSideBar && this.closeSideBar();
             return;
         }
 
-        // Replace the (state-less) history entry created by the hard refresh
-        // so subsequent popstate events know which card to close.
-        history.replaceState({id}, "", window.location.pathname);
+        const restoreScroll = view === "torrents" ? this.torrentsViewScrollPos : this.foldersViewScrollPos;
+        this.streamMedia({
+            filter: "all",
+            isTorrents: this._showTorrents,
+            genres: this._filterConfig.noMediaWithoutGenres,
+        }, {
+            onComplete: () => {
+                this.updateComplete.then(() => {
+                    RoosterX.setFocusToVideos();
+                    this.videos?.parentElement?.scrollTo({top: restoreScroll, behavior: "smooth"});
+                });
+                // If the URL also has an /<type>/<id> suffix (e.g. arrived
+                // here via popstate), open the deep-linked card.
+                this.openCardFromUrl();
+            },
+        });
+        this.closeSideBar && this.closeSideBar();
+    }
+
+    /**
+     * Deep-link entry point: open the card identified by the URL, if its id
+     * exists in the current view's dataset. If not, strip the id off the URL
+     * (keeping the view prefix). Tolerates virtual scrolling by retrying
+     * across animation frames.
+     */
+    private openCardFromUrl() {
+        const route = this.parseRoute();
+        const id = route.id;
+        if (!id) return;
+
+        // Only act when the URL view matches the current view.
+        if (route.view && route.view !== this.view) return;
+
+        const list = this._showTorrents ? this._torrents : this._media;
+        const inDataset = Array.isArray(list) && (list as IMetaDataExtended[]).some(m => m.id === id);
+        if (!inDataset) {
+            console.warn("Deep link: id not found in current view, dropping id from URL:", id);
+            history.replaceState({view: this.view}, "", `/${this.view}`);
+            return;
+        }
+
+        // Ensure history state carries the id so popstate can restore it.
+        history.replaceState({view: this.view, id}, "", window.location.pathname);
 
         const tryOpen = (attempt = 0) => {
             const card = document.getElementById(`v${id}`) as VideoCard | null;
@@ -736,59 +809,15 @@ export class RoosterX extends LitElement {
     }
 
     public showChannels() {
-        // this.isLoading = true;
-        // IpcService.getChannels().then(channels => {
-        //     console.log("channels", channels);
-        //     this.isLoading = false;
-        // });
-        this.view = "channels";
-        this._showTorrents = false;
-        this.saveLastView("channels");
-        this.closeSideBar();
+        this.applyView("channels", /* push */ true);
     }
 
     public showTorrents() {
-        if (this.view === "folders") {
-            this.foldersViewScrollPos = this.videos.parentElement?.scrollTop || 0;
-        }
-        this._showTorrents = true;
-        this.view = "torrents";
-        this.saveLastView("torrents");
-        this.streamMedia({
-            filter: "all",
-            isTorrents: this._showTorrents,
-            genres: this._filterConfig.noMediaWithoutGenres,
-        }, {
-            onComplete: () => {
-                this.updateComplete.then(() => {
-                    RoosterX.setFocusToVideos();
-                    this.videos.parentElement?.scrollTo({top: this.torrentsViewScrollPos, behavior: "smooth"});
-                });
-            },
-        });
-        this.closeSideBar();
+        this.applyView("torrents", /* push */ true);
     }
 
     public showFolders() {
-        if (this.view === "torrents") {
-            this.torrentsViewScrollPos = this.videos.parentElement?.scrollTop || 0;
-        }
-        this._showTorrents = false;
-        this.view = "folders";
-        this.saveLastView("folders");
-        this.streamMedia({
-            filter: "all",
-            isTorrents: this._showTorrents,
-            genres: this._filterConfig.noMediaWithoutGenres,
-        }, {
-            onComplete: () => {
-                this.updateComplete.then(() => {
-                    RoosterX.setFocusToVideos();
-                    this.videos.parentElement?.scrollTo({top: this.foldersViewScrollPos, behavior: "smooth"});
-                });
-            },
-        });
-        this.closeSideBar && this.closeSideBar();
+        this.applyView("folders", /* push */ true);
     }
 
     /**

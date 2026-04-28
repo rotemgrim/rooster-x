@@ -26,7 +26,12 @@ export class VideoCard extends LitElement {
 
     public showDetails(useHistory = false) {
         if (useHistory) {
-            history.pushState({id: this.video.id}, this.video.title, `/${this.video.type}/${this.video.id}`);
+            const viewPath = this.rooster?.currentViewPath?.() || "";
+            history.pushState(
+                {id: this.video.id, view: this.rooster?.view},
+                this.video.title,
+                `${viewPath}/${this.video.type}/${this.video.id}`,
+            );
         }
         console.log("showDetails", this.video.id);
         // window.addEventListener('popstate', this.closeDetails.bind(this), {once: true});
@@ -40,7 +45,8 @@ export class VideoCard extends LitElement {
 
     public closeDetails(skipHistory = false) {
         if (!skipHistory) {
-            history.pushState({}, "", "/");
+            const viewPath = this.rooster?.currentViewPath?.() || "/";
+            history.pushState({view: this.rooster?.view}, "", viewPath);
         }
         document.body.classList.remove("no-scroll");
         RoosterX.setFocusToVideos();
