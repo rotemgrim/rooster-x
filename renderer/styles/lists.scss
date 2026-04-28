@@ -1,0 +1,407 @@
+@import "vars";
+
+// ---- Lists overview (horizontal rows w/ stacked-poster preview) ---------
+.lists-page {
+  height: calc(100vh - #{$topBarHeight});
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+  color: white;
+  box-sizing: border-box;
+
+  .lists-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    h1 { font-size: 2rem; margin: 0; flex: 1; }
+
+    .ll-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 0.4rem;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+
+      i { font-size: 1.2rem; }
+
+      &:hover { background: rgba(255, 255, 255, 0.16); }
+      &:disabled { opacity: 0.5; cursor: default; }
+    }
+  }
+
+  .ll-empty {
+    text-align: center;
+    opacity: 0.6;
+    padding: 4rem 1rem;
+    font-size: 1.1rem;
+  }
+
+  .ll-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .ll-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+
+    &:hover, &:focus {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateX(2px);
+      outline: none;
+    }
+
+    .ll-stack {
+      position: relative;
+      flex: 0 0 auto;
+      width: 220px;
+      height: 110px;
+
+      img {
+        position: absolute;
+        top: 0;
+        left: calc(var(--i) * 38px);
+        width: 80px;
+        height: 110px;
+        object-fit: cover;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #111;
+      }
+
+      &.ll-stack-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        i { font-size: 3rem; opacity: 0.4; }
+      }
+    }
+
+    .ll-meta {
+      flex: 1;
+      min-width: 0;
+
+      .ll-name {
+        font-size: 1.3rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .ll-count {
+        font-size: 0.9rem;
+        opacity: 0.6;
+      }
+    }
+
+    .ll-actions {
+      display: flex;
+      gap: 0.5rem;
+      opacity: 0;
+      transition: opacity 0.15s;
+
+      button {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: white;
+        cursor: pointer;
+        padding: 0.4rem;
+        border-radius: 0.3rem;
+        display: inline-flex;
+        align-items: center;
+
+        &:hover { background: rgba(255, 255, 255, 0.12); }
+        i { font-size: 1.1rem; }
+      }
+    }
+
+    &:hover .ll-actions { opacity: 1; }
+  }
+}
+
+// ---- List detail (vertical rows with drag-to-reorder) -------------------
+.list-detail-page {
+  height: calc(100vh - #{$topBarHeight});
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+  color: white;
+  box-sizing: border-box;
+
+  .ld-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    .ld-back, .ld-delete {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.5rem 0.9rem;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 0.4rem;
+      color: white;
+      cursor: pointer;
+      &:hover { background: rgba(255, 255, 255, 0.14); }
+      i { font-size: 1.1rem; }
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      cursor: text;
+      &:hover { text-decoration: underline; }
+    }
+
+    .ld-count { opacity: 0.6; font-size: 0.95rem; }
+    .ld-spacer { flex: 1; }
+  }
+
+  .ld-empty {
+    text-align: center;
+    opacity: 0.6;
+    padding: 4rem 1rem;
+    font-size: 1.05rem;
+  }
+
+  .ld-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .ld-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.4rem;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover { background: rgba(255, 255, 255, 0.08); }
+    &.watched { opacity: 0.65; }
+
+    .ld-handle {
+      cursor: grab;
+      color: rgba(255, 255, 255, 0.4);
+      &:hover { color: rgba(255, 255, 255, 0.9); }
+      i { font-size: 1.4rem; }
+    }
+
+    .ld-poster {
+      flex: 0 0 auto;
+      width: 60px;
+      height: 90px;
+      border-radius: 3px;
+      overflow: hidden;
+      background: #111;
+
+      img { width: 100%; height: 100%; object-fit: cover; }
+      .ld-poster-missing {
+        width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem; padding: 0.3rem; text-align: center;
+        opacity: 0.6;
+      }
+    }
+
+    .ld-info {
+      flex: 1; min-width: 0;
+
+      .ld-title {
+        font-size: 1.1rem;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 0.2rem;
+      }
+      .ld-sub {
+        display: flex; gap: 0.6rem; font-size: 0.85rem; opacity: 0.7;
+        .ld-chip {
+          background: rgba(255, 255, 255, 0.1);
+          padding: 0.1rem 0.4rem;
+          border-radius: 0.2rem;
+          font-size: 0.75rem;
+        }
+        .ld-rating { color: #ffc107; }
+      }
+
+      .ld-progress {
+        position: relative;
+        margin-top: 0.4rem;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+        max-width: 320px;
+
+        .ld-progress-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #4caf50, #81c784);
+          transition: width 0.25s;
+        }
+        .ld-progress-text {
+          position: absolute;
+          right: 0;
+          top: -16px;
+          font-size: 0.7rem;
+          opacity: 0.7;
+        }
+      }
+    }
+
+    .ld-watch, .ld-remove {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: white;
+      cursor: pointer;
+      padding: 0.4rem;
+      border-radius: 0.3rem;
+      display: inline-flex;
+      align-items: center;
+      &:hover { background: rgba(255, 255, 255, 0.12); }
+      i { font-size: 1.1rem; }
+    }
+    .ld-watch.on {
+      background: rgba(76, 175, 80, 0.25);
+      border-color: rgba(76, 175, 80, 0.6);
+    }
+  }
+
+  // Sortable.js drag visuals
+  .ld-row-ghost {
+    opacity: 0.35;
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .ld-row-chosen { cursor: grabbing; }
+  .ld-row-drag {
+    background: rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    transform: scale(1.01);
+  }
+}
+
+// ---- Add-to-list popup --------------------------------------------------
+.atl-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.atl-popup {
+  width: min(420px, 90vw);
+  max-height: 70vh;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+
+  .atl-header {
+    display: flex;
+    align-items: center;
+    padding: 0.9rem 1.2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    h2 { margin: 0; font-size: 1.15rem; flex: 1; }
+    .atl-x {
+      background: transparent;
+      border: 0;
+      color: white;
+      cursor: pointer;
+      i { font-size: 1.2rem; }
+    }
+  }
+
+  .atl-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.4rem 0;
+
+    .atl-empty { padding: 2rem; text-align: center; opacity: 0.7; }
+
+    .atl-rows {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .atl-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 1.2rem;
+      cursor: pointer;
+      &:hover { background: rgba(255, 255, 255, 0.06); }
+      &.checked .atl-check { color: #81c784; }
+
+      .atl-name { flex: 1; }
+      .atl-count {
+        opacity: 0.55;
+        font-size: 0.85rem;
+        font-variant-numeric: tabular-nums;
+      }
+    }
+  }
+
+  .atl-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    justify-content: flex-end;
+
+    .atl-manage {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: white;
+      padding: 0.45rem 0.85rem;
+      border-radius: 0.3rem;
+      cursor: pointer;
+      &:hover { background: rgba(255, 255, 255, 0.16); }
+      i { font-size: 1.05rem; }
+    }
+  }
+}
+
+// ---- Add-to-list trigger inside VideoDetails ----------------------------
+.video-details .add-to-list-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  margin-left: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.3rem;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  &:hover { background: rgba(255, 255, 255, 0.16); }
+  i { font-size: 1.1rem; }
+}

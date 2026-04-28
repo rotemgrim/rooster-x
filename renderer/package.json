@@ -17,10 +17,12 @@
         "lit": "^3.2.0",
         "lodash": "^4.17.21",
         "sass": "^1.77.8",
+        "sortablejs": "^1.15.7",
         "string-score": "^1.0.1",
         "uuid": "^10.0.0"
     },
     "devDependencies": {
+        "@types/sortablejs": "^1.15.8",
         "ts-lit-plugin": "^2.0.2",
         "tslib": "^2.8.0",
         "typescript": "^5.5.4",
