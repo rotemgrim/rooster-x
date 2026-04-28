@@ -41,6 +41,11 @@ func createTablesIfNotExist(db *sql.DB) {
 	if err := MigrateAddPerfIndexes(db); err != nil {
 		log.Printf("Warning: perf indexes migration failed: %v", err)
 	}
+
+	// Snapshot tables for the torrents/folders views (materialised on sweep).
+	if err := EnsureFeedTables(db); err != nil {
+		log.Printf("Warning: feed tables creation failed: %v", err)
+	}
 }
 
 func createMetaDataTable(db *sql.DB) {

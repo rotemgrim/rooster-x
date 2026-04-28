@@ -18,7 +18,18 @@ const filename = "db.sqlite" // ":memory:"
 //   - busy_timeout=10000  : retry for up to 10s on lock contention instead of failing immediately
 //   - synchronous=NORMAL  : safe + faster than FULL under WAL
 //   - foreign_keys=ON
-const dsn = "file:" + filename + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(10000)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(1)"
+//   - cache_size=-65536   : ~64 MiB page cache (negative = KiB)
+//   - mmap_size=268435456 : 256 MiB memory-mapped I/O so hot pages stay
+//     resident in the process address space and
+//     subsequent queries are ~zero-IO.
+//   - temp_store=MEMORY   : keep ORDER BY / GROUP BY scratch in RAM
+const dsn = "file:" + filename + "?_pragma=journal_mode(WAL)" +
+	"&_pragma=busy_timeout(10000)" +
+	"&_pragma=synchronous(NORMAL)" +
+	"&_pragma=foreign_keys(1)" +
+	"&_pragma=cache_size(-65536)" +
+	"&_pragma=mmap_size(268435456)" +
+	"&_pragma=temp_store(MEMORY)"
 
 //var MediaRepo MediaRepo
 

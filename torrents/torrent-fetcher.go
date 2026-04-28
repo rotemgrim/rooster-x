@@ -2,11 +2,6 @@ package torrents
 
 import (
 	"context"
-	tmdb "github.com/cyruzin/golang-tmdb"
-	ptn "github.com/middelink/go-parse-torrent-name"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/db"
 	EventBus "go-poc/event-bus"
 	m "go-poc/models"
@@ -16,6 +11,12 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	tmdb "github.com/cyruzin/golang-tmdb"
+	ptn "github.com/middelink/go-parse-torrent-name"
+	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type TorrentFetcher struct {
@@ -66,6 +67,10 @@ func (tf *TorrentFetcher) GetTorrents() {
 	tf.server.BroadcastMessage("Finished fetching torrents and metadata :)")
 	tf.server.BroadcastMessage("reload-torrents")
 	EventBus.SendEvent("sweep-done", nil)
+
+	// Refresh materialised feed snapshots so the next GetMedia request hits
+	// fresh aggregates without paying the GROUP BY cost on the read path.
+	db.RebuildFeeds()
 }
 
 func fetchTorrentsFromSearch() {

@@ -3,12 +3,6 @@ package walker
 import (
 	"context"
 	"fmt"
-	tmdb "github.com/cyruzin/golang-tmdb"
-	"github.com/fsnotify/fsnotify"
-	ptn "github.com/middelink/go-parse-torrent-name"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/db"
 	EventBus "go-poc/event-bus"
 	m "go-poc/models"
@@ -23,6 +17,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	tmdb "github.com/cyruzin/golang-tmdb"
+	"github.com/fsnotify/fsnotify"
+	ptn "github.com/middelink/go-parse-torrent-name"
+	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 // filter is a list of strings that we want to filter out
@@ -278,6 +279,10 @@ func (w *Walker) FullSweep() {
 	} else {
 		log.Println("Genres reprocessed")
 	}
+
+	// Refresh materialised feed snapshots so the next GetMedia request hits
+	// fresh aggregates without paying the GROUP BY cost on the read path.
+	db.RebuildFeeds()
 }
 
 type TMDBSearchResult struct {

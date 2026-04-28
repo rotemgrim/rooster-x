@@ -822,10 +822,17 @@ export class RoosterX extends LitElement {
 
     /**
      * Streaming variant of getMedia. Resets the relevant collection, requests
-     * the data over IPC, and appends each chunk as it arrives. Group expand
-     * state is preserved between chunks to avoid clobbering user clicks
-     * mid-stream. The spinner is cleared on the first chunk so the user sees
-     * content as soon as possible.
+     * the data over IPC, and appends each chunk to an internal buffer.
+     *
+     * Refresh policy: do NOTHING during the stream - just accumulate. The
+     * loading spinner stays up until the very last chunk arrives, then we
+     * run a single sort/group/filter pass and render the final view. This
+     * avoids the "live sorting" card-shuffle effect that happens when
+     * intermediate datasets are sorted/rendered repeatedly while batches
+     * stream in faster than the client can re-sort.
+     *
+     * Group-expand state is preserved across the final refresh so the
+     * user's prior clicks aren't clobbered.
      */
     private streamMedia(payload: {filter: "movies" | "series" | "all", isTorrents: boolean, genres?: string[]}, opts?: {onComplete?: () => void}) {
         const streamId = ++this.currentStreamId;
@@ -843,31 +850,16 @@ export class RoosterX extends LitElement {
         this._filteredMedia = [];
         this.isLoading = true;
 
-        let firstChunk = true;
-        const scheduleRefresh = () => {
-            if (this.streamRefreshRaf) return;
-            this.streamRefreshRaf = requestAnimationFrame(() => {
-                this.streamRefreshRaf = 0;
-                if (streamId !== this.currentStreamId) return;
-                const dataset = payload.isTorrents ? this._torrents : this._media;
-                this.refreshMedia(dataset, /* preserveGroupState */ true);
-            });
-        };
-
         const onBatch = (batch: any[]) => {
             // Drop chunks belonging to an outdated stream.
             if (streamId !== this.currentStreamId) return;
             if (!batch || !batch.length) return;
+            // Append silently - no render until the stream completes.
             if (payload.isTorrents) {
                 this._torrents = this._torrents.concat(batch);
             } else {
                 this._media = this._media.concat(batch);
             }
-            if (firstChunk) {
-                firstChunk = false;
-                this.isLoading = false;
-            }
-            scheduleRefresh();
         };
 
         return IpcService.getMedia(payload, onBatch).then(() => {

@@ -196,155 +196,75 @@ func scanMediaRowPtrs(cols []string, m *MediaDataExtended, discard *interface{})
 func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string, genres []string) {
 	var userId int = data.UserId
 
-	// trendingCount cutoff: torrentFile rows whose seenAt is within the last
-	// 48h. Pass as a bound parameter rather than embedding strftime('%s', ...)
-	// in the SQL: sqlboiler's join-clause builder runs the clause through
-	// fmt.Sprintf, which mangles literal '%s' into '%!s(MISSING)' and breaks
-	// the WHERE comparison so every meta ends up with trendingCount=0.
-	trendingCutoff := time.Now().Unix() - 48*3600
+	// Read from the materialised feed_torrents / feed_folders snapshot
+	// tables (rebuilt on every sweep). The heavy GROUP BY over torrentFile
+	// / mediaFile happens once per sweep instead of once per request, so
+	// the request is now a plain indexed scan + 1:1 userMetaData LEFT JOIN.
+	//
+	// Per-user state (isWatched) is NOT in the snapshot - it joins at
+	// request time. The genres EXISTS filter and the movies/series filter
+	// also stay at request time so a single snapshot serves all variants.
 
-	// All per-metaData aggregates are computed in derived tables (one row
-	// per metaDataId), then LEFT JOINed once. This avoids:
-	//   - correlated subqueries that ran once per outer row (trendingCount,
-	//     genres),
-	//   - cross-product row inflation when joining mediaFile AND torrentFile
-	//     in folders mode (which silently inflated count(sub.id)),
-	//   - the GROUP BY md.id pass over an exploded join.
-	queryMods := []qm.QueryMod{
-		// Only select columns needed for the grid view + client-side
-		// sort/group/filter. Detail-only fields are fetched on demand via
-		// the get-meta-data route.
-		qm.Select("md.id, md.title, md.votes, md.series, md.rating, md.year, md.poster, md.released_unix, md.type"),
-		qm.Select("umd.isWatched as isWatched"),
-		qm.Select("IFNULL(tc.tCount, 0) as trendingCount"),
-		qm.Select("gn.genreList as genres"),
-
-		qm.From("metaData as md"),
-
-		// trendingCount: aggregated once via index range scan on
-		// idx_torrentFile_metaDataId_seenAt.
-		qm.LeftOuterJoin(
-			"(SELECT metaDataId, COUNT(*) AS tCount "+
-				"FROM torrentFile "+
-				"WHERE seenAt > ? "+
-				"GROUP BY metaDataId) AS tc ON tc.metaDataId = md.id",
-			trendingCutoff,
-		),
-
-		// genres: aggregated once via metaDataGenre + genre, instead of
-		// being a correlated subquery in the SELECT list.
-		qm.LeftOuterJoin(
-			"(SELECT mg.metaDataId, group_concat(g.type, ',') AS genreList " +
-				"FROM metaDataGenre mg " +
-				"INNER JOIN genre g ON g.id = mg.genreId " +
-				"GROUP BY mg.metaDataId) AS gn ON gn.metaDataId = md.id",
-		),
+	feedTable := "feed_folders"
+	viewSelect := "f.downloadedAt as downloadedAt, f.downloadedDate as downloadedDate, f.uploadedDate as uploadedDate"
+	if isTorrents {
+		feedTable = "feed_torrents"
+		viewSelect = "f.uploadedAt as uploadedAt, f.uploadedDate as uploadedDate"
 	}
 
-	// CRITICAL: Add genre filter FIRST, before expensive JOINs
+	var (
+		sb      strings.Builder
+		sqlArgs []interface{}
+	)
+	sb.WriteString("SELECT f.metaDataId as id, f.title, f.votes, f.series, f.rating, ")
+	sb.WriteString("f.year, f.poster, f.released_unix, f.type, f.genres, f.trendingCount, ")
+	sb.WriteString("f.mediaFiles as mediaFiles, f.resolution as resolution, f.quality as quality, ")
+	sb.WriteString(viewSelect)
+	sb.WriteString(", umd.isWatched as isWatched ")
+	sb.WriteString("FROM ")
+	sb.WriteString(feedTable)
+	sb.WriteString(" f ")
+	sb.WriteString("LEFT JOIN userMetaData umd ON umd.metaDataId = f.metaDataId AND umd.userId = ? ")
+	sqlArgs = append(sqlArgs, userId)
+
+	// WHERE clauses
+	whereParts := []string{}
+	if filter == "movies" {
+		whereParts = append(whereParts, "f.series = 0")
+	} else if filter == "series" {
+		whereParts = append(whereParts, "f.series = 1")
+	}
 	if len(genres) > 0 {
 		log.Printf("Filtering by %d genre(s): %v", len(genres), genres)
-
 		placeholders := make([]string, len(genres))
-		args := make([]interface{}, len(genres))
-		for i, genre := range genres {
+		for i, g := range genres {
 			placeholders[i] = "?"
-			args[i] = strings.ToLower(strings.TrimSpace(genre))
+			sqlArgs = append(sqlArgs, strings.ToLower(strings.TrimSpace(g)))
 		}
-
-		// Add WHERE clause BEFORE JOINs to reduce dataset early
-		whereClause := fmt.Sprintf(`EXISTS (
-			SELECT 1 
-			FROM metaDataGenre mg
-			INNER JOIN genre g ON g.id = mg.genreId
-			WHERE mg.metaDataId = md.id 
-			AND LOWER(g.type) IN (%s)
-		)`, strings.Join(placeholders, ","))
-
-		queryMods = append(queryMods, qm.Where(whereClause, args...))
+		whereParts = append(whereParts, fmt.Sprintf(
+			`EXISTS (SELECT 1 FROM metaDataGenre mg INNER JOIN genre g ON g.id = mg.genreId `+
+				`WHERE mg.metaDataId = f.metaDataId AND LOWER(g.type) IN (%s))`,
+			strings.Join(placeholders, ","),
+		))
+	}
+	if len(whereParts) > 0 {
+		sb.WriteString("WHERE ")
+		sb.WriteString(strings.Join(whereParts, " AND "))
 	}
 
-	// Add filter for movies/series
-	if filter == "movies" {
-		queryMods = append(queryMods, qm.Where("md.series = false"))
-	} else if filter == "series" {
-		queryMods = append(queryMods, qm.Where("md.series = true"))
-	}
+	// No ORDER BY: the client re-sorts the dataset based on user-chosen
+	// orderConfig.orderBy. Letting SQLite stream rows in their natural
+	// (PK) order means rows can flow as soon as they're scanned - no
+	// temp-table materialisation before the first row.
 
-	// userMetaData join is 1:1 (PK is userId+metaDataId, ON clause includes
-	// both), so no aggregation needed.
-	queryMods = append(queryMods,
-		qm.LeftOuterJoin("userMetaData as umd on umd.metaDataId = md.id and umd.userId = ?", userId),
-	)
-
-	if isTorrents {
-		// Per-metaDataId torrentFile aggregate: most recent seenAt for
-		// uploadedAt/uploadedDate, plus count, max-resolution, and
-		// distinct-quality concat.
-		queryMods = append(queryMods, qm.LeftOuterJoin(
-			"(SELECT metaDataId, "+
-				"DATETIME(max(seenAt), 'unixepoch') AS uploadedAt, "+
-				"DATE(max(seenAt), 'unixepoch') AS uploadedDate, "+
-				"max(uploadedAt) AS sortDate, "+
-				"COUNT(*) AS mediaFiles, "+
-				"max(IFNULL(CAST(SUBSTR(resolution, 0) AS int), 0)) AS resolution, "+
-				"rtrim(replace(group_concat(DISTINCT quality||','), ',,', ','), ',') AS quality "+
-				"FROM torrentFile "+
-				"GROUP BY metaDataId) AS sa ON sa.metaDataId = md.id",
-		))
-		queryMods = append(queryMods,
-			qm.Select("sa.uploadedAt as uploadedAt, sa.uploadedDate as uploadedDate, sa.mediaFiles as mediaFiles, IFNULL(sa.resolution, 0) as resolution, IFNULL(sa.quality, '') as quality"),
-			qm.OrderBy("trendingCount DESC"),
-			qm.OrderBy("sa.sortDate DESC"),
-		)
-	} else {
-		// Per-metaDataId mediaFile aggregate.
-		queryMods = append(queryMods, qm.LeftOuterJoin(
-			"(SELECT metaDataId, "+
-				"max(downloadedAt) AS downloadedAt, "+
-				"DATE(SUBSTR(max(downloadedAt), 1, 19)) AS downloadedDate, "+
-				"COUNT(*) AS mediaFiles, "+
-				"max(IFNULL(CAST(SUBSTR(resolution, 0) AS int), 0)) AS resolution, "+
-				"rtrim(replace(group_concat(DISTINCT quality||','), ',,', ','), ',') AS quality "+
-				"FROM mediaFile "+
-				"GROUP BY metaDataId) AS sa ON sa.metaDataId = md.id",
-		))
-		// Separate aggregate for the uploadedDate column (folders view
-		// shows last torrent seen-date alongside download data).
-		queryMods = append(queryMods, qm.LeftOuterJoin(
-			"(SELECT metaDataId, DATE(max(seenAt), 'unixepoch') AS uploadedDate "+
-				"FROM torrentFile "+
-				"GROUP BY metaDataId) AS ta ON ta.metaDataId = md.id",
-		))
-		queryMods = append(queryMods,
-			qm.Select("sa.downloadedAt as downloadedAt, sa.downloadedDate as downloadedDate, ta.uploadedDate as uploadedDate, sa.mediaFiles as mediaFiles, IFNULL(sa.resolution, 0) as resolution, IFNULL(sa.quality, '') as quality"),
-			qm.OrderBy("trendingCount DESC"),
-			qm.OrderBy("sa.downloadedAt DESC"),
-		)
-	}
-	queryMods = append(queryMods, qm.OrderBy("md.id DESC"))
-
-	query := models.NewQuery(queryMods...)
+	sqlStr := sb.String()
 
 	// Create context with timeout to prevent hanging queries
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Build the raw SQL/args from the sqlboiler query and execute it ourselves
-	// so we can stream rows out as they arrive instead of binding the entire
-	// result set up-front. Note: because the query uses GROUP BY + ORDER BY on
-	// aggregates, SQLite still has to materialize and sort the full result
-	// before yielding the first row, so the *DB* part of the work doesn't
-	// shrink. What we save is:
-	//   - sqlboiler reflection per row (we use a hand-written column→field
-	//     scanner, ~2× faster on the Go side),
-	//   - peak memory (only one batch in RAM, not all rows at once),
-	//   - latency: scan + JSON marshal + WS write run concurrently with
-	//     subsequent rows being scanned, instead of strictly sequentially.
-	sqlStr, args := queries.BuildQuery(query)
-
 	queryStart := time.Now()
-	rows, err := db.DB.QueryContext(ctx, sqlStr, args...)
+	rows, err := db.DB.QueryContext(ctx, sqlStr, sqlArgs...)
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			log.Printf("⚠ Query timeout after 30s (filter: %s, torrents: %v, genres: %v)", filter, isTorrents, genres)

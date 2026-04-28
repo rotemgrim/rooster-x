@@ -104,6 +104,17 @@ func onReady() {
 	// initialize the database
 	db.Init()
 
+	// Ensure the materialised feed_torrents / feed_folders tables are
+	// populated. On a fresh install they're empty -> rebuild synchronously
+	// (off-thread so boot isn't blocked). On subsequent boots the tables
+	// already hold the last sweep's snapshot, so the user gets fast first
+	// click and the next sweep refreshes them.
+	go func() {
+		if db.FeedTablesEmpty() {
+			db.RebuildFeeds()
+		}
+	}()
+
 	// initialize the config file
 	config := initializeConfig()
 
