@@ -59,54 +59,52 @@ class RoosterChannels extends LitElement {
             display: none !important;
         }
 
-        .mpv-btn {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(20, 23, 28, 0.85);
-            color: var(--text-1);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 0.45rem 0.85rem;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 500;
-            z-index: 10;
-            backdrop-filter: blur(8px);
-            transition: all 0.15s ease;
-            opacity: 0;
-        }
-
-        .video-container:hover .mpv-btn { opacity: 1; }
-
-        .mpv-btn:hover {
-            background: var(--accent);
-            border-color: var(--accent);
-        }
-
+        .mpv-btn,
         .fs-btn {
             position: absolute;
-            bottom: 1rem;
-            right: 1rem;
+            top: 1rem;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             background: rgba(20, 23, 28, 0.85);
             color: var(--text-1);
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 0.4rem 0.65rem;
             cursor: pointer;
-            font-size: 0.95rem;
             line-height: 1;
             z-index: 10;
             backdrop-filter: blur(8px);
-            transition: all 0.15s ease;
+            transition: opacity 0.25s ease, background 0.15s ease, border-color 0.15s ease;
             opacity: 0;
+            pointer-events: none;
+            box-sizing: border-box;
         }
-        .video-container:hover .fs-btn,
-        .video-container:fullscreen .fs-btn:hover { opacity: 1; }
+        .mpv-btn {
+            right: 4rem;
+            padding: 0 0.85rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .fs-btn {
+            right: 1rem;
+            width: 32px;
+            padding: 0;
+            font-size: 1rem;
+        }
+        .video-container.controls-visible .mpv-btn,
+        .video-container.controls-visible .fs-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .mpv-btn:hover,
         .fs-btn:hover {
             background: var(--accent);
             border-color: var(--accent);
         }
+
+        /* Hide cursor when controls auto-hide */
+        .video-container.controls-hidden { cursor: none; }
 
         /* Fullscreen channel-change overlay */
         .channel-osd {
@@ -424,6 +422,7 @@ class RoosterChannels extends LitElement {
     @state() private playingUri: string | null = null;
     @state() private osdVisible = false;
     @state() private osdChannel: { name: string; logo?: string; num: number } | null = null;
+    @state() private controlsVisible = false;
 
     private static BROKEN_CHANNELS_KEY = 'rooster-broken-channels';
     private static SETTINGS_KEY = 'rooster-settings';
@@ -431,6 +430,8 @@ class RoosterChannels extends LitElement {
     private hls: Hls | null = null;
     private filteredChannels: any[] = [];
     private osdTimer: number | null = null;
+    private controlsTimer: number | null = null;
+    private clickTimer: number | null = null;
     private keydownHandler = (e: KeyboardEvent) => this.onGlobalKeydown(e);
     @query("#video") private video: HTMLVideoElement;
     @query(".video-container") private videoContainer: HTMLElement;
@@ -537,6 +538,58 @@ class RoosterChannels extends LitElement {
         this.osdTimer = window.setTimeout(() => {
             this.osdVisible = false;
         }, 2200);
+    }
+
+    private showControls = () => {
+        this.controlsVisible = true;
+        if (this.controlsTimer) clearTimeout(this.controlsTimer);
+        this.controlsTimer = window.setTimeout(() => {
+            this.controlsVisible = false;
+        }, 2500);
+    };
+
+    private hideControlsImmediate = () => {
+        this.controlsVisible = false;
+        if (this.controlsTimer) {
+            clearTimeout(this.controlsTimer);
+            this.controlsTimer = null;
+        }
+    };
+
+    /**
+     * Single click → toggle play/pause. Double click → fullscreen.
+     * We delay the play-toggle by ~220ms so a real double-click cancels it.
+     * Clicks originating from buttons or the native <video> controls are ignored.
+     */
+    private onContainerClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        // Only act when the click is directly on the container or the video element itself.
+        // Ignore clicks on overlay buttons or native video control shadow DOM.
+        if (target !== this.videoContainer && target !== this.video) return;
+        if (this.clickTimer) clearTimeout(this.clickTimer);
+        this.clickTimer = window.setTimeout(() => {
+            this.togglePlay();
+            this.clickTimer = null;
+        }, 220);
+    };
+
+    private onContainerDblClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target !== this.videoContainer && target !== this.video) return;
+        if (this.clickTimer) {
+            clearTimeout(this.clickTimer);
+            this.clickTimer = null;
+        }
+        this.toggleFullscreen();
+    };
+
+    private togglePlay() {
+        if (!this.video) return;
+        if (this.video.paused) {
+            this.video.play().catch(() => {});
+        } else {
+            this.video.pause();
+        }
     }
 
     private loadSettings() {
@@ -701,7 +754,12 @@ class RoosterChannels extends LitElement {
             });
         this.filteredChannels = filteredChannels;
         return html`
-            <div class="video-container" tabindex="0" @dblclick="${() => this.toggleFullscreen()}">
+            <div class="video-container ${this.controlsVisible ? 'controls-visible' : 'controls-hidden'}"
+                 tabindex="0"
+                 @mousemove="${this.showControls}"
+                 @mouseleave="${this.hideControlsImmediate}"
+                 @click="${this.onContainerClick}"
+                 @dblclick="${this.onContainerDblClick}">
                 <video id="video" controls autoplay controlslist="nofullscreen noremoteplayback nodownload noplaybackrate" disablepictureinpicture></video>
                 ${this.osdChannel ? html`
                     <div class="channel-osd ${this.osdVisible ? 'visible' : ''}">
