@@ -46,6 +46,11 @@ func createTablesIfNotExist(db *sql.DB) {
 	if err := EnsureFeedTables(db); err != nil {
 		log.Printf("Warning: feed tables creation failed: %v", err)
 	}
+
+	// User-defined lists (per-user playlists of metaData items).
+	if err := EnsureListTables(db); err != nil {
+		log.Printf("Warning: list tables creation failed: %v", err)
+	}
 }
 
 func createMetaDataTable(db *sql.DB) {

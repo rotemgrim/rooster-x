@@ -6,6 +6,7 @@ import "./EpisodeCard";
 import "./MediaFileCard";
 import "./TorrentFileCard";
 import "./DidWatched";
+import "./AddToList";
 import {IEpisodeExtended, IMetaDataExtended} from "../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
 import {type MetaData} from "../entity/MetaData";
@@ -25,6 +26,7 @@ export class VideoDetails extends LitElement {
     @property() public isLoadingRating: boolean = false;
     @property() public isLoadingTrailer: boolean = false;
     @property() public isEnriching: boolean = false;
+    @property() public showAddToList: boolean = false;
 
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
@@ -586,6 +588,16 @@ export class VideoDetails extends LitElement {
 
                     ${this.video.imdbId ? html` <div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
                     <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
+                    <div class="add-to-list-btn" @click=${() => (this.showAddToList = true)}>
+                        <i class="material-icons">playlist_add</i> Add to list
+                    </div>
+
+                    ${this.showAddToList
+                        ? html`<add-to-list
+                              .rooster=${this.rooster}
+                              .metaDataId=${this.video.id}
+                              .onClose=${() => (this.showAddToList = false)}></add-to-list>`
+                        : ""}
 
                     ${!this.rooster.user.isAdmin
                         ? html`<br /><br />

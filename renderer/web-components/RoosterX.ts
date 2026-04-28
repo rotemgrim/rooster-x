@@ -8,6 +8,8 @@ import "./VideoCard";
 import "./FiltersPage";
 import "./SettingsPage";
 import "./Channels";
+import "./Lists";
+import "./ListDetail";
 import {type MetaData} from "../entity/MetaData";
 import {IMetaDataExtended} from "../common/models/IMetaDataExtended";
 import {type User} from "../entity/User";
@@ -45,7 +47,7 @@ type GroupMetaData = {
     isExpanded: boolean;
 }
 
-type View = "folders" | "torrents" | "channels";
+type View = "folders" | "torrents" | "channels" | "lists";
 type Route = {view: View | null; id: number | null};
 
 // @ts-ignore
@@ -80,7 +82,9 @@ export class RoosterX extends LitElement {
     @query(".videos") public videos: HTMLElement;
     @state() public isLoading: boolean = false;
     private msgTimeout: number;
-    @state() public view: "torrents" | "folders" | "channels" = "folders";
+    @state() public view: View = "folders";
+    // List detail view: when set, the lists view shows the items of this list.
+    @state() public listDetailId: number | null = null;
 
     private torrentsViewScrollPos: number = 0;
     private foldersViewScrollPos: number = 0;
@@ -128,16 +132,20 @@ export class RoosterX extends LitElement {
         this._showTorrents = initialView === "torrents";
         this.saveLastView(initialView);
 
-        this.streamMedia({
-            filter: "all",
-            isTorrents: this._showTorrents,
-            genres: this._filterConfig.noMediaWithoutGenres,
-        }, {
-            onComplete: () => {
-                // Deep-link support: if URL has /<view>/<type>/<id>, open it.
-                this.openCardFromUrl();
-            },
-        });
+        // The lists/channels views don't use the media grid dataset, so skip
+        // the initial stream when the user lands directly on one of them.
+        if (initialView !== "lists" && initialView !== "channels") {
+            this.streamMedia({
+                filter: "all",
+                isTorrents: this._showTorrents,
+                genres: this._filterConfig.noMediaWithoutGenres,
+            }, {
+                onComplete: () => {
+                    // Deep-link support: if URL has /<view>/<type>/<id>, open it.
+                    this.openCardFromUrl();
+                },
+            });
+        }
         document.addEventListener("click", <HTMLElement>(e) => {
             if (
                 e &&
@@ -165,6 +173,13 @@ export class RoosterX extends LitElement {
                 this.applyView(r.view, /* push */ false);
                 // Card opening (if any) happens after stream completes via
                 // applyView's onComplete -> openCardFromUrl().
+                return;
+            }
+
+            // For the lists view, the listDetailId was just synced inside
+            // parseRoute(). Force a re-render so the detail/overview switch.
+            if (this.view === "lists") {
+                this.requestUpdate();
                 return;
             }
 
@@ -403,6 +418,21 @@ export class RoosterX extends LitElement {
      *   /<view>/<movie|series|tv|episode>/<id>
      */
     private parseRoute(): Route {
+        // /lists                         — overview
+        // /lists/<listId>                — single list detail
+        // /lists/<listId>/<type>/<id>    — card opened inside a list
+        const listMatch = window.location.pathname.match(
+            /^\/lists(?:\/(\d+)(?:\/(?:movie|series|tv|episode)\/(\d+))?)?\/?$/,
+        );
+        if (listMatch) {
+            const listId = listMatch[1] ? Number(listMatch[1]) : null;
+            const cardId = listMatch[2] ? Number(listMatch[2]) : null;
+            this.listDetailId = listId !== null && Number.isFinite(listId) ? listId : null;
+            return {
+                view: "lists",
+                id: cardId !== null && Number.isFinite(cardId) ? cardId : null,
+            };
+        }
         const m = window.location.pathname.match(
             /^\/(folders|torrents|channels)(?:\/(?:movie|series|tv|episode)\/(\d+))?\/?$/,
         );
@@ -424,7 +454,7 @@ export class RoosterX extends LitElement {
     private getLastView(): View | null {
         try {
             const v = localStorage.getItem(RoosterX.LAST_VIEW_KEY);
-            if (v === "folders" || v === "torrents" || v === "channels") return v;
+            if (v === "folders" || v === "torrents" || v === "channels" || v === "lists") return v;
         } catch (_) {}
         return null;
     }
@@ -457,7 +487,7 @@ export class RoosterX extends LitElement {
             history.pushState({view}, "", `/${view}`);
         }
 
-        if (view === "channels") {
+        if (view === "channels" || view === "lists") {
             this.closeSideBar && this.closeSideBar();
             return;
         }
@@ -812,6 +842,19 @@ export class RoosterX extends LitElement {
         this.applyView("channels", /* push */ true);
     }
 
+    public showLists() {
+        this.listDetailId = null;
+        history.pushState({view: "lists"}, "", "/lists");
+        this.applyView("lists", /* push */ false);
+    }
+
+    /** Open the detail page for one list. */
+    public openList(listId: number) {
+        this.listDetailId = listId;
+        history.pushState({view: "lists", listId}, "", `/lists/${listId}`);
+        this.applyView("lists", /* push */ false);
+    }
+
     public showTorrents() {
         this.applyView("torrents", /* push */ true);
     }
@@ -1108,6 +1151,10 @@ export class RoosterX extends LitElement {
                 : ""}
             ${this.view === "channels"
                 ? html`<rooster-channels></rooster-channels>`
+                : this.view === "lists"
+                ? (this.listDetailId
+                    ? html`<list-detail .rooster=${this} .listId=${this.listDetailId}></list-detail>`
+                    : html`<rooster-lists .rooster=${this}></rooster-lists>`)
                 : html` <div style="overflow-y: auto; overflow-x: hidden; display: block; height: calc(100vh - 64px);">
                       <div
                           class="videos"

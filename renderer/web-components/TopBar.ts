@@ -99,6 +99,11 @@ export class TopBar extends LitElement {
         this.requestUpdate();
     }
 
+    public showLists() {
+        this.rooster.showLists();
+        this.requestUpdate();
+    }
+
     private toggleSideBar() {
         this.rooster.toggleSideBar();
     }
@@ -169,9 +174,13 @@ export class TopBar extends LitElement {
                      @click="${this.showTorrents}">
                     <i class="material-icons">cloud_download</i>
                 </div>
-                <div tabindex="0" class="filter ${this.rooster.view === "channels" ? "active" : ""}" 
+                <div tabindex="0" class="filter ${this.rooster.view === "channels" ? "active" : ""}"
                      @click="${this.showChannels}">
                     <i class="material-icons">live_tv</i>
+                </div>
+                <div tabindex="0" class="filter ${this.rooster.view === "lists" ? "active" : ""}"
+                     @click="${this.showLists}">
+                    <i class="material-icons">playlist_play</i>
                 </div>
                 <div tabindex="0" class="filter" @click="${this.showFilters}" style="display: block; color: white;">
                     <i class="material-icons">filter_list</i>

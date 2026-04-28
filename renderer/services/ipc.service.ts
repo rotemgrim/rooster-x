@@ -266,6 +266,61 @@ export class IpcService {
         // }
     }
 
+    // ---- Lists ----------------------------------------------------------
+    public static getLists(): Promise<any[]> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-lists").then(resolve as any).catch(reject);
+        });
+    }
+
+    public static createList(name: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("create-list", {name}).then(resolve).catch(reject);
+        });
+    }
+
+    public static updateList(id: number, name: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("update-list", {id, name}).then(resolve).catch(reject);
+        });
+    }
+
+    public static deleteList(id: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("delete-list", {id}).then(resolve).catch(reject);
+        });
+    }
+
+    public static getListItems(listId: number): Promise<any[]> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-list-items", {listId}).then(resolve as any).catch(reject);
+        });
+    }
+
+    public static addListItem(listId: number, metaDataId: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("add-list-item", {listId, metaDataId}).then(resolve).catch(reject);
+        });
+    }
+
+    public static removeListItem(listId: number, metaDataId: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("remove-list-item", {listId, metaDataId}).then(resolve).catch(reject);
+        });
+    }
+
+    public static reorderListItems(listId: number, metaDataIds: number[]): Promise<any> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("reorder-list-items", {listId, metaDataIds}).then(resolve).catch(reject);
+        });
+    }
+
+    public static getListsContaining(metaDataId: number): Promise<number[]> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-lists-containing", {metaDataId}).then(resolve as any).catch(reject);
+        });
+    }
+
     public static enrichMetadata(metaDataId: number, force: boolean = true): Promise<MetaData> {
         return new Promise((resolve, reject) => {
             promiseIpc.send("enrich-metadata", {metaDataId, force}).then(resolve as any).catch(reject);

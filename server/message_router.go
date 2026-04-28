@@ -38,6 +38,17 @@ func (s *Server) SetRoutes() {
 
 	s.on("get-channels", s.GetChannels)
 	s.on("fetch-channel-icon", s.FetchChannelIcon)
+
+	// Lists (per-user playlists of metaData items)
+	s.on("get-lists", s.GetLists)
+	s.on("create-list", s.CreateList)
+	s.on("update-list", s.UpdateList)
+	s.on("delete-list", s.DeleteList)
+	s.on("get-list-items", s.GetListItems)
+	s.on("add-list-item", s.AddListItem)
+	s.on("remove-list-item", s.RemoveListItem)
+	s.on("reorder-list-items", s.ReorderListItems)
+	s.on("get-lists-containing", s.GetListsContaining)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {
