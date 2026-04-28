@@ -33,6 +33,43 @@ func Assets() (fs.FS, error) {
 	return fs.Sub(static, "static")
 }
 
+// spaHandler serves static assets from the embedded FS and falls back to
+// index.html for any path that does not match an existing file. This makes
+// client-side routes (e.g. /movie/123) work on hard refresh.
+func spaHandler(assets fs.FS, fileServer http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Let the file server handle the root and real files.
+		reqPath := strings.TrimPrefix(r.URL.Path, "/")
+		if reqPath == "" {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// If the file exists in the embedded FS, serve it normally.
+		if f, err := assets.Open(reqPath); err == nil {
+			f.Close()
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Don't fall back for asset-like requests (they should 404 properly).
+		if strings.Contains(reqPath, ".") {
+			http.NotFound(w, r)
+			return
+		}
+
+		// Fallback: serve index.html for SPA routes.
+		indexBytes, err := fs.ReadFile(assets, "index.html")
+		if err != nil {
+			http.Error(w, "index.html not found", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Write(indexBytes)
+	})
+}
+
 func NewServer(staticDir string) *Server {
 	return &Server{
 		staticDir:       staticDir,
@@ -51,7 +88,11 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 		// Use the file system to serve static files
 		assets, _ := Assets()
 		assetsFS := http.FileServer(http.FS(assets))
-		http.Handle("/", http.StripPrefix("/", assetsFS))
+
+		// SPA fallback: if the requested file doesn't exist in the embedded
+		// FS, serve index.html so the client-side router can take over on
+		// hard refresh of routes like /movie/1202.
+		http.Handle("/", spaHandler(assets, assetsFS))
 
 		// Serve icons folder from filesystem
 		iconsFS := http.FileServer(http.Dir("icons"))

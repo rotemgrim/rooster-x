@@ -105,10 +105,29 @@ export class RoosterX extends LitElement {
         super();
         this._sideBar = false;
         this._panel = "";
+
+        // Restore the last view the user was on (folders / torrents / channels)
+        // so deep links like /movie/1202 hit the right dataset on refresh.
+        const lastView = this.getLastView();
+        if (lastView === "torrents") {
+            this._showTorrents = true;
+            this.view = "torrents";
+        } else if (lastView === "channels") {
+            this.view = "channels";
+        }
+
         this.streamMedia({
             filter: "all",
             isTorrents: this._showTorrents,
             genres: this._filterConfig.noMediaWithoutGenres,
+        }, {
+            onComplete: () => {
+                // Deep-link support: if the page was loaded directly on a
+                // route like /movie/1202, open the matching card after the
+                // initial media stream completes. If the id isn't present
+                // in the current view's dataset, just clear the URL.
+                this.openCardFromUrl();
+            },
         });
         document.addEventListener("click", <HTMLElement>(e) => {
             if (
@@ -131,7 +150,7 @@ export class RoosterX extends LitElement {
         window.addEventListener("popstate", e => {
             console.log("popstate", e.state);
 
-            const id = e.state.id || "";
+            const id = (e.state && e.state.id) || this.parseIdFromPath();
 
             if (id) {
                 const videoCard = document.getElementById(`v${id}`) as VideoCard;
@@ -361,6 +380,87 @@ export class RoosterX extends LitElement {
         }
 
         return videosInARow;
+    }
+
+    /**
+     * Parse the current URL pathname for an SPA route like /movie/123 or
+     * /series/55 and return the numeric id, or null if the URL doesn't match.
+     */
+    private parseIdFromPath(): number | null {
+        const m = window.location.pathname.match(/^\/(movie|series|tv|episode)\/(\d+)/);
+        if (!m) return null;
+        const id = Number(m[2]);
+        return Number.isFinite(id) ? id : null;
+    }
+
+    private static LAST_VIEW_KEY = "roosterx-last-view";
+
+    private getLastView(): "folders" | "torrents" | "channels" | null {
+        try {
+            const v = localStorage.getItem(RoosterX.LAST_VIEW_KEY);
+            if (v === "folders" || v === "torrents" || v === "channels") return v;
+        } catch (_) {}
+        return null;
+    }
+
+    private saveLastView(view: "folders" | "torrents" | "channels") {
+        try {
+            localStorage.setItem(RoosterX.LAST_VIEW_KEY, view);
+        } catch (_) {}
+    }
+
+    /**
+     * Deep-link entry point: after initial data loads, look at the URL and
+     * open the matching <video-card> if present. Because cards are rendered
+     * with virtual scrolling, we may need to wait a few frames for the card
+     * to appear and scroll it into view. If the id isn't in the current
+     * view's dataset, the URL is cleared (replaced with "/").
+     */
+    private openCardFromUrl() {
+        const id = this.parseIdFromPath();
+        if (!id) return;
+
+        // If the id isn't in the current dataset at all, clear the URL.
+        const list = this._showTorrents ? this._torrents : this._media;
+        const inDataset = Array.isArray(list) && (list as IMetaDataExtended[]).some(m => m.id === id);
+        if (!inDataset) {
+            console.warn("Deep link: id not found in current view, clearing URL:", id);
+            history.replaceState({}, "", "/");
+            return;
+        }
+
+        // Replace the (state-less) history entry created by the hard refresh
+        // so subsequent popstate events know which card to close.
+        history.replaceState({id}, "", window.location.pathname);
+
+        const tryOpen = (attempt = 0) => {
+            const card = document.getElementById(`v${id}`) as VideoCard | null;
+            if (card) {
+                card.scrollIntoView({block: "center"});
+                if (!card.isShowDetails) {
+                    card.showDetails(false);
+                }
+                return;
+            }
+            // Card not in DOM yet (virtualization). Scroll near its row to
+            // force it to render, then retry.
+            if (this.videos && Array.isArray(this._filteredMedia)) {
+                const idx = (this._filteredMedia as IMetaDataExtended[]).findIndex(m => m.id === id);
+                if (idx >= 0) {
+                    const videosInARow = this.getNumOfVideosInARow() || 1;
+                    const row = Math.floor(idx / videosInARow);
+                    const approxY = row * (314 + 22.4);
+                    this.videos.parentElement?.scrollTo({top: approxY, behavior: "auto"});
+                }
+            }
+            if (attempt < 60) {
+                requestAnimationFrame(() => tryOpen(attempt + 1));
+            } else {
+                console.warn("Deep link: could not find card for id", id);
+            }
+        };
+
+        requestAnimationFrame(() => tryOpen(0));
     }
 
     connectedCallback() {
@@ -643,6 +743,7 @@ export class RoosterX extends LitElement {
         // });
         this.view = "channels";
         this._showTorrents = false;
+        this.saveLastView("channels");
         this.closeSideBar();
     }
 
@@ -652,6 +753,7 @@ export class RoosterX extends LitElement {
         }
         this._showTorrents = true;
         this.view = "torrents";
+        this.saveLastView("torrents");
         this.streamMedia({
             filter: "all",
             isTorrents: this._showTorrents,
@@ -673,6 +775,7 @@ export class RoosterX extends LitElement {
         }
         this._showTorrents = false;
         this.view = "folders";
+        this.saveLastView("folders");
         this.streamMedia({
             filter: "all",
             isTorrents: this._showTorrents,
