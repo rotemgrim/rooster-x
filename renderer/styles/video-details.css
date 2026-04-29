@@ -382,7 +382,6 @@ torrent-file-card {
   padding: 0.3em;
   cursor: pointer;
   color: white;
-
   & i {
     font-size: 3em;
   }
@@ -401,9 +400,23 @@ torrent-file-card {
   & .audio {
     background-color: darkorange;
   }
+  /* Resolution tiers — 1080p uses the default (darkmagenta) above. */
+  & .resolution.res-8k   { background-color: #d97706; }   /* 8K — deep orange */
+  & .resolution.res-4k   { background-color: #f59e0b; color: #8a2be2 !important; }   /* 2160p / 4K — warm amber/yellow */
+  & .resolution.res-720  { background-color: #6b7280; }   /* 720p — gray */
+  & .resolution.res-sd   { background-color: #4b5563; }   /* SD — darker gray */
+
+  /* Quality default (unknown release type) — original dark red */
   & .quality {
     background-color: darkred;
   }
+  /* Quality tiers — communicates source quality at a glance.
+     Tier classes are emitted by MediaFileCard.qualityTier(). */
+  & .quality.tier-great { background-color: #16a34a; }   /* BluRay / REMUX / UHD — vivid green */
+  & .quality.tier-good  { background-color: #2563eb; }   /* WEB-DL / WEBRip — bold blue */
+  & .quality.tier-ok    { background-color: #f59e0b; }   /* HDTV / HDRip / DVDRip — amber */
+  & .quality.tier-bad   { background-color: #dc2626; }   /* TS / CAM / SCREENER — red */
+
   & .raw {
     margin-left: 1.2em;
   }
@@ -434,6 +447,12 @@ torrent-file-card {
       }
     }
   }
+}
+
+/* Downloads (torrents) get a slightly darker purple to differentiate from
+   the playable media-file rows, which keep the original blueviolet. */
+.torrent-file {
+  background-color: #5e1d9e;
 }
 
 .img-missing {
