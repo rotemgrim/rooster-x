@@ -20,6 +20,8 @@ interface ListItemRow {
     isWatched?: boolean;
     episodesTotal: number;
     episodesWatched: number;
+    moviePercent?: number;
+    movieFinished?: boolean;
 }
 
 @customElement("list-detail")
@@ -159,6 +161,8 @@ export class ListDetail extends LitElement {
         isWatched: !!r.isWatched,
         episodesTotal: r.episodesTotal || 0,
         episodesWatched: r.episodesWatched || 0,
+        moviePercent: r.moviePercent != null ? Number(r.moviePercent) : undefined,
+        movieFinished: !!r.movieFinished,
     });
 
     private back() {
@@ -252,16 +256,45 @@ export class ListDetail extends LitElement {
     }
 
     private renderProgress(item: ListItemRow) {
-        if (!item.series || item.episodesTotal <= 0) return html``;
-        const pct = Math.min(100, Math.round((item.episodesWatched / item.episodesTotal) * 100));
-        return html`<div class="ld-progress" title="${item.episodesWatched} / ${item.episodesTotal} episodes">
-            <div class="ld-progress-track">
-                <div class="ld-progress-bar" style="width: ${pct}%"></div>
-            </div>
-            <div class="ld-progress-text">
-                ${pct}% · ${item.episodesWatched}/${item.episodesTotal}
-            </div>
-        </div>`;
+        // Series: episode-based progress.
+        if (item.series && item.episodesTotal > 0) {
+            const rawPct = Math.round((item.episodesWatched / item.episodesTotal) * 100);
+            // Manual "watched" toggle wins — show 100% green.
+            const pct = item.isWatched ? 100 : Math.min(100, rawPct);
+            const finished = item.isWatched || pct >= 100;
+            return html`<div class="ld-progress" title="${item.episodesWatched} / ${item.episodesTotal} episodes">
+                <div class="ld-progress-track">
+                    <div class="ld-progress-bar ${finished ? 'finished' : ''}" style="width: ${pct}%"></div>
+                </div>
+                <div class="ld-progress-text">
+                    ${pct}% · ${item.episodesWatched}/${item.episodesTotal}
+                </div>
+            </div>`;
+        }
+        // Movies: green 100% when manually marked watched, otherwise mpv
+        // playback progress (only render if there's some progress to show).
+        if (!item.series) {
+            if (item.isWatched) {
+                return html`<div class="ld-progress" title="Watched">
+                    <div class="ld-progress-track">
+                        <div class="ld-progress-bar finished" style="width: 100%"></div>
+                    </div>
+                    <div class="ld-progress-text">Watched</div>
+                </div>`;
+            }
+            if (item.moviePercent != null && item.moviePercent > 0) {
+                const pct = Math.min(100, Math.round(item.moviePercent));
+                const finished = !!item.movieFinished;
+                const label = finished ? "Watched" : `${pct}%`;
+                return html`<div class="ld-progress" title="Playback progress: ${pct}%">
+                    <div class="ld-progress-track">
+                        <div class="ld-progress-bar ${finished ? 'finished' : ''}" style="width: ${pct}%"></div>
+                    </div>
+                    <div class="ld-progress-text">${label}</div>
+                </div>`;
+            }
+        }
+        return html``;
     }
 
     public render() {

@@ -291,8 +291,11 @@
         }
         & .ld-progress-bar {
           height: 100%;
-          background: linear-gradient(90deg, #4caf50, #81c784);
+          background: linear-gradient(90deg, #ffa726, #ffcc80);
           transition: width 0.25s;
+        }
+        & .ld-progress-bar.finished {
+          background: linear-gradient(90deg, #4caf50, #81c784);
         }
         & .ld-progress-text {
           flex: 0 0 auto;

@@ -46,6 +46,10 @@ type ListItemRow struct {
 	// Episode progress (series only). Both 0 for movies.
 	EpisodesTotal   int64 `json:"episodesTotal"`
 	EpisodesWatched int64 `json:"episodesWatched"`
+	// Movie playback progress from the mpv rooster-progress.lua script.
+	// Both 0 if the movie has never been opened in mpv (or for series rows).
+	MoviePercent  null.Float64 `json:"moviePercent"`
+	MovieFinished null.Bool    `json:"movieFinished"`
 }
 
 // GetLists returns all lists for the current user with item count and a
@@ -237,10 +241,12 @@ func (s *Server) GetListItems(c *websocket.Conn, req PayloadRequest) {
 		       COALESCE((SELECT COUNT(*) FROM episode e WHERE e.metaDataId = md.id), 0) AS episodesTotal,
 		       COALESCE((SELECT COUNT(*) FROM episode e
 		                  INNER JOIN userEpisode ue ON ue.episodeId = e.id
-		                  WHERE e.metaDataId = md.id AND ue.userId = ? AND ue.isWatched = 1), 0) AS episodesWatched
+		                  WHERE e.metaDataId = md.id AND ue.userId = ? AND ue.isWatched = 1), 0) AS episodesWatched,
+		       wp.percent, wp.finished
 		FROM listItem li
 		INNER JOIN metaData md ON md.id = li.metaDataId
 		LEFT JOIN userMetaData umd ON umd.metaDataId = md.id AND umd.userId = ?
+		LEFT JOIN watchProgress wp ON wp.kind = 'movie' AND wp.ref_id = md.id
 		WHERE li.listId = ?
 		ORDER BY li.position ASC
 	`, req.UserId, req.UserId, listId)
@@ -257,6 +263,7 @@ func (s *Server) GetListItems(c *websocket.Conn, req PayloadRequest) {
 			&r.ID, &r.ListId, &r.MetaDataId, &r.Position, &r.AddedAt,
 			&r.Title, &r.Year, &r.Poster, &r.Type, &r.Series, &r.Rating,
 			&r.IsWatched, &r.EpisodesTotal, &r.EpisodesWatched,
+			&r.MoviePercent, &r.MovieFinished,
 		); err != nil {
 			transmitPromiseReject(c, req, fmt.Sprintf("could not scan item: %s", err))
 			return
