@@ -72,7 +72,7 @@ func (s *Server) GetLists(c *websocket.Conn, req PayloadRequest) {
 			transmitPromiseReject(c, req, fmt.Sprintf("could not scan list: %s", err))
 			return
 		}
-		l.Posters = fetchListPosters(ctx, l.ID, 5)
+		l.Posters = fetchListPosters(ctx, l.ID, int64(req.UserId), 5)
 		result = append(result, l)
 	}
 	if result == nil {
@@ -81,15 +81,18 @@ func (s *Server) GetLists(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, result)
 }
 
-func fetchListPosters(ctx context.Context, listId int64, limit int) []string {
+func fetchListPosters(ctx context.Context, listId int64, userId int64, limit int) []string {
+	// Watched items are pushed to the end of the preview so the stacked
+	// poster fan shows what's still unwatched first.
 	rows, err := db.DB.QueryContext(ctx, `
 		SELECT md.poster
 		FROM listItem li
 		INNER JOIN metaData md ON md.id = li.metaDataId
+		LEFT JOIN userMetaData umd ON umd.metaDataId = md.id AND umd.userId = ?
 		WHERE li.listId = ? AND md.poster IS NOT NULL AND md.poster != ''
-		ORDER BY li.position ASC
+		ORDER BY COALESCE(umd.isWatched, 0) ASC, li.position ASC
 		LIMIT ?
-	`, listId, limit)
+	`, userId, listId, limit)
 	if err != nil {
 		return nil
 	}

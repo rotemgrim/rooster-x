@@ -131,7 +131,7 @@ export class ListDetail extends LitElement {
             .then(([lists, items]) => {
                 const meta = (lists || []).find((l: any) => l.id === this.listId);
                 this.listName = meta?.name || "List";
-                this.items = (items || []).map(this.normalize);
+                this.items = this.sortWatchedLast((items || []).map(this.normalize));
                 this.isLoading = false;
             })
             .catch(err => {
@@ -195,13 +195,33 @@ export class ListDetail extends LitElement {
                 entityId: item.metaDataId,
                 isWatched: next,
             });
-            // Optimistic local update; for series the user can still see
-            // episode-progress through reload (or we trust the global flag).
-            item.isWatched = next;
-            this.requestUpdate();
+            // Optimistic local update + push watched items to the end so
+            // the row order reflects the new state. Persist the new
+            // ordering so other clients / reloads stay consistent.
+            const updated = this.items.map(i =>
+                i.metaDataId === item.metaDataId ? {...i, isWatched: next} : i,
+            );
+            this.items = this.sortWatchedLast(updated);
+            IpcService.reorderListItems(
+                this.listId,
+                this.items.map(i => i.metaDataId),
+            ).catch(err => console.error("reorder after watched toggle failed", err));
         } catch (err) {
             console.error("setWatched failed", err);
         }
+    }
+
+    /**
+     * Stable sort that keeps unwatched items first (preserving their
+     * relative order) and pushes watched items to the end.
+     */
+    private sortWatchedLast(items: ListItemRow[]): ListItemRow[] {
+        const unwatched: ListItemRow[] = [];
+        const watched: ListItemRow[] = [];
+        for (const i of items) {
+            (i.isWatched ? watched : unwatched).push(i);
+        }
+        return [...unwatched, ...watched];
     }
 
     private async removeItem(e: Event, item: ListItemRow) {
@@ -235,8 +255,12 @@ export class ListDetail extends LitElement {
         if (!item.series || item.episodesTotal <= 0) return html``;
         const pct = Math.min(100, Math.round((item.episodesWatched / item.episodesTotal) * 100));
         return html`<div class="ld-progress" title="${item.episodesWatched} / ${item.episodesTotal} episodes">
-            <div class="ld-progress-bar" style="width: ${pct}%"></div>
-            <div class="ld-progress-text">${item.episodesWatched} / ${item.episodesTotal}</div>
+            <div class="ld-progress-track">
+                <div class="ld-progress-bar" style="width: ${pct}%"></div>
+            </div>
+            <div class="ld-progress-text">
+                ${pct}% · ${item.episodesWatched}/${item.episodesTotal}
+            </div>
         </div>`;
     }
 

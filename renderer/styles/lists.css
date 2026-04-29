@@ -44,53 +44,71 @@
   & .ll-rows {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 1.1rem;
   }
 
   & .ll-row {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
-    padding: 0.85rem 1rem;
-    background: rgba(255, 255, 255, 0.04);
+    gap: 1.75rem;
+    padding: 1.1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     cursor: pointer;
-    transition: background 0.15s, transform 0.15s;
+    transition: background 0.2s, transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 
     &:hover, &:focus {
-      background: rgba(255, 255, 255, 0.08);
-      transform: translateX(2px);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+      transform: translateX(3px);
       outline: none;
+
+      & .ll-stack img {
+        transform:
+          translate(-50%, -50%)
+          translateX(calc((var(--i) - 2) * 4px))
+          rotate(calc((var(--i) - 2) * 3deg));
+      }
     }
 
     & .ll-stack {
       position: relative;
       flex: 0 0 auto;
-      width: 220px;
-      height: 110px;
+      width: 300px;
+      height: 180px;
 
       & img {
         position: absolute;
-        top: 0;
-        left: calc(var(--i) * 38px);
+        top: 50%;
+        left: calc(50% + (var(--i) - 2) * 36px);
         z-index: calc(100 - var(--i));
-        width: 80px;
-        height: 110px;
+        width: 120px;
+        height: 180px;
         object-fit: cover;
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        box-shadow:
+          0 6px 18px rgba(0, 0, 0, 0.7),
+          0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+        border: 1px solid rgba(255, 255, 255, 0.12);
         background: #111;
+        transform-origin: center center;
+        transform:
+          translate(-50%, -50%)
+          rotate(calc((var(--i) - 2) * 1.8deg));
+        transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+                    box-shadow 0.25s;
       }
 
       &.ll-stack-empty {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 4px;
-        & i { font-size: 3rem; opacity: 0.4; }
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px dashed rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        & i { font-size: 3.5rem; opacity: 0.35; }
       }
     }
 
@@ -99,15 +117,16 @@
       min-width: 0;
 
       & .ll-name {
-        font-size: 1.3rem;
-        font-weight: 500;
-        margin-bottom: 0.25rem;
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        letter-spacing: 0.01em;
       }
       & .ll-count {
-        font-size: 0.9rem;
+        font-size: 1rem;
         opacity: 0.6;
       }
     }
@@ -256,25 +275,31 @@
       }
 
       & .ld-progress {
-        position: relative;
-        margin-top: 0.4rem;
-        height: 6px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 3px;
-        overflow: hidden;
-        max-width: 320px;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-top: 0.45rem;
+        max-width: 420px;
 
+        & .ld-progress-track {
+          flex: 1;
+          height: 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+          overflow: hidden;
+          min-width: 80px;
+        }
         & .ld-progress-bar {
           height: 100%;
           background: linear-gradient(90deg, #4caf50, #81c784);
           transition: width 0.25s;
         }
         & .ld-progress-text {
-          position: absolute;
-          right: 0;
-          top: -16px;
-          font-size: 0.7rem;
-          opacity: 0.7;
+          flex: 0 0 auto;
+          font-size: 0.78rem;
+          opacity: 0.85;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
         }
       }
     }
