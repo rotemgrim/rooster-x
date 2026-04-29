@@ -76,6 +76,10 @@
         position: absolute;
         top: 0;
         left: calc(var(--i) * 38px);
+        // First item (i=0) sits on top of the stack; later items fan out
+        // to the right and paint behind. 100 - i comfortably stays above
+        // surrounding row chrome.
+        z-index: calc(100 - var(--i));
         width: 80px;
         height: 110px;
         object-fit: cover;
@@ -192,7 +196,7 @@
 
   .ld-row {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 1rem;
     padding: 0.6rem 0.8rem;
     background: rgba(255, 255, 255, 0.04);
@@ -200,6 +204,8 @@
     border-radius: 0.4rem;
     cursor: pointer;
     transition: background 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
 
     &:hover { background: rgba(255, 255, 255, 0.08); }
     &.watched { opacity: 0.65; }
@@ -207,8 +213,17 @@
     .ld-handle {
       cursor: grab;
       color: rgba(255, 255, 255, 0.4);
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      // Expand the click/grab area so dragging works anywhere along the
+      // full height of the row at the left edge — not just on the icon.
+      padding: 0 0.4rem;
+      margin: -0.6rem -0.4rem -0.6rem -0.8rem;
       &:hover { color: rgba(255, 255, 255, 0.9); }
-      i { font-size: 1.4rem; }
+      &:active { cursor: grabbing; }
+      i { font-size: 1.4rem; pointer-events: none; }
     }
 
     .ld-poster {

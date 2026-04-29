@@ -83,6 +83,14 @@ func listenForIncomingMessages() {
 				// mock the response
 				// req.Response <- server.GetImdbRatings(req.Data.(string))
 			}
+			// EventBus.SendEvent blocks on req.Response until someone
+			// writes to it. Always unblock the sender so fire-and-forget
+			// events don't deadlock the caller (e.g. the torrent sweep
+			// was hanging here and never reaching db.RebuildFeeds()).
+			select {
+			case req.Response <- nil:
+			default:
+			}
 		}
 	}()
 }

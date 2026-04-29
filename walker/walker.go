@@ -93,22 +93,32 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 		callBack = func(e fsnotify.Event) {
 			log.Println(e.String())
 
-			if (e.Op & fsnotify.Create) == fsnotify.Create {
+			changed := false
+			switch {
+			case e.Op&fsnotify.Create == fsnotify.Create:
 				log.Println("Create event")
-				dirArr := []string{e.Name}
-				w.Sweep(dirArr)
-			} else if (e.Op & fsnotify.Write) == fsnotify.Write {
-				log.Println("Write event (do nothing): %s", e.Name)
-			} else if (e.Op & fsnotify.Remove) == fsnotify.Remove {
-				log.Println("Remove event: %s", e.Name)
+				w.Sweep([]string{e.Name})
+				changed = true
+			case e.Op&fsnotify.Remove == fsnotify.Remove:
+				log.Printf("Remove event: %s", e.Name)
 				_ = w.removeAllDeletedMediaFiles()
-			} else if (e.Op & fsnotify.Rename) == fsnotify.Rename {
-				log.Println("Rename event (do nothing): %s", e.Name)
-				dirArr := []string{e.Name}
-				w.Sweep(dirArr)
+				changed = true
+			case e.Op&fsnotify.Rename == fsnotify.Rename:
+				log.Printf("Rename event: %s", e.Name)
+				w.Sweep([]string{e.Name})
 				_ = w.removeAllDeletedMediaFiles()
-			} else if (e.Op & fsnotify.Chmod) == fsnotify.Chmod {
-				log.Println("Chmod event (do nothing): %s", e.Name)
+				changed = true
+			case e.Op&fsnotify.Write == fsnotify.Write:
+				log.Printf("Write event (do nothing): %s", e.Name)
+			case e.Op&fsnotify.Chmod == fsnotify.Chmod:
+				log.Printf("Chmod event (do nothing): %s", e.Name)
+			}
+
+			// After any mutation, refresh the materialised feed snapshots
+			// so the UI's reload hits fresh aggregates, then broadcast once.
+			if changed {
+				db.RebuildFeeds()
+				w.server.BroadcastMessage("reload")
 			}
 
 			// Don't need to remove the timer if you don't have a lot of files.
@@ -250,7 +260,10 @@ func (w *Walker) Sweep(paths []string) {
 	for i, file := range filesWithoutMetaData {
 		gtmdb.GetMetaDataAndSaveToDB(file, tmdbClient, w.server, i, totalFiles)
 	}
-	w.server.BroadcastMessage("reload")
+	// NOTE: no "reload" broadcast here. Callers are responsible for
+	// rebuilding feed snapshots and broadcasting reload AFTER this returns
+	// (see fsnotify callback and FullSweep) so the UI re-fetches against
+	// fresh feed tables instead of the stale pre-sweep snapshot.
 }
 
 func (w *Walker) FullSweep() {
@@ -282,7 +295,10 @@ func (w *Walker) FullSweep() {
 
 	// Refresh materialised feed snapshots so the next GetMedia request hits
 	// fresh aggregates without paying the GROUP BY cost on the read path.
+	// Must run BEFORE the reload broadcast so the browser re-fetches against
+	// the new feed tables instead of the stale pre-sweep snapshot.
 	db.RebuildFeeds()
+	w.server.BroadcastMessage("reload")
 }
 
 type TMDBSearchResult struct {

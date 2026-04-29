@@ -99,10 +99,13 @@ export class ListDetail extends LitElement {
         if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
 
         // Revert Sortable's DOM mutation so Lit can re-render cleanly from
-        // the reordered data array. Without this, Lit reuses elements at
-        // their post-Sortable positions and ends up double-moving them.
+        // the reordered data array. We must REMOVE the moved element first,
+        // otherwise children[oldIndex] points at the wrong reference for
+        // upward drags (where the moved element shifts other items to the
+        // right of its original slot).
         const parent = evt.from as HTMLElement;
         const movedEl = evt.item as HTMLElement;
+        parent.removeChild(movedEl);
         const refEl = parent.children[oldIndex] || null;
         parent.insertBefore(movedEl, refEl);
 
@@ -263,7 +266,11 @@ export class ListDetail extends LitElement {
                               class="ld-row ${item.isWatched ? "watched" : ""}"
                               data-meta-id=${item.metaDataId}
                               @click=${() => this.openDetails(item)}>
-                              <div class="ld-handle" title="Drag to reorder">
+                              <div
+                                  class="ld-handle"
+                                  title="Drag to reorder"
+                                  @click=${(e: Event) => e.stopPropagation()}
+                                  @mousedown=${(e: Event) => e.stopPropagation()}>
                                   <i class="material-icons">drag_indicator</i>
                               </div>
                               <div class="ld-poster">

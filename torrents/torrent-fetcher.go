@@ -65,12 +65,15 @@ func (tf *TorrentFetcher) GetTorrents() {
 	tf.GetMetaDataFromInternet()
 
 	tf.server.BroadcastMessage("Finished fetching torrents and metadata :)")
-	tf.server.BroadcastMessage("reload-torrents")
-	EventBus.SendEvent("sweep-done", nil)
 
 	// Refresh materialised feed snapshots so the next GetMedia request hits
 	// fresh aggregates without paying the GROUP BY cost on the read path.
+	// Must run BEFORE reload broadcast so the browser re-fetches against the
+	// new feed tables instead of the stale pre-sweep snapshot.
 	db.RebuildFeeds()
+
+	tf.server.BroadcastMessage("reload-torrents")
+	EventBus.SendEvent("sweep-done", nil)
 }
 
 func fetchTorrentsFromSearch() {
@@ -90,12 +93,18 @@ func fetchTorrentsFromSearch() {
 
 		uploadedAt := parseUploadDate(torrent.UplDate)
 
+		// episodeId is the FK to episode(id), populated by the TMDB
+		// enrichment step that runs right after this insert. The parser's
+		// tor.Episode is just the episode *number* from the filename, not
+		// an episode-table id, so we can't use it here without violating
+		// the FK (or, worse, attaching the torrent to the wrong episode
+		// when the number coincidentally matches some unrelated id).
 		// save the torrent to the database
 		dbTor := &m.TorrentFile{
 			Raw:        null.StringFrom(torrent.Name),
 			Title:      null.StringFrom(tor.Title),
 			Magnet:     null.StringFrom(torrent.Magnet),
-			EpisodeId:  null.Int64From(int64(tor.Episode)),
+			EpisodeId:  null.Int64{},
 			Year:       null.Int64From(int64(tor.Year)),
 			Resolution: null.StringFrom(tor.Resolution),
 			Quality:    null.StringFrom(tor.Quality),
