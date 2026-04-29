@@ -15,6 +15,14 @@ export class EpisodeCard extends LitElement {
     @property() public episode: IEpisodeExtended;
     @property() public isShowPlayOptions: boolean;
     @property() public isShowDownloadOptions: boolean;
+    // MPV watch progress for this episode, refreshed every 10s while visible.
+    @property() public watchProgress: null | {
+        percent: number;
+        timePos: number;
+        duration: number;
+        finished: boolean;
+    } = null;
+    private watchProgressTimer: any = null;
 
     public createRenderRoot() {
         return this;
@@ -24,6 +32,54 @@ export class EpisodeCard extends LitElement {
         super();
         this.isShowPlayOptions = false;
         this.isShowDownloadOptions = false;
+    }
+
+    public connectedCallback() {
+        super.connectedCallback();
+        this.startWatchProgressPoll();
+    }
+
+    public disconnectedCallback() {
+        this.stopWatchProgressPoll();
+        super.disconnectedCallback();
+    }
+
+    private startWatchProgressPoll() {
+        if (!this.episode?.id) return;
+        const fetch = () => {
+            IpcService.getWatchProgress("episode", this.episode.id)
+                .then((wp: any) => {
+                    this.watchProgress = wp || null;
+                    this.requestUpdate();
+                })
+                .catch(() => {});
+        };
+        fetch();
+        clearInterval(this.watchProgressTimer);
+        this.watchProgressTimer = setInterval(fetch, 10000);
+    }
+
+    private stopWatchProgressPoll() {
+        if (this.watchProgressTimer) {
+            clearInterval(this.watchProgressTimer);
+            this.watchProgressTimer = null;
+        }
+    }
+
+    private renderWatchProgress() {
+        // Manual "watched" flag wins → green 100%.
+        if (this.episode?.isWatched) {
+            return html`<div class="ep-progress">
+                <div class="ep-progress-bar finished" style="width: 100%"></div>
+            </div>`;
+        }
+        const wp = this.watchProgress;
+        if (!wp || !wp.percent || wp.percent <= 0) return html``;
+        const pct = Math.min(100, Math.round(wp.percent));
+        const finished = !!wp.finished;
+        return html`<div class="ep-progress" title="${pct}%">
+            <div class="ep-progress-bar ${finished ? 'finished' : ''}" style="width: ${pct}%"></div>
+        </div>`;
     }
 
     public playEpisode() {
@@ -128,6 +184,7 @@ export class EpisodeCard extends LitElement {
                               src="https://image.tmdb.org/t/p/w300${this.episode.poster}"
                               alt="${this.episode.title}" />`
                         : html`<div class="img-missing"><span>${this.episode.title}</span></div>`}
+                    ${this.renderWatchProgress()}
                 </div>
                 <span class="plot">${this.episode.plot}</span>
             </div>

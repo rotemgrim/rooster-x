@@ -31,6 +31,16 @@ export class VideoDetails extends LitElement {
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
 
+    // MPV watch progress for the current movie (populated by a poll while
+    // this panel is open). Null until the first fetch resolves.
+    @property() public watchProgress: null | {
+        percent: number;
+        timePos: number;
+        duration: number;
+        finished: boolean;
+    } = null;
+    private watchProgressTimer: any = null;
+
     private mainDetailsEl: HTMLElement;
 
     public createRenderRoot() {
@@ -128,11 +138,76 @@ export class VideoDetails extends LitElement {
         setTimeout(() => {
             this.querySelector(".original-poster")?.classList.add("show");
         }, 1000);
+        this.startWatchProgressPoll();
     }
 
     public disconnectedCallback() {
         this.mainDetailsEl.removeEventListener("blur", this.setMainDetailsFocus);
+        this.stopWatchProgressPoll();
         super.disconnectedCallback();
+    }
+
+    /**
+     * Poll the server every 10s for the current movie's watch progress so the
+     * bar stays in sync while mpv is running alongside the renderer.
+     * Movies only — series episodes get their own progress UI elsewhere.
+     */
+    private startWatchProgressPoll() {
+        if (!this.video || this.video.type !== "movie") return;
+        const fetch = () => {
+            IpcService.getWatchProgress("movie", this.video.id)
+                .then((wp: any) => {
+                    this.watchProgress = wp || null;
+                    this.requestUpdate();
+                })
+                .catch(() => {});
+        };
+        fetch();
+        clearInterval(this.watchProgressTimer);
+        this.watchProgressTimer = setInterval(fetch, 10000);
+    }
+
+    private stopWatchProgressPoll() {
+        if (this.watchProgressTimer) {
+            clearInterval(this.watchProgressTimer);
+            this.watchProgressTimer = null;
+        }
+    }
+
+    private renderWatchProgress() {
+        if (!this.video || this.video.type !== "movie") return html``;
+        // Manual "watched" flag → always show green 100%.
+        if (this.video.isWatched) {
+            return html`<div class="vd-progress">
+                <div class="vd-progress-track">
+                    <div class="vd-progress-bar finished" style="width: 100%"></div>
+                </div>
+                <div class="vd-progress-text">Watched</div>
+            </div>`;
+        }
+        const wp = this.watchProgress;
+        if (!wp || !wp.percent || wp.percent <= 0) return html``;
+        const pct = Math.min(100, Math.round(wp.percent));
+        const finished = !!wp.finished;
+        const pos = VideoDetails.formatTime(wp.timePos);
+        const dur = VideoDetails.formatTime(wp.duration);
+        const label = finished ? "Watched" : `${pct}% · ${pos} / ${dur}`;
+        return html`<div class="vd-progress" title="Playback progress">
+            <div class="vd-progress-track">
+                <div class="vd-progress-bar ${finished ? 'finished' : ''}" style="width: ${pct}%"></div>
+            </div>
+            <div class="vd-progress-text">${label}</div>
+        </div>`;
+    }
+
+    private static formatTime(seconds: number): string {
+        if (!seconds || seconds <= 0) return "0:00";
+        const s = Math.floor(seconds);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        const pad = (n: number) => n.toString().padStart(2, "0");
+        return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
     }
 
     private getYouTubeTrailer() {
@@ -513,6 +588,7 @@ export class VideoDetails extends LitElement {
                                     this.video.network,
                                 )}
                             </div>
+                            ${this.renderWatchProgress()}
                         </div>
                         <div class="trailer"
                             >${this.video.trailer

@@ -317,6 +317,7 @@ video-details {
       align-items: center;
       overflow: hidden;
       cursor: pointer;
+      position: relative;
       & i {
         position: absolute;
         font-size: 7em;
@@ -332,6 +333,25 @@ video-details {
     & img {
       min-width: var(--poster-width);
       min-height: 165px;
+    }
+    /* MPV watch progress overlay (sits at the bottom of the thumbnail). */
+    & .ep-progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 5px;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 2;
+      pointer-events: none;
+    }
+    & .ep-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #ffa726, #ffcc80);
+      transition: width 0.25s;
+    }
+    & .ep-progress-bar.finished {
+      background: linear-gradient(90deg, #4caf50, #81c784);
     }
   }
 }
@@ -457,5 +477,39 @@ torrent-file-card {
   & .plot {
     font-size: 11px;
     display: none;
+  }
+}
+
+/* MPV watch progress bar shown in the movie details header. */
+.vd-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 1.2em;
+  max-width: 520px;
+
+  & .vd-progress-track {
+    flex: 1;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    min-width: 120px;
+  }
+  & .vd-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ffa726, #ffcc80);
+    transition: width 0.25s;
+  }
+  & .vd-progress-bar.finished {
+    background: linear-gradient(90deg, #4caf50, #81c784);
+  }
+  & .vd-progress-text {
+    flex: 0 0 auto;
+    font-size: 0.95rem;
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: antiquewhite;
   }
 }

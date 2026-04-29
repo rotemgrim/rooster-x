@@ -49,6 +49,9 @@ func (s *Server) SetRoutes() {
 	s.on("remove-list-item", s.RemoveListItem)
 	s.on("reorder-list-items", s.ReorderListItems)
 	s.on("get-lists-containing", s.GetListsContaining)
+
+	// MPV watch progress
+	s.on("get-watch-progress", s.GetWatchProgress)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {

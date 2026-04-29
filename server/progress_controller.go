@@ -2,8 +2,11 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 
 	"go-poc/db"
 )
@@ -70,4 +73,44 @@ func progressHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"ok":true}`))
+}
+
+// GetWatchProgress returns the current watchProgress row for the given
+// {kind, id} (e.g. kind="movie", id=1202) or null if none exists yet.
+func (s *Server) GetWatchProgress(c *websocket.Conn, req PayloadRequest) {
+	payload, ok := req.Data.(map[string]interface{})
+	if !ok {
+		transmitPromiseReject(c, req, "invalid payload")
+		return
+	}
+	kind, _ := payload["kind"].(string)
+	if kind != "movie" && kind != "episode" {
+		transmitPromiseReject(c, req, "invalid kind")
+		return
+	}
+	idF, ok := payload["id"].(float64)
+	if !ok {
+		transmitPromiseReject(c, req, "id is required")
+		return
+	}
+	roosterID := fmt.Sprintf("%s-%d", kind, int64(idF))
+	wp, err := db.GetWatchProgress(db.DB, roosterID)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("lookup failed: %s", err))
+		return
+	}
+	if wp == nil {
+		transmitPromiseResponse(c, req, nil)
+		return
+	}
+	transmitPromiseResponse(c, req, map[string]interface{}{
+		"roosterId": wp.RoosterID,
+		"kind":      wp.Kind,
+		"refId":     wp.RefID,
+		"percent":   wp.Percent,
+		"timePos":   wp.TimePos,
+		"duration":  wp.Duration,
+		"finished":  wp.Finished,
+		"updatedAt": wp.UpdatedAt,
+	})
 }

@@ -72,6 +72,21 @@ export class IpcService {
         ipcRenderer.send("open-in-mpv", {url, id});
     }
 
+    public static getWatchProgress(kind: "movie" | "episode", id: number): Promise<null | {
+        roosterId: string;
+        kind: string;
+        refId: number;
+        percent: number;
+        timePos: number;
+        duration: number;
+        finished: boolean;
+        updatedAt: number;
+    }> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-watch-progress", {kind, id}).then(resolve as any).catch(reject);
+        });
+    }
+
     public static openAppData() {
         ipcRenderer.send("open-appdata-folder");
     }
