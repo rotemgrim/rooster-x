@@ -755,19 +755,32 @@ export class RoosterX extends LitElement {
         const dirSign = this._orderConfig.directionDescending ? -1 : 1;
         const showUnwatchedFirst = !!this._orderConfig.showUnwatchedFirst;
         const result = list.slice();
+        // Tie-breaker chain: when the primary key is equal (e.g. items share
+        // the same rating inside a group), fall back to release date, then
+        // year, so the ordering is deterministic and "newest wins" instead
+        // of random/insertion order.
+        const tieKeys = ["released_unix", "year"].filter(k => k !== orderKey);
+        const compareKey = (a: IMetaDataExtended, b: IMetaDataExtended, key: string, sign: number) => {
+            const av = a[key];
+            const bv = b[key];
+            if (av === bv) return 0;
+            if (av == null) return 1;
+            if (bv == null) return -1;
+            return av < bv ? -1 * sign : 1 * sign;
+        };
         result.sort((a, b) => {
             if (showUnwatchedFirst) {
                 const aw = a.isWatched ? 1 : 0;
                 const bw = b.isWatched ? 1 : 0;
                 if (aw !== bw) return aw - bw; // unwatched (0) first
             }
-            const av = a[orderKey];
-            const bv = b[orderKey];
-            if (av === bv) return 0;
-            if (av == null) return 1;
-            if (bv == null) return -1;
-            if (av < bv) return -1 * dirSign;
-            return 1 * dirSign;
+            const primary = compareKey(a, b, orderKey, dirSign);
+            if (primary !== 0) return primary;
+            for (const k of tieKeys) {
+                const cmp = compareKey(a, b, k, -1); // always newest-first on ties
+                if (cmp !== 0) return cmp;
+            }
+            return 0;
         });
         return result;
     }
