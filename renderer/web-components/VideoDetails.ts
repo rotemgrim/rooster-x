@@ -547,6 +547,58 @@ export class VideoDetails extends LitElement {
             .filter(x => x.name);
     }
 
+    /**
+     * Map a content rating code (MPAA film, US TV, BBFC, FSK, PEGI, etc.) to
+     * a short human-readable tooltip describing who can watch.
+     */
+    public static getAgeRatingTooltip(rating?: string | null): string {
+        if (!rating) return "Age rating";
+        const r = rating.toString().trim().toUpperCase();
+        const map: Record<string, string> = {
+            // MPAA (US film)
+            "G": "G — General audiences. All ages admitted.",
+            "PG": "PG — Parental guidance suggested. Some material may not be suitable for children.",
+            "PG-13": "PG-13 — Parents strongly cautioned. Some material may be inappropriate for children under 13.",
+            "R": "R — Restricted. Under 17 requires accompanying parent or adult guardian.",
+            "NC-17": "NC-17 — No one 17 and under admitted.",
+            "NR": "NR — Not rated.",
+            "UR": "UR — Unrated.",
+            // US TV
+            "TV-Y": "TV-Y — Suitable for all children.",
+            "TV-Y7": "TV-Y7 — Directed to children 7 and older.",
+            "TV-Y7-FV": "TV-Y7-FV — Children 7+. Contains fantasy violence.",
+            "TV-G": "TV-G — Suitable for general audiences. All ages.",
+            "TV-PG": "TV-PG — Parental guidance suggested.",
+            "TV-14": "TV-14 — May be unsuitable for children under 14.",
+            "TV-MA": "TV-MA — Mature audiences only. Not suitable for under 17.",
+            // BBFC (UK)
+            "U": "U — Universal. Suitable for all ages (4+).",
+            "12": "12 — Suitable for ages 12 and over.",
+            "12A": "12A — Ages 12+; under 12 only with adult.",
+            "15": "15 — Suitable only for ages 15 and over.",
+            "18": "18 — Suitable only for adults (18+).",
+            // FSK (Germany)
+            "FSK 0": "FSK 0 — No age restriction.",
+            "FSK 6": "FSK 6 — Ages 6 and over.",
+            "FSK 12": "FSK 12 — Ages 12 and over.",
+            "FSK 16": "FSK 16 — Ages 16 and over.",
+            "FSK 18": "FSK 18 — Adults only (18+).",
+            // PEGI / generic numeric
+            "PEGI 3": "PEGI 3 — Suitable for all ages (3+).",
+            "PEGI 7": "PEGI 7 — Ages 7 and over.",
+            "PEGI 12": "PEGI 12 — Ages 12 and over.",
+            "PEGI 16": "PEGI 16 — Ages 16 and over.",
+            "PEGI 18": "PEGI 18 — Adults only (18+).",
+        };
+        if (map[r]) return map[r];
+
+        // Fallback: bare numeric like "7", "13", "16" → "Ages N and over."
+        const num = r.match(/^(\d{1,2})\+?$/);
+        if (num) return `Ages ${num[1]} and over.`;
+
+        return `Age rating: ${rating}`;
+    }
+
     private static getNetworkField(label: string, raw?: string | null) {
         const items = VideoDetails.parseNetworks(raw).filter(it => it.logo);
         if (items.length === 0) return html``;
@@ -604,7 +656,9 @@ export class VideoDetails extends LitElement {
                     </div>
 
                     <div class="torrent-search" @click=${this.torrentSearch}>1337x</div>
-                    <div class="subs" @click=${this.subsSearch}>Subs</div>
+                    <div class="subs" style="font-size: 2.2em; gap: 0.4rem;" @click=${() => (this.showAddToList = true)}>
+                        <i class="material-icons" style="font-size: 1.2em;">playlist_add</i> Add to list
+                    </div>
                 </div>
                 <div
                     class="main-details"
@@ -624,7 +678,7 @@ export class VideoDetails extends LitElement {
                             <p>${this.video.plot}</p>
                             <div class="small-details">
                                 ${this.video.ageRating
-                                    ? html`<span class="age-rating-chip" title="Age rating">${this.video.ageRating}</span>`
+                                    ? html`<span class="age-rating-chip" title="${VideoDetails.getAgeRatingTooltip(this.video.ageRating)}">${this.video.ageRating}</span>`
                                     : ""}
                                 ${this.video.genres
                                     ? html`<span class="genres" title="Genres">${this.video.genres
@@ -728,10 +782,16 @@ export class VideoDetails extends LitElement {
                     </div>
                     <br />
 
-                    ${this.video.imdbId ? html` <div class="imdb" @click=${this.openImdbLink}>IMDb</div>` : ""}
-                    <div class="trailer" @click=${this.trailerSearch}>Trailer</div>
-                    <div class="add-to-list-btn" @click=${() => (this.showAddToList = true)}>
-                        <i class="material-icons">playlist_add</i> Add to list
+                    ${this.video.imdbId
+                        ? html`<div class="add-to-list-btn" @click=${this.openImdbLink}>
+                              <i class="material-icons">open_in_new</i> IMDb
+                          </div>`
+                        : ""}
+                    <div class="add-to-list-btn" @click=${this.trailerSearch}>
+                        <i class="material-icons">play_circle_outline</i> Trailer
+                    </div>
+                    <div class="add-to-list-btn" @click=${this.subsSearch}>
+                        <i class="material-icons">subtitles</i> Subs
                     </div>
 
                     ${this.showAddToList
