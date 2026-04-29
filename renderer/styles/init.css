@@ -1,0 +1,321 @@
+@import "vars.css";
+@import "animsta.css";
+@import "animated-background.css";
+@import "buttons.css";
+@import "top-bar.css";
+@import "side-bar.css";
+@import "panel.css";
+@import "video-details.css";
+@import "filter-page.css";
+@import "did-you-watched.css";
+@import "user-page.css";
+@import "lists.css";
+
+* {
+  padding: 0;
+  margin: 0;
+}
+
+:not(:root):fullscreen::backdrop,
+body {
+  background-color: #000;
+  font-family: var(--body-font-family);
+  font-size: var(--body-font-size);
+  overflow: auto;
+  /* inlined %background-gradient */
+  background: -webkit-linear-gradient(-45deg, rgba(0, 0, 0, 1) 0%, rgb(76, 10, 6) 100%);
+}
+
+body.no-scroll {
+  overflow: hidden;
+}
+
+.status-wrap {
+  position: absolute;
+  z-index: 5;
+  top: 64px;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.sweep-status {
+  background: antiquewhite;
+  position: fixed;
+  padding: 0.5em 1em;
+  border-radius: 0 0.5em 0.5em 0;
+  box-shadow: 5px 4px 5px #00000069;
+  bottom: 0;
+  left: 0;
+}
+
+.clock {
+  width: 100%;
+  text-align: center;
+  position: absolute !important;
+  z-index: 0 !important;
+  & .time {
+    font-size: 2em;
+    color: white;
+    width: 100px;
+    text-align: center;
+    display: inline-block;
+    margin: 0 auto;
+  }
+}
+
+.videos {
+  position: relative;
+  height: calc(100vh - var(--top-bar-height));
+  overflow-x: auto;
+  user-select: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.4rem;
+  padding: 1.4rem 0;
+  box-sizing: border-box;
+
+  & .group-header {
+    position: sticky;
+    top: 0;
+    bottom: 0;
+    color: white;
+    font-size: 2em;
+    margin: 0;
+    background: #0d0d0d;
+    padding: 0.1em;
+    border-radius: 0.3em;
+    align-self: center;
+    display: inline-flex;
+    justify-content: center;
+    min-width: 24rem;
+
+    & .mini {
+      display: none;
+    }
+    & .maxi {
+      display: block;
+    }
+    &.open {
+      & .mini {
+        display: block;
+      }
+      & .maxi {
+        display: none;
+      }
+    }
+    & a {
+      color: white;
+      text-decoration: none;
+      text-transform: capitalize;
+    }
+  }
+
+  & .top-layer {
+    z-index: 1000 !important;
+  }
+
+  & .group {
+    position: relative;
+    display: content;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+
+    & .group-videos {
+      display: none;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 1.4rem;
+      flex-direction: row;
+      width: 100%;
+    }
+
+    &.open {
+      & .group-videos {
+        display: flex;
+      }
+    }
+  }
+}
+
+body.no-scroll .videos .group-header {
+  opacity: 0;
+  pointer-events: none;
+}
+
+video-card {
+  float: left;
+  display: block;
+}
+.original-poster {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  opacity: 0;
+  transition: all 0.25s;
+}
+.original-poster.show {
+  opacity: 1;
+}
+.video-poster-card-trans {
+  view-transition-name: poster-move;
+}
+
+.video {
+  width: 224px;
+  height: 314px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 40px #000;
+
+  & .poster {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: -1;
+
+    &.k4:before {
+      width: min-content;
+      height: min-content;
+      background: #b6840e;
+      z-index: 10;
+      content: "\e072";
+      display: block;
+      position: absolute;
+      bottom: 0.4rem;
+      font-size: 2rem;
+      font-family: "Material Icons";
+      left: 0.4rem;
+      mix-blend-mode: hard-light;
+      opacity: 0.8;
+    }
+
+    & img {
+      width: 224px;
+      height: 314px;
+      z-index: -1;
+    }
+  }
+  &.none-transition {
+    view-transition-name: unset !important;
+  }
+  &:hover {
+    box-shadow: none;
+
+    & .poster.watched {
+      & img {
+        filter: sepia(0);
+      }
+    }
+  }
+}
+
+select {
+  & option {
+    cursor: pointer;
+  }
+}
+
+img {
+  position: relative;
+  overflow: hidden;
+}
+img:before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(135deg, rgba(76, 76, 76, 1) 0%, rgba(89, 89, 89, 1) 12%, rgba(102, 102, 102, 1) 25%, rgba(71, 71, 71, 1) 39%, rgba(44, 44, 44, 1) 50%, rgba(0, 0, 0, 1) 51%, rgba(17, 17, 17, 1) 60%, rgba(43, 43, 43, 1) 76%, rgba(28, 28, 28, 1) 91%, rgba(19, 19, 19, 1) 100%);
+  color: white;
+  border-radius: 0;
+}
+
+img:after {
+  content: attr(alt);
+  display: block;
+  font-size: 16px;
+  font-style: normal;
+  color: white;
+  position: absolute;
+  left: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.goTop {
+  position: fixed;
+  bottom: 0.5rem;
+  right: 2rem;
+  z-index: 1000;
+  padding: 0.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  font-family: "Material Icons";
+  font-size: 3rem;
+  background: transparent;
+  border: transparent;
+  color: bisque;
+  mix-blend-mode: hard-light;
+  opacity: 0.8;
+}
+.goTop:hover {
+  background: #00000069;
+  color: white;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.loading {
+  align-items: center;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.4117647059);
+  padding: 1em;
+  border-radius: 0.5em;
+  color: white;
+  font-size: 2em;
+  mix-blend-mode: hard-light;
+  opacity: 0.8;
+  white-space: nowrap;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+}
+
+/* spin animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.spinner {
+  position: relative;
+  width: 50px;
+  height: 43px;
+}
+.spinner div {
+  box-sizing: border-box;
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  margin: 6px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: #fff transparent transparent transparent;
+}

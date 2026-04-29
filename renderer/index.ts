@@ -1,6 +1,6 @@
 
 import "./web-components/RoosterXWrapper";
-import "./styles/init.scss";
+import "./styles/init.css";
 // import "./index.html";
 
 // document.documentElement.innerHTML = require("./index.html");

@@ -1,22 +1,20 @@
-@import "vars";
-
-// ---- Lists overview (horizontal rows w/ stacked-poster preview) ---------
+/* ---- Lists overview (horizontal rows w/ stacked-poster preview) --------- */
 .lists-page {
-  height: calc(100vh - #{$topBarHeight});
+  height: calc(100vh - var(--top-bar-height));
   overflow-y: auto;
   padding: 1.5rem 2rem;
   color: white;
   box-sizing: border-box;
 
-  .lists-header {
+  & .lists-header {
     display: flex;
     align-items: center;
     gap: 1rem;
     margin-bottom: 1.5rem;
 
-    h1 { font-size: 2rem; margin: 0; flex: 1; }
+    & h1 { font-size: 2rem; margin: 0; flex: 1; }
 
-    .ll-new {
+    & .ll-new {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
@@ -29,27 +27,27 @@
       cursor: pointer;
       transition: background 0.15s;
 
-      i { font-size: 1.2rem; }
+      & i { font-size: 1.2rem; }
 
       &:hover { background: rgba(255, 255, 255, 0.16); }
       &:disabled { opacity: 0.5; cursor: default; }
     }
   }
 
-  .ll-empty {
+  & .ll-empty {
     text-align: center;
     opacity: 0.6;
     padding: 4rem 1rem;
     font-size: 1.1rem;
   }
 
-  .ll-rows {
+  & .ll-rows {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
   }
 
-  .ll-row {
+  & .ll-row {
     display: flex;
     align-items: center;
     gap: 1.25rem;
@@ -66,19 +64,16 @@
       outline: none;
     }
 
-    .ll-stack {
+    & .ll-stack {
       position: relative;
       flex: 0 0 auto;
       width: 220px;
       height: 110px;
 
-      img {
+      & img {
         position: absolute;
         top: 0;
         left: calc(var(--i) * 38px);
-        // First item (i=0) sits on top of the stack; later items fan out
-        // to the right and paint behind. 100 - i comfortably stays above
-        // surrounding row chrome.
         z-index: calc(100 - var(--i));
         width: 80px;
         height: 110px;
@@ -95,15 +90,15 @@
         justify-content: center;
         background: rgba(255, 255, 255, 0.05);
         border-radius: 4px;
-        i { font-size: 3rem; opacity: 0.4; }
+        & i { font-size: 3rem; opacity: 0.4; }
       }
     }
 
-    .ll-meta {
+    & .ll-meta {
       flex: 1;
       min-width: 0;
 
-      .ll-name {
+      & .ll-name {
         font-size: 1.3rem;
         font-weight: 500;
         margin-bottom: 0.25rem;
@@ -111,19 +106,19 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .ll-count {
+      & .ll-count {
         font-size: 0.9rem;
         opacity: 0.6;
       }
     }
 
-    .ll-actions {
+    & .ll-actions {
       display: flex;
       gap: 0.5rem;
       opacity: 0;
       transition: opacity 0.15s;
 
-      button {
+      & button {
         background: transparent;
         border: 1px solid rgba(255, 255, 255, 0.15);
         color: white;
@@ -134,7 +129,7 @@
         align-items: center;
 
         &:hover { background: rgba(255, 255, 255, 0.12); }
-        i { font-size: 1.1rem; }
+        & i { font-size: 1.1rem; }
       }
     }
 
@@ -142,21 +137,21 @@
   }
 }
 
-// ---- List detail (vertical rows with drag-to-reorder) -------------------
+/* ---- List detail (vertical rows with drag-to-reorder) ------------------- */
 .list-detail-page {
-  height: calc(100vh - #{$topBarHeight});
+  height: calc(100vh - var(--top-bar-height));
   overflow-y: auto;
   padding: 1.5rem 2rem;
   color: white;
   box-sizing: border-box;
 
-  .ld-header {
+  & .ld-header {
     display: flex;
     align-items: center;
     gap: 1rem;
     margin-bottom: 1.5rem;
 
-    .ld-back, .ld-delete {
+    & .ld-back, & .ld-delete {
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
@@ -167,34 +162,34 @@
       color: white;
       cursor: pointer;
       &:hover { background: rgba(255, 255, 255, 0.14); }
-      i { font-size: 1.1rem; }
+      & i { font-size: 1.1rem; }
     }
 
-    h1 {
+    & h1 {
       margin: 0;
       font-size: 1.8rem;
       cursor: text;
       &:hover { text-decoration: underline; }
     }
 
-    .ld-count { opacity: 0.6; font-size: 0.95rem; }
-    .ld-spacer { flex: 1; }
+    & .ld-count { opacity: 0.6; font-size: 0.95rem; }
+    & .ld-spacer { flex: 1; }
   }
 
-  .ld-empty {
+  & .ld-empty {
     text-align: center;
     opacity: 0.6;
     padding: 4rem 1rem;
     font-size: 1.05rem;
   }
 
-  .ld-rows {
+  & .ld-rows {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
 
-  .ld-row {
+  & .ld-row {
     display: flex;
     align-items: stretch;
     gap: 1rem;
@@ -210,23 +205,21 @@
     &:hover { background: rgba(255, 255, 255, 0.08); }
     &.watched { opacity: 0.65; }
 
-    .ld-handle {
+    & .ld-handle {
       cursor: grab;
       color: rgba(255, 255, 255, 0.4);
       align-self: stretch;
       display: flex;
       align-items: center;
       justify-content: center;
-      // Expand the click/grab area so dragging works anywhere along the
-      // full height of the row at the left edge — not just on the icon.
       padding: 0 0.4rem;
       margin: -0.6rem -0.4rem -0.6rem -0.8rem;
       &:hover { color: rgba(255, 255, 255, 0.9); }
       &:active { cursor: grabbing; }
-      i { font-size: 1.4rem; pointer-events: none; }
+      & i { font-size: 1.4rem; pointer-events: none; }
     }
 
-    .ld-poster {
+    & .ld-poster {
       flex: 0 0 auto;
       width: 60px;
       height: 90px;
@@ -234,8 +227,8 @@
       overflow: hidden;
       background: #111;
 
-      img { width: 100%; height: 100%; object-fit: cover; }
-      .ld-poster-missing {
+      & img { width: 100%; height: 100%; object-fit: cover; }
+      & .ld-poster-missing {
         width: 100%; height: 100%;
         display: flex; align-items: center; justify-content: center;
         font-size: 0.7rem; padding: 0.3rem; text-align: center;
@@ -243,26 +236,26 @@
       }
     }
 
-    .ld-info {
+    & .ld-info {
       flex: 1; min-width: 0;
 
-      .ld-title {
+      & .ld-title {
         font-size: 1.1rem;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         margin-bottom: 0.2rem;
       }
-      .ld-sub {
+      & .ld-sub {
         display: flex; gap: 0.6rem; font-size: 0.85rem; opacity: 0.7;
-        .ld-chip {
+        & .ld-chip {
           background: rgba(255, 255, 255, 0.1);
           padding: 0.1rem 0.4rem;
           border-radius: 0.2rem;
           font-size: 0.75rem;
         }
-        .ld-rating { color: #ffc107; }
+        & .ld-rating { color: #ffc107; }
       }
 
-      .ld-progress {
+      & .ld-progress {
         position: relative;
         margin-top: 0.4rem;
         height: 6px;
@@ -271,12 +264,12 @@
         overflow: hidden;
         max-width: 320px;
 
-        .ld-progress-bar {
+        & .ld-progress-bar {
           height: 100%;
           background: linear-gradient(90deg, #4caf50, #81c784);
           transition: width 0.25s;
         }
-        .ld-progress-text {
+        & .ld-progress-text {
           position: absolute;
           right: 0;
           top: -16px;
@@ -286,7 +279,7 @@
       }
     }
 
-    .ld-watch, .ld-remove {
+    & .ld-watch, & .ld-remove {
       background: transparent;
       border: 1px solid rgba(255, 255, 255, 0.15);
       color: white;
@@ -296,28 +289,28 @@
       display: inline-flex;
       align-items: center;
       &:hover { background: rgba(255, 255, 255, 0.12); }
-      i { font-size: 1.1rem; }
+      & i { font-size: 1.1rem; }
     }
-    .ld-watch.on {
+    & .ld-watch.on {
       background: rgba(76, 175, 80, 0.25);
       border-color: rgba(76, 175, 80, 0.6);
     }
   }
 
-  // Sortable.js drag visuals
-  .ld-row-ghost {
+  /* Sortable.js drag visuals */
+  & .ld-row-ghost {
     opacity: 0.35;
     background: rgba(255, 255, 255, 0.12);
   }
-  .ld-row-chosen { cursor: grabbing; }
-  .ld-row-drag {
+  & .ld-row-chosen { cursor: grabbing; }
+  & .ld-row-drag {
     background: rgba(255, 255, 255, 0.14) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     transform: scale(1.01);
   }
 }
 
-// ---- Add-to-list popup --------------------------------------------------
+/* ---- Add-to-list popup -------------------------------------------------- */
 .atl-backdrop {
   position: fixed;
   inset: 0;
@@ -339,34 +332,34 @@
   flex-direction: column;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 
-  .atl-header {
+  & .atl-header {
     display: flex;
     align-items: center;
     padding: 0.9rem 1.2rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    h2 { margin: 0; font-size: 1.15rem; flex: 1; }
-    .atl-x {
+    & h2 { margin: 0; font-size: 1.15rem; flex: 1; }
+    & .atl-x {
       background: transparent;
       border: 0;
       color: white;
       cursor: pointer;
-      i { font-size: 1.2rem; }
+      & i { font-size: 1.2rem; }
     }
   }
 
-  .atl-body {
+  & .atl-body {
     flex: 1;
     overflow-y: auto;
     padding: 0.4rem 0;
 
-    .atl-empty { padding: 2rem; text-align: center; opacity: 0.7; }
+    & .atl-empty { padding: 2rem; text-align: center; opacity: 0.7; }
 
-    .atl-rows {
+    & .atl-rows {
       list-style: none;
       margin: 0;
       padding: 0;
     }
-    .atl-row {
+    & .atl-row {
       display: flex;
       align-items: center;
       gap: 0.6rem;
@@ -375,8 +368,8 @@
       &:hover { background: rgba(255, 255, 255, 0.06); }
       &.checked .atl-check { color: #81c784; }
 
-      .atl-name { flex: 1; }
-      .atl-count {
+      & .atl-name { flex: 1; }
+      & .atl-count {
         opacity: 0.55;
         font-size: 0.85rem;
         font-variant-numeric: tabular-nums;
@@ -384,13 +377,13 @@
     }
   }
 
-  .atl-footer {
+  & .atl-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding: 0.8rem 1.2rem;
     display: flex;
     justify-content: flex-end;
 
-    .atl-manage {
+    & .atl-manage {
       display: inline-flex; align-items: center; gap: 0.4rem;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.15);
@@ -399,12 +392,12 @@
       border-radius: 0.3rem;
       cursor: pointer;
       &:hover { background: rgba(255, 255, 255, 0.16); }
-      i { font-size: 1.05rem; }
+      & i { font-size: 1.05rem; }
     }
   }
 }
 
-// ---- Add-to-list trigger inside VideoDetails ----------------------------
+/* ---- Add-to-list trigger inside VideoDetails ---------------------------- */
 .video-details .add-to-list-btn {
   display: inline-flex;
   align-items: center;
@@ -418,5 +411,5 @@
   cursor: pointer;
   font-size: 1rem;
   &:hover { background: rgba(255, 255, 255, 0.16); }
-  i { font-size: 1.1rem; }
+  & i { font-size: 1.1rem; }
 }
