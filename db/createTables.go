@@ -51,6 +51,11 @@ func createTablesIfNotExist(db *sql.DB) {
 	if err := EnsureListTables(db); err != nil {
 		log.Printf("Warning: list tables creation failed: %v", err)
 	}
+
+	// MPV watch progress (resume + tracking).
+	if err := EnsureWatchProgressTable(db); err != nil {
+		log.Printf("Warning: watchProgress table creation failed: %v", err)
+	}
 }
 
 func createMetaDataTable(db *sql.DB) {

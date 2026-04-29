@@ -488,9 +488,41 @@ func (s *Server) OpenExternal(c *websocket.Conn, req PayloadRequest) {
 }
 
 func (s *Server) OpenInMPV(c *websocket.Conn, req PayloadRequest) {
-	url := req.Data.(map[string]interface{})["url"].(string)
-	log.Println("Opening in MPV:", url)
-	cmd := exec.Command("mpv", url)
+	data := req.Data.(map[string]interface{})
+	url := data["url"].(string)
+
+	// --ontop ensures mpv comes to the foreground when launched from a
+	// background process (Windows blocks focus-stealing otherwise). User can
+	// toggle it off in-player with the T key.
+	args := []string{"--ontop"}
+	// Optional: caller can pass an id (e.g. metaDataId) to tag progress pings.
+	roosterID := ""
+	if rawID, ok := data["id"]; ok && rawID != nil {
+		roosterID = fmt.Sprintf("%v", rawID)
+		if roosterID != "" {
+			args = append(args, "--script-opts=rooster-id="+roosterID)
+		}
+	}
+
+	// Resume from last known position if we have a non-finished progress row
+	// for this id and there's a meaningful offset to seek to.
+	if roosterID != "" && db.DB != nil {
+		if wp, err := db.GetWatchProgress(db.DB, roosterID); err == nil && wp != nil {
+			if !wp.Finished && wp.TimePos >= 30 {
+				args = append(args, fmt.Sprintf("--start=%.0f", wp.TimePos))
+				log.Printf("Resuming MPV id=%s at %.0fs (%.1f%%)", roosterID, wp.TimePos, wp.Percent)
+			}
+		} else if err != nil {
+			log.Println("watchProgress lookup error:", err)
+		}
+	}
+
+	args = append(args, url)
+
+	log.Println("Opening in MPV:", url, "args:", args)
+	cmd := exec.Command("mpv", args...)
+	// Allow mpv to take foreground focus on Windows (no-op elsewhere).
+	allowChildForeground()
 	err := cmd.Start()
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not open mpv: %s", err))

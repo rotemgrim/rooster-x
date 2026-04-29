@@ -68,8 +68,8 @@ export class IpcService {
         ipcRenderer.send("open-external", {url});
     }
 
-    public static openInMPV(url: string) {
-        ipcRenderer.send("open-in-mpv", {url});
+    public static openInMPV(url: string, id?: string | number) {
+        ipcRenderer.send("open-in-mpv", {url, id});
     }
 
     public static openAppData() {

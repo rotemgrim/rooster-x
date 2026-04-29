@@ -101,6 +101,7 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 		http.HandleFunc("/ws", s.wsHandler)
 		http.HandleFunc("/stream/", streamProxyHandler)
 		http.HandleFunc("/stream-ts/", streamSegmentHandler)
+		http.HandleFunc("/api/progress", progressHandler)
 	}()
 
 	//go func() {

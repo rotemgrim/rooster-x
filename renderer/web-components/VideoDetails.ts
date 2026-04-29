@@ -280,7 +280,20 @@ export class VideoDetails extends LitElement {
                 this.isLoading = false;
             }, 3000);
             const mediaFile: MediaFile = e.detail;
-            IpcService.openExternal(mediaFile.path);
+            // Tag the MPV session so the rooster-progress.lua script can
+            // report watch progress back to the server with a stable id.
+            let roosterId: string | undefined;
+            if (this.video?.type === "movie") {
+                roosterId = `movie-${this.video.id}`;
+            } else if (this.video?.type === "series" && this._episodes) {
+                const ep = this._episodes.find(e =>
+                    e.mediaFiles?.some(mf => mf.id === mediaFile.id),
+                );
+                if (ep) {
+                    roosterId = `episode-${ep.id}`;
+                }
+            }
+            IpcService.openInMPV(mediaFile.path, roosterId);
             clearTimeout(this.playTimer);
             this.playTimer = setTimeout(() => {
                 console.log("did you watched? " + mediaFile.raw, mediaFile);
