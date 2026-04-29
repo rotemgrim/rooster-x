@@ -41,6 +41,17 @@ export class VideoDetails extends LitElement {
     } = null;
     private watchProgressTimer: any = null;
 
+    // Watch-progress map for the current series' episodes, keyed by episode id.
+    // Refreshed in bulk every 10s instead of per-card so we issue exactly one
+    // request per series rather than N (one per episode).
+    @property() public episodesWatchProgress: Record<number, {
+        percent: number;
+        timePos: number;
+        duration: number;
+        finished: boolean;
+    }> = {};
+    private episodesWatchProgressTimer: any = null;
+
     private mainDetailsEl: HTMLElement;
 
     public createRenderRoot() {
@@ -144,6 +155,7 @@ export class VideoDetails extends LitElement {
     public disconnectedCallback() {
         this.mainDetailsEl.removeEventListener("blur", this.setMainDetailsFocus);
         this.stopWatchProgressPoll();
+        this.stopEpisodesWatchProgressPoll();
         super.disconnectedCallback();
     }
 
@@ -171,6 +183,44 @@ export class VideoDetails extends LitElement {
         if (this.watchProgressTimer) {
             clearInterval(this.watchProgressTimer);
             this.watchProgressTimer = null;
+        }
+    }
+
+    /**
+     * Poll the server every 10s for ALL of this series' episodes' watch
+     * progress in one bulk request, instead of having each EpisodeCard
+     * fetch its own row separately. Reduces N requests/10s → 1 request/10s.
+     */
+    private startEpisodesWatchProgressPoll() {
+        this.stopEpisodesWatchProgressPoll();
+        if (!this.video || this.video.type !== "series") return;
+        if (!this._episodes || this._episodes.length === 0) return;
+        const ids = this._episodes.map(e => e.id).filter(Boolean) as number[];
+        if (ids.length === 0) return;
+
+        const fetch = () => {
+            IpcService.getWatchProgressBulk("episode", ids)
+                .then((map: any) => {
+                    const next: Record<number, any> = {};
+                    if (map) {
+                        for (const k of Object.keys(map)) {
+                            const n = Number(k);
+                            if (!isNaN(n)) next[n] = map[k];
+                        }
+                    }
+                    this.episodesWatchProgress = next;
+                    this.requestUpdate();
+                })
+                .catch(() => {});
+        };
+        fetch();
+        this.episodesWatchProgressTimer = setInterval(fetch, 10000);
+    }
+
+    private stopEpisodesWatchProgressPoll() {
+        if (this.episodesWatchProgressTimer) {
+            clearInterval(this.episodesWatchProgressTimer);
+            this.episodesWatchProgressTimer = null;
         }
     }
 
@@ -321,6 +371,8 @@ export class VideoDetails extends LitElement {
         this._episodes = newList;
         console.log("episodes", this._episodes);
         this.requestUpdate();
+        // Kick off (or restart) the bulk watch-progress poll for these episodes.
+        this.startEpisodesWatchProgressPoll();
     }
 
     private formatNumber(num) {
@@ -614,6 +666,7 @@ export class VideoDetails extends LitElement {
                                   return html` <episode-card
                                       @playMedia=${this.playMedia}
                                       .episode=${ep}
+                                      .watchProgress=${this.episodesWatchProgress[ep.id] || null}
                                       .videoDetails=${this}>
                                   </episode-card>`;
                               })}

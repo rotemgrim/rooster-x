@@ -138,6 +138,51 @@ func GetWatchProgress(db *sql.DB, roosterID string) (*WatchProgress, error) {
 	return &wp, nil
 }
 
+// GetWatchProgressBulk returns the progress rows for the given (kind, refIds).
+// Missing rows are simply absent from the returned map. The map key is the
+// numeric ref id so the caller can look up by metaDataId / episodeId.
+func GetWatchProgressBulk(db *sql.DB, kind string, ids []int64) (map[int64]*WatchProgress, error) {
+	out := make(map[int64]*WatchProgress)
+	if len(ids) == 0 || (kind != "movie" && kind != "episode") {
+		return out, nil
+	}
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, 0, len(ids)+1)
+	args = append(args, kind)
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args = append(args, id)
+	}
+	q := `SELECT rooster_id, kind, ref_id, path, title,
+		       percent, time_pos, duration, finished, updated_at
+		FROM watchProgress
+		WHERE kind = ? AND ref_id IN (` + strings.Join(placeholders, ",") + `)`
+	rows, err := db.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			wp       WatchProgress
+			path     sql.NullString
+			title    sql.NullString
+			finished int
+		)
+		if err := rows.Scan(
+			&wp.RoosterID, &wp.Kind, &wp.RefID, &path, &title,
+			&wp.Percent, &wp.TimePos, &wp.Duration, &finished, &wp.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		wp.Path = path.String
+		wp.Title = title.String
+		wp.Finished = finished != 0
+		out[wp.RefID] = &wp
+	}
+	return out, rows.Err()
+}
+
 func boolToInt(b bool) int {
 	if b {
 		return 1

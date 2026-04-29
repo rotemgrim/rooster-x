@@ -52,6 +52,7 @@ func (s *Server) SetRoutes() {
 
 	// MPV watch progress
 	s.on("get-watch-progress", s.GetWatchProgress)
+	s.on("get-watch-progress-bulk", s.GetWatchProgressBulk)
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {

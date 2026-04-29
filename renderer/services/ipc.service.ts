@@ -87,6 +87,28 @@ export class IpcService {
         });
     }
 
+    /**
+     * Bulk-fetch watch progress for many ids in one round-trip. Returns a
+     * map keyed by refId (string), e.g. {"42": {percent, timePos, ...}}.
+     * Ids without a saved progress row are simply absent from the map.
+     */
+    public static getWatchProgressBulk(kind: "movie" | "episode", ids: number[]): Promise<Record<string, {
+        roosterId: string;
+        kind: string;
+        refId: number;
+        percent: number;
+        timePos: number;
+        duration: number;
+        finished: boolean;
+        updatedAt: number;
+    }>> {
+        return new Promise((resolve, reject) => {
+            promiseIpc.send("get-watch-progress-bulk", {kind, ids})
+                .then((res: any) => resolve(res || {}))
+                .catch(reject);
+        });
+    }
+
     public static openAppData() {
         ipcRenderer.send("open-appdata-folder");
     }

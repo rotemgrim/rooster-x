@@ -114,3 +114,45 @@ func (s *Server) GetWatchProgress(c *websocket.Conn, req PayloadRequest) {
 		"updatedAt": wp.UpdatedAt,
 	})
 }
+
+// GetWatchProgressBulk returns watch progress rows for many ids in one call.
+// Payload: { kind: "movie"|"episode", ids: [int, ...] }
+// Response: map<refId, progress> (missing ids simply absent).
+func (s *Server) GetWatchProgressBulk(c *websocket.Conn, req PayloadRequest) {
+	payload, ok := req.Data.(map[string]interface{})
+	if !ok {
+		transmitPromiseReject(c, req, "invalid payload")
+		return
+	}
+	kind, _ := payload["kind"].(string)
+	if kind != "movie" && kind != "episode" {
+		transmitPromiseReject(c, req, "invalid kind")
+		return
+	}
+	rawIds, _ := payload["ids"].([]interface{})
+	ids := make([]int64, 0, len(rawIds))
+	for _, v := range rawIds {
+		if f, ok := v.(float64); ok {
+			ids = append(ids, int64(f))
+		}
+	}
+	wps, err := db.GetWatchProgressBulk(db.DB, kind, ids)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("lookup failed: %s", err))
+		return
+	}
+	out := make(map[string]interface{}, len(wps))
+	for refID, wp := range wps {
+		out[fmt.Sprintf("%d", refID)] = map[string]interface{}{
+			"roosterId": wp.RoosterID,
+			"kind":      wp.Kind,
+			"refId":     wp.RefID,
+			"percent":   wp.Percent,
+			"timePos":   wp.TimePos,
+			"duration":  wp.Duration,
+			"finished":  wp.Finished,
+			"updatedAt": wp.UpdatedAt,
+		}
+	}
+	transmitPromiseResponse(c, req, out)
+}

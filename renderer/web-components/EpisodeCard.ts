@@ -15,14 +15,15 @@ export class EpisodeCard extends LitElement {
     @property() public episode: IEpisodeExtended;
     @property() public isShowPlayOptions: boolean;
     @property() public isShowDownloadOptions: boolean;
-    // MPV watch progress for this episode, refreshed every 10s while visible.
+    // MPV watch progress for this episode. Supplied by the parent
+    // <video-details> via a single bulk fetch (see VideoDetails
+    // .startEpisodesWatchProgressPoll) instead of one request per card.
     @property() public watchProgress: null | {
         percent: number;
         timePos: number;
         duration: number;
         finished: boolean;
     } = null;
-    private watchProgressTimer: any = null;
 
     public createRenderRoot() {
         return this;
@@ -34,37 +35,6 @@ export class EpisodeCard extends LitElement {
         this.isShowDownloadOptions = false;
     }
 
-    public connectedCallback() {
-        super.connectedCallback();
-        this.startWatchProgressPoll();
-    }
-
-    public disconnectedCallback() {
-        this.stopWatchProgressPoll();
-        super.disconnectedCallback();
-    }
-
-    private startWatchProgressPoll() {
-        if (!this.episode?.id) return;
-        const fetch = () => {
-            IpcService.getWatchProgress("episode", this.episode.id)
-                .then((wp: any) => {
-                    this.watchProgress = wp || null;
-                    this.requestUpdate();
-                })
-                .catch(() => {});
-        };
-        fetch();
-        clearInterval(this.watchProgressTimer);
-        this.watchProgressTimer = setInterval(fetch, 10000);
-    }
-
-    private stopWatchProgressPoll() {
-        if (this.watchProgressTimer) {
-            clearInterval(this.watchProgressTimer);
-            this.watchProgressTimer = null;
-        }
-    }
 
     private renderWatchProgress() {
         // Manual "watched" flag wins → green 100%.
