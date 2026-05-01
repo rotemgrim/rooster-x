@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"syscall"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
@@ -51,6 +52,23 @@ type App struct {
 }
 
 var app *App
+
+// safeGo runs fn in a new goroutine with a top-level recover so a panic
+// inside long-running background work (sweeps, torrent fetch, enrichment,
+// IPTV refresh) is logged with a stack trace instead of taking the whole
+// process down. Bare `go fn()` calls used to crash the app on the first
+// panic deep in the pipeline (e.g. mid-sweep) — see the "app closes after
+// full sweep" issue.
+func safeGo(name string, fn func()) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("PANIC in %s: %v\n%s", name, r, debug.Stack())
+			}
+		}()
+		fn()
+	}()
+}
 
 func main() {
 	logger := &lumberjack.Logger{
@@ -118,6 +136,11 @@ func onReady() {
 	// already hold the last sweep's snapshot, so the user gets fast first
 	// click and the next sweep refreshes them.
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("PANIC in feed warmup: %v\n%s", r, debug.Stack())
+			}
+		}()
 		if db.FeedTablesEmpty() {
 			db.RebuildFeeds()
 		}
@@ -168,11 +191,25 @@ func onReady() {
 	app.Scheduler.Init()
 
 	for _, schedule := range config.FullDirectoriesSweep {
-		app.Scheduler.Schedule(schedule, app.Walker.FullSweep)
+		app.Scheduler.Schedule(schedule, func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("PANIC in scheduled FullSweep: %v\n%s", r, debug.Stack())
+				}
+			}()
+			app.Walker.FullSweep()
+		})
 	}
 
 	for _, schedule := range config.TorrentsSweep {
-		app.Scheduler.Schedule(schedule, app.TorrentsFetcher.GetTorrents)
+		app.Scheduler.Schedule(schedule, func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("PANIC in scheduled GetTorrents: %v\n%s", r, debug.Stack())
+				}
+			}()
+			app.TorrentsFetcher.GetTorrents()
+		})
 	}
 
 	// schedule the imdb ratings fetcher
@@ -289,22 +326,22 @@ func trayInitialize() {
 				openBrowserInKiosk(0)
 			case <-mSweep.ClickedCh:
 				systray.SetIcon(icon.Data)
-				go app.Walker.FullSweep()
+				safeGo("FullSweep", app.Walker.FullSweep)
 			case <-mTorrentFetch.ClickedCh:
 				systray.SetIcon(icon.Data)
-				go app.TorrentsFetcher.GetTorrents()
+				safeGo("GetTorrents", app.TorrentsFetcher.GetTorrents)
 			case <-mRefreshIPTV.ClickedCh:
 				systray.SetIcon(icon.Data)
-				go func() {
+				safeGo("RefreshLiveStreams", func() {
 					err := app.XtreamClient.RefreshLiveStreams()
 					if err != nil {
 						log.Println("Error refreshing IPTV:", err)
 					}
 					systray.SetIcon(RoosterIcon)
-				}()
+				})
 			case <-mEnrich.ClickedCh:
 				// Tray icon swap is handled by the lifecycle hooks set in onReady.
-				go gtmdb.RunEnrichmentSweep(500)
+				safeGo("EnrichmentSweep", func() { gtmdb.RunEnrichmentSweep(500) })
 			case <-mOpenLogs.ClickedCh:
 				logPath, _ := filepath.Abs("tmp/rooster.log")
 				open.Run(logPath)

@@ -6,6 +6,7 @@ import (
 	"go-poc/db"
 	EventBus "go-poc/event-bus"
 	m "go-poc/models"
+	"go-poc/ptnutil"
 	"go-poc/server"
 	gtmdb "go-poc/tmdb"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -281,6 +283,17 @@ func (w *Walker) removeDeletedMediaFiles(mediaFiles []*m.MediaFile) {
 }
 
 func (w *Walker) Sweep(paths []string) {
+	// Recover from any panic deep in the sweep pipeline (TMDB lookups,
+	// sqlite writes, ptn parser, etc). Without this a single bad file
+	// crashes the whole process because Sweep / FullSweep are launched
+	// with bare `go ...` from main.go and the cron scheduler.
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("PANIC in Sweep: %v\n%s", r, debug.Stack())
+			w.server.BroadcastMessage(fmt.Sprintf("Sweep crashed: %v", r))
+		}
+	}()
+
 	endMsg := "Sweep done"
 
 	// read from file system, accumulate all files
@@ -313,6 +326,18 @@ func (w *Walker) Sweep(paths []string) {
 }
 
 func (w *Walker) FullSweep() {
+	// Outermost recover: registered FIRST so it runs LAST in LIFO defer
+	// order. The releaseLock defer below still fires before this, so the
+	// sweep.lock file is cleaned up. We then swallow the panic so the
+	// process doesn't exit (FullSweep runs in a bare `go` goroutine from
+	// the systray menu and cron scheduler).
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("PANIC in FullSweep: %v\n%s", r, debug.Stack())
+			w.server.BroadcastMessage(fmt.Sprintf("FullSweep crashed: %v", r))
+		}
+	}()
+
 	endMsg := "Sweep done"
 	if checkIfSweepIsRunning() {
 		w.server.BroadcastMessage("Sweep already running")
@@ -442,9 +467,9 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 
 		// check if file extension is not in the includeExtensions list
 		if !info.IsDir() && hasValidExtension(info.Name(), includeExtensions) {
-			tor, err := ptn.Parse(info.Name())
+			tor, err := ptnutil.SafeParse(info.Name())
 			if err != nil {
-				log.Println("Error parsing torrent name")
+				log.Printf("Error parsing torrent name %q: %v", info.Name(), err)
 				return nil
 			}
 

@@ -237,12 +237,7 @@ func rebuildFeedFolders(db *sql.DB, trendingCutoff int64) error {
 			INNER JOIN genre g ON g.id = mg.genreId
 			GROUP BY mg.metaDataId
 		) gn ON gn.metaDataId = md.id
-		INNER JOIN (
-			-- INNER JOIN: the folders view must only show metaData that still
-			-- has at least one mediaFile on disk. metaData rows are never
-			-- deleted when files disappear, so a LEFT JOIN here would leave
-			-- ghost folders in feed_folders after a file is removed and the
-			-- mediaFile row is purged by removeAllDeletedMediaFiles().
+		LEFT JOIN (
 			SELECT metaDataId,
 			       max(downloadedAt) AS downloadedAt,
 			       DATE(SUBSTR(max(downloadedAt), 1, 19)) AS downloadedDate,

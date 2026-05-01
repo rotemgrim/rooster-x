@@ -5,6 +5,7 @@ import (
 	"go-poc/db"
 	EventBus "go-poc/event-bus"
 	m "go-poc/models"
+	"go-poc/ptnutil"
 	"go-poc/server"
 	gtmdb "go-poc/tmdb"
 	"go-poc/torrents/tpb"
@@ -86,7 +87,7 @@ func fetchTorrentsFromSearch() {
 	}
 
 	for _, torrent := range torrents {
-		tor, err := ptn.Parse(torrent.Name)
+		tor, err := ptnutil.SafeParse(torrent.Name)
 		if err != nil {
 			continue
 		}

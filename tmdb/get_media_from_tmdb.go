@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go-poc/db"
 	m "go-poc/models"
+	"go-poc/ptnutil"
 	"go-poc/server"
 	"log"
 	"strconv"
@@ -466,7 +467,7 @@ func HandleMetaDataGettingErr(file interface{}, err error) bool {
 
 func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *server.Server, i int, totalFiles int) {
 	ctx := context.Background()
-	tor, err := ptn.Parse(file.Raw.String)
+	tor, err := ptnutil.SafeParse(file.Raw.String)
 	if HandleMetaDataGettingErr(*file, err) {
 		return
 	}
@@ -542,7 +543,7 @@ func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *serve
 
 func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *server.Server, i int, totalFiles int) {
 	ctx := context.Background()
-	tor, err := ptn.Parse(file.Raw.String)
+	tor, err := ptnutil.SafeParse(file.Raw.String)
 	if HandleMetaDataGettingErr(*file, err) {
 		return
 	}
