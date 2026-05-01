@@ -69,14 +69,35 @@ func (w *Walker) StartWatch() {
 
 	go w.debounceWatch(w.watcher)
 
-	// watch the directories
+	// fsnotify is non-recursive on every platform, so we have to register
+	// every subdirectory ourselves. Without this, deleting a file inside
+	// e.g. /media/Movies/Foo/foo.mkv produces no event and the folders
+	// view never refreshes.
 	for _, dir := range w.walkDirArr {
-		err := w.watcher.Add(dir)
+		w.addWatchRecursive(dir)
+	}
+}
+
+func (w *Walker) addWatchRecursive(root string) {
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Println("Error watching directory", err)
-		} else {
-			log.Println("Watching directory: ", dir)
+			return nil // best-effort; skip unreadable entries
 		}
+		if !info.IsDir() {
+			return nil
+		}
+		if stringInSlice(info.Name(), dirFilter) {
+			return filepath.SkipDir
+		}
+		if addErr := w.watcher.Add(path); addErr != nil {
+			log.Printf("Error watching directory %s: %v", path, addErr)
+		} else {
+			log.Println("Watching directory: ", path)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("addWatchRecursive(%s) failed: %v", root, err)
 	}
 }
 
@@ -97,6 +118,12 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 			switch {
 			case e.Op&fsnotify.Create == fsnotify.Create:
 				log.Println("Create event")
+				// If a new directory was created, start watching it (and
+				// anything underneath it) so future deletes inside it are
+				// observed. fsnotify won't auto-recurse for us.
+				if info, statErr := os.Stat(e.Name); statErr == nil && info.IsDir() {
+					w.addWatchRecursive(e.Name)
+				}
 				w.Sweep([]string{e.Name})
 				changed = true
 			case e.Op&fsnotify.Remove == fsnotify.Remove:
@@ -109,7 +136,26 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 				_ = w.removeAllDeletedMediaFiles()
 				changed = true
 			case e.Op&fsnotify.Write == fsnotify.Write:
-				log.Printf("Write event (do nothing): %s", e.Name)
+				// On Windows, fsnotify often reports a file delete/move
+				// inside a watched directory as a Write on the *directory*
+				// (not a Remove on the file). So if the Write target is a
+				// directory, treat it as a "contents changed" signal:
+				// re-sweep it (in case files appeared) AND prune deleted
+				// rows. If it's a regular file Write, ignore as before.
+				if info, statErr := os.Stat(e.Name); statErr == nil && info.IsDir() {
+					log.Printf("Write event on directory (contents changed): %s", e.Name)
+					w.Sweep([]string{e.Name})
+					_ = w.removeAllDeletedMediaFiles()
+					changed = true
+				} else if os.IsNotExist(statErr) {
+					// The path itself vanished between the event and our
+					// Stat — treat as a removal.
+					log.Printf("Write event on missing path, treating as removal: %s", e.Name)
+					_ = w.removeAllDeletedMediaFiles()
+					changed = true
+				} else {
+					log.Printf("Write event (do nothing): %s", e.Name)
+				}
 			case e.Op&fsnotify.Chmod == fsnotify.Chmod:
 				log.Printf("Chmod event (do nothing): %s", e.Name)
 			}
