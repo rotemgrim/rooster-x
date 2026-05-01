@@ -71,35 +71,24 @@ func (w *Walker) StartWatch() {
 
 	go w.debounceWatch(w.watcher)
 
-	// fsnotify is non-recursive on every platform, so we have to register
-	// every subdirectory ourselves. Without this, deleting a file inside
-	// e.g. /media/Movies/Foo/foo.mkv produces no event and the folders
-	// view never refreshes.
+	// Watch only the configured roots. fsnotify is non-recursive, but on
+	// every platform a watched directory ALSO reports events for its
+	// direct children (file creates/removes, plus Write events on a
+	// child directory whenever its own contents change). For our typical
+	// layout — <root>/<release-folder>/<file.mkv> — that is enough:
+	//   * file added/removed directly under <root>      -> Create/Remove
+	//   * file added/removed inside <release-folder>    -> Write on
+	//     <release-folder> (handled by the Write-on-dir branch in
+	//     debounceWatch, which re-sweeps that folder + prunes).
+	// Anything deeper than one level relies on the scheduled FullSweep.
+	// This keeps us at N OS handles (N = configured roots) instead of
+	// thousands.
 	for _, dir := range w.walkDirArr {
-		w.addWatchRecursive(dir)
-	}
-}
-
-func (w *Walker) addWatchRecursive(root string) {
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil // best-effort; skip unreadable entries
-		}
-		if !info.IsDir() {
-			return nil
-		}
-		if stringInSlice(info.Name(), dirFilter) {
-			return filepath.SkipDir
-		}
-		if addErr := w.watcher.Add(path); addErr != nil {
-			log.Printf("Error watching directory %s: %v", path, addErr)
+		if err := w.watcher.Add(dir); err != nil {
+			log.Printf("Error watching directory %s: %v", dir, err)
 		} else {
-			log.Println("Watching directory: ", path)
+			log.Println("Watching directory: ", dir)
 		}
-		return nil
-	})
-	if err != nil {
-		log.Printf("addWatchRecursive(%s) failed: %v", root, err)
 	}
 }
 
@@ -120,12 +109,14 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 			switch {
 			case e.Op&fsnotify.Create == fsnotify.Create:
 				log.Println("Create event")
-				// If a new directory was created, start watching it (and
-				// anything underneath it) so future deletes inside it are
-				// observed. fsnotify won't auto-recurse for us.
-				if info, statErr := os.Stat(e.Name); statErr == nil && info.IsDir() {
-					w.addWatchRecursive(e.Name)
-				}
+				// e.Name may be a file or a directory created directly
+				// under a watched root. Either way Sweep() will
+				// filepath.Walk it (a single file path is a 1-entry
+				// walk) and pick up any media files. Subsequent files
+				// dropped INTO a newly-created subfolder are caught by
+				// the Write-on-dir branch below — the subfolder is a
+				// direct child of the watched root, so its Write
+				// events surface even though we don't Add() it.
 				w.Sweep([]string{e.Name})
 				changed = true
 			case e.Op&fsnotify.Remove == fsnotify.Remove:
