@@ -7,6 +7,7 @@ import "./MediaFileCard";
 import "./TorrentFileCard";
 import "./DidWatched";
 import "./AddToList";
+import "./RemotePlayPicker";
 import {IEpisodeExtended, IMetaDataExtended} from "../common/models/IMetaDataExtended";
 import {RoosterX} from "./RoosterX";
 import {type MetaData} from "../entity/MetaData";
@@ -30,6 +31,9 @@ export class VideoDetails extends LitElement {
 
     public playTimer: any;
     @property() public didYouWatched: null | MetaData | Episode = null;
+    // Drives the remote playback picker modal (VLC vs browser transcode).
+    // Set to a MediaFile to open; cleared when the modal fires "close".
+    @property() public remotePickerFile: MediaFile | null = null;
 
     // MPV watch progress for the current movie (populated by a poll while
     // this panel is open). Null until the first fetch resolves.
@@ -61,6 +65,21 @@ export class VideoDetails extends LitElement {
     set searchResults(results) {
         this._searchResults = results;
         this.requestUpdate();
+    }
+
+    /**
+     * A "remote" client is any session where the web UI wasn't loaded from
+     * the local machine - i.e. a phone/tablet/other desktop on the LAN
+     * hitting http://<pc-ip>:8080. In that case we can't shell out to MPV
+     * (that would only launch it on the server PC), so we hand the file
+     * URL to the remote device's OS / external player instead.
+     */
+    public static isRemoteClient(): boolean {
+        if (typeof window === "undefined" || !window.location) return false;
+        const host = window.location.hostname;
+        if (!host) return false;
+        // file:// (Electron packaged app) has hostname "" — treated as local above.
+        return host !== "localhost" && host !== "127.0.0.1" && host !== "::1";
     }
 
     public static getRuntime(vid: MetaData) {
@@ -420,7 +439,14 @@ export class VideoDetails extends LitElement {
                     roosterId = `episode-${ep.id}`;
                 }
             }
-            IpcService.openInMPV(mediaFile.path, roosterId);
+            if (VideoDetails.isRemoteClient()) {
+                // Remote device: show the picker so the user chooses between
+                // opening the raw file in VLC or transcoding via ffmpeg for
+                // inline browser playback.
+                this.remotePickerFile = mediaFile;
+            } else {
+                IpcService.openInMPV(mediaFile.path, roosterId);
+            }
             clearTimeout(this.playTimer);
             this.playTimer = setTimeout(() => {
                 console.log("did you watched? " + mediaFile.raw, mediaFile);
@@ -620,6 +646,12 @@ export class VideoDetails extends LitElement {
                 .rooster=${this.rooster}
                 .videoDetails=${this}
                 .didYouWatched=${this.didYouWatched}></did-watched>
+            ${this.remotePickerFile
+                ? html`<remote-play-picker
+                      open
+                      .mediaFile=${this.remotePickerFile}
+                      @close=${() => (this.remotePickerFile = null)}></remote-play-picker>`
+                : ""}
             <div class="video-details">
                 <div class="aside">
                     <div class="close" @click="${this.close}"> <i class="material-icons">arrow_back</i> BACK </div>

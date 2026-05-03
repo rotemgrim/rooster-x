@@ -102,6 +102,9 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 		http.HandleFunc("/stream/", streamProxyHandler)
 		http.HandleFunc("/stream-ts/", streamSegmentHandler)
 		http.HandleFunc("/api/progress", progressHandler)
+		// Serve local MediaFile bytes over HTTP (with Range support) so a
+		// phone on the LAN can hand the URL to VLC / Infuse / nPlayer.
+		http.HandleFunc("/file/", mediaFileHandler)
 	}()
 
 	//go func() {
@@ -112,6 +115,22 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 	//		time.Sleep(9 * time.Second)
 	//	}
 	//}()
+
+	// Start HTTPS on 8443 alongside HTTP on 8080. The phone needs HTTPS
+	// to unlock navigator.share and navigator.clipboard (both are gated
+	// on a "secure context"). The cert is self-signed so browsers show a
+	// one-time "Not secure" warning - proceed through it once per device.
+	go func() {
+		certPath, keyPath, err := ensureSelfSignedCert()
+		if err != nil {
+			log.Println("HTTPS disabled -", err)
+			return
+		}
+		log.Println("HTTPS listening on :8443 (self-signed cert at", certPath, ")")
+		if err := http.ListenAndServeTLS(":8443", certPath, keyPath, nil); err != nil {
+			log.Println("HTTPS server stopped:", err)
+		}
+	}()
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
