@@ -39,8 +39,18 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
     }
 
     private connectToWs = () => {
-        // Connect to the WebSocket server
-        this.socket = new WebSocket('ws://localhost:8080/ws');
+        // Connect to the WebSocket server.
+        // Use the page's own host so it works when accessed from another
+        // device on the LAN (e.g. a phone hitting http://<pc-ip>:8080).
+        // Fall back to localhost:8080 when the page isn't served over http
+        // (e.g. loaded via file:// during Electron dev).
+        let wsUrl = 'ws://localhost:8080/ws';
+        if (typeof window !== 'undefined' && window.location && window.location.host
+            && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            wsUrl = `${proto}//${window.location.host}/ws`;
+        }
+        this.socket = new WebSocket(wsUrl);
 
         // Connection opened
         this.socket.addEventListener('open', (event) => {
