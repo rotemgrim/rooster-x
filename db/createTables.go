@@ -42,6 +42,12 @@ func createTablesIfNotExist(db *sql.DB) {
 		log.Printf("Warning: perf indexes migration failed: %v", err)
 	}
 
+	// Adds torrentFile.infoHash + UNIQUE index and de-duplicates rows
+	// whose magnets differ only in tracker list / dn= encoding.
+	if err := MigrateAddTorrentInfoHash(db); err != nil {
+		log.Printf("Warning: torrent infoHash migration failed: %v", err)
+	}
+
 	// Snapshot tables for the torrents/folders views (materialised on sweep).
 	if err := EnsureFeedTables(db); err != nil {
 		log.Printf("Warning: feed tables creation failed: %v", err)
@@ -206,6 +212,7 @@ func createTorrentFileTable(db *sql.DB) {
 		raw TEXT,
 		title TEXT,
 		magnet TEXT COLLATE NOCASE UNIQUE,
+		infoHash TEXT COLLATE NOCASE,
 		size INTEGER,
 		status VARCHAR(10) DEFAULT 'not-scanned',
 		scanError TEXT,

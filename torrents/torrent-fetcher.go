@@ -94,6 +94,24 @@ func fetchTorrentsFromSearch() {
 
 		uploadedAt := parseUploadDate(torrent.UplDate)
 
+		// Extract the btih infohash from the magnet. The infohash is the
+		// stable identity of a torrent — the surrounding magnet URI varies
+		// between TPB proxies (different tracker lists, different `dn=`
+		// URL encoding), so the table's UNIQUE(magnet) constraint does NOT
+		// catch cross-proxy duplicates. Dedupe by infohash instead.
+		infoHash := extractInfoHash(torrent.Magnet)
+		if infoHash != "" {
+			var existingID int64
+			err := db.DB.QueryRow(
+				`SELECT id FROM torrentFile WHERE infoHash = ? LIMIT 1`,
+				infoHash,
+			).Scan(&existingID)
+			if err == nil {
+				// Already have this torrent — skip silently.
+				continue
+			}
+		}
+
 		// episodeId is the FK to episode(id), populated by the TMDB
 		// enrichment step that runs right after this insert. The parser's
 		// tor.Episode is just the episode *number* from the filename, not
@@ -128,6 +146,21 @@ func fetchTorrentsFromSearch() {
 			log.Printf("skipping (%s) magnet=%s: %s", tor.Title, magnetInfohashPrefix(torrent.Magnet), err)
 			continue
 		}
+
+		// Stamp the infoHash on the row we just inserted. The sqlboiler
+		// model doesn't know about this column (it predates the
+		// migration), so we set it via raw SQL. The UNIQUE index on
+		// infoHash now backstops the SELECT-then-INSERT check above
+		// against concurrent sweeps.
+		if infoHash != "" && dbTor.ID.Valid {
+			if _, err := db.DB.Exec(
+				`UPDATE torrentFile SET infoHash = ? WHERE id = ?`,
+				infoHash, dbTor.ID.Int64,
+			); err != nil {
+				log.Printf("could not stamp infoHash on torrent id=%d: %s", dbTor.ID.Int64, err)
+			}
+		}
+
 		log.Println("Adding to DB: ", tor.Title)
 	}
 }
@@ -176,6 +209,27 @@ func parseUploadDate(dateStr string) time.Time {
 
 	// Fallback to now
 	return now
+}
+
+// extractInfoHash pulls the btih hash out of a magnet URI. Returns the
+// hash uppercased (so it dedupes case-insensitively against the DB
+// column, which is COLLATE NOCASE anyway) or "" if the magnet doesn't
+// carry an xt=urn:btih: parameter.
+//
+// We don't decode the magnet — we just locate "xt=urn:btih:" and read
+// everything up to the next "&". That covers both the 40-char hex SHA1
+// form (the common case from TPB) and the 32-char base32 form.
+func extractInfoHash(magnet string) string {
+	const marker = "xt=urn:btih:"
+	i := strings.Index(magnet, marker)
+	if i < 0 {
+		return ""
+	}
+	rest := magnet[i+len(marker):]
+	if amp := strings.Index(rest, "&"); amp >= 0 {
+		rest = rest[:amp]
+	}
+	return strings.ToUpper(strings.TrimSpace(rest))
 }
 
 func magnetInfohashPrefix(magnet string) string {
