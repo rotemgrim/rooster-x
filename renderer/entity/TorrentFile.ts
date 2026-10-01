@@ -66,4 +66,9 @@ export class TorrentFile {
 
     @Column({type: "int"})
     public uploadedAt: number;
+
+    // Swarm size from apibay / tracker scrapes; refreshed when older than 2 days.
+    public seeders?: number | null;
+    public leechers?: number | null;
+    public peersUpdatedAt?: number | null; // unix seconds
 }

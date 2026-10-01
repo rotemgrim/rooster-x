@@ -103,7 +103,16 @@ func fetchTorrentsFromSearch() {
 				infoHash,
 			).Scan(&existingID)
 			if err == nil {
-				// Already have this torrent — skip silently.
+				// Already have this torrent. Refresh its peer counts from
+				// apibay only if the stored ones are older than the max age.
+				if _, err := db.DB.Exec(
+					`UPDATE torrentFile SET seeders = ?, leechers = ?, peersUpdatedAt = ?
+					 WHERE id = ? AND (peersUpdatedAt IS NULL OR peersUpdatedAt < ?)`,
+					torrent.Seeders, torrent.Leechers, time.Now().Unix(),
+					existingID, time.Now().Add(-db.PeerCountsMaxAge).Unix(),
+				); err != nil {
+					log.Printf("could not refresh peer counts on torrent id=%d: %s", existingID, err)
+				}
 				continue
 			}
 		}
@@ -143,17 +152,18 @@ func fetchTorrentsFromSearch() {
 			continue
 		}
 
-		// Stamp the infoHash and imdbId on the row we just inserted. The
-		// sqlboiler model doesn't know about these columns (they predate
-		// the migrations), so we set them via raw SQL. The UNIQUE index on
-		// infoHash now backstops the SELECT-then-INSERT check above
-		// against concurrent sweeps.
-		if dbTor.ID.Valid && (infoHash != "" || torrent.ImdbId != "") {
+		// Stamp infoHash, imdbId and apibay's peer counts on the row we just
+		// inserted. The sqlboiler model doesn't know about these columns
+		// (they predate the migrations), so we set them via raw SQL. The
+		// UNIQUE index on infoHash now backstops the SELECT-then-INSERT
+		// check above against concurrent sweeps.
+		if dbTor.ID.Valid {
 			if _, err := db.DB.Exec(
-				`UPDATE torrentFile SET infoHash = NULLIF(?, ''), imdbId = NULLIF(?, '') WHERE id = ?`,
-				infoHash, torrent.ImdbId, dbTor.ID.Int64,
+				`UPDATE torrentFile SET infoHash = NULLIF(?, ''), imdbId = NULLIF(?, ''),
+				 seeders = ?, leechers = ?, peersUpdatedAt = ? WHERE id = ?`,
+				infoHash, torrent.ImdbId, torrent.Seeders, torrent.Leechers, time.Now().Unix(), dbTor.ID.Int64,
 			); err != nil {
-				log.Printf("could not stamp infoHash/imdbId on torrent id=%d: %s", dbTor.ID.Int64, err)
+				log.Printf("could not stamp infoHash/imdbId/peers on torrent id=%d: %s", dbTor.ID.Int64, err)
 			}
 		}
 

@@ -29,6 +29,7 @@ func (s *Server) SetRoutes() {
 	s.on("engine-add", s.EngineAdd)
 	s.on("engine-status", s.EngineStatus)
 	s.on("engine-remove", s.EngineRemove)
+	s.on("engine-pause", s.EnginePause)
 	s.on("engine-set-sequential", s.EngineSetSequential)
 	s.on("set-watched", s.SetWatched)
 	s.on("get-meta-data-by-file-id", s.GetMetaDataByFileId)

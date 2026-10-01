@@ -51,11 +51,25 @@ func (s *Server) EngineSetSequential(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, on)
 }
 
-// EngineRemove stops a torrent; downloaded files stay on disk.
+// EnginePause pauses or resumes a torrent.
+func (s *Server) EnginePause(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	hash, _ := data["infoHash"].(string)
+	paused, _ := data["paused"].(bool)
+	if err := engine.SetPaused(hash, paused); err != nil {
+		transmitPromiseReject(c, req, err.Error())
+		return
+	}
+	transmitPromiseResponse(c, req, paused)
+}
+
+// EngineRemove stops a torrent; with deleteFiles its downloaded files are
+// deleted too.
 func (s *Server) EngineRemove(c *websocket.Conn, req PayloadRequest) {
 	data, _ := req.Data.(map[string]interface{})
 	hash, _ := data["infoHash"].(string)
-	if err := engine.Remove(hash); err != nil {
+	deleteFiles, _ := data["deleteFiles"].(bool)
+	if err := engine.Remove(hash, deleteFiles); err != nil {
 		transmitPromiseReject(c, req, err.Error())
 		return
 	}

@@ -90,6 +90,31 @@ export class TorrentFileCard extends LitElement {
         IpcService.openInMPV(`http://${location.hostname}:8080/engine/stream/${this.infoHash}/${f.index}/${name}`);
     }
 
+    private togglePause(e: Event) {
+        e.stopPropagation();
+        const paused = !this.engine.paused;
+        IpcService.enginePause(this.infoHash, paused)
+            .then(() => {
+                this.engine = {...this.engine, paused};
+                this.poll();
+            })
+            .catch(err => console.error("could not pause/resume", err));
+    }
+
+    private deleteDownload(e: Event) {
+        e.stopPropagation();
+        const name = this.engine?.name || this.torrentFile.raw;
+        if (!window.confirm(`Delete "${name}" and its downloaded files?`)) {
+            return;
+        }
+        IpcService.engineRemove(this.infoHash, true)
+            .then(() => {
+                window.clearTimeout(this.pollTimer);
+                this.engine = null;
+            })
+            .catch(err => console.error("could not delete download", err));
+    }
+
     private toggleSequential(e: Event) {
         e.stopPropagation();
         const on = (e.target as HTMLInputElement).checked;
@@ -116,18 +141,36 @@ export class TorrentFileCard extends LitElement {
             style="background: linear-gradient(to right, ${stops.join(", ")}), rgba(0, 0, 0, 0.45)"></div>`;
     }
 
+    private renderPeers() {
+        const {seeders, leechers, peersUpdatedAt} = this.torrentFile;
+        if (seeders == null) {
+            return "";
+        }
+        const health = seeders === 0 ? "dead" : seeders < 10 ? "low" : "good";
+        const ageDays = peersUpdatedAt ? Math.floor((Date.now() / 1000 - peersUpdatedAt) / 86400) : null;
+        const age = ageDays == null ? "" : ageDays === 0 ? "today" : ageDays === 1 ? "yesterday" : `${ageDays} days ago`;
+        return html`<div class="peers ${health}" title="${seeders} seeders, ${leechers ?? 0} leechers${age ? ` (updated ${age})` : ""}">
+            <span>▲ ${seeders.toLocaleString()}</span>
+            <span>▼ ${(leechers ?? 0).toLocaleString()}</span>
+        </div>`;
+    }
+
     private renderEngine() {
         const st = this.engine;
         if (!st) {
             return "";
         }
         const pct = st.hasInfo && st.length ? Math.floor((st.completed / st.length) * 100) : 0;
-        const label = st.hasInfo ? `${pct}%` : "fetching info…";
+        const label = st.paused ? `paused · ${pct}%` : st.hasInfo ? `${pct}%` : "fetching info…";
         const canPlay = (st.files ?? []).some(f => VIDEO_EXT.test(f.path));
         return html`<div class="engine-status" title="${st.seeders} seeders connected">
             ${label} · ${st.peers} peers
             ${canPlay ? html`<i class="material-icons engine-play" title="Stream in mpv" @click=${this.play}>play_circle</i>` : ""}
         </div>
+        <i class="material-icons engine-action" title="${st.paused ? "Resume download" : "Pause download"}"
+            @click=${this.togglePause}>${st.paused ? "play_arrow" : "pause"}</i>
+        <i class="material-icons engine-action engine-delete" title="Delete download and its files"
+            @click=${this.deleteDownload}>delete</i>
         <label class="engine-seq" @click=${(e: Event) => e.stopPropagation()}
             title="Download the first and last parts of the video first, then the rest in order from start to end, so it can be played while downloading">
             <input type="checkbox" .checked=${st.sequential} @change=${this.toggleSequential} />
@@ -149,6 +192,7 @@ export class TorrentFileCard extends LitElement {
                 ${this.torrentFile.resolution ? html`<div class="resolution ${rTier}">${this.torrentFile.resolution}</div>` : ""}
                 ${this.torrentFile.audio ? html`<div class="audio">${this.torrentFile.audio}</div>` : ""}
                 ${this.torrentFile.quality ? html`<div class="quality ${qTier}">${this.torrentFile.quality}</div>` : ""}
+                ${this.renderPeers()}
                 ${this.renderEngine()}
                 <i class="material-icons engine-external" title="Open magnet in external app" @click=${this.openExternally}>open_in_new</i>
             </div>

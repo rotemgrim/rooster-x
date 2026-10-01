@@ -15,11 +15,14 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
+
+	_ "go-poc/engine/classicio" // must run before anacrolix's storage init
 )
 
 // sessionFile lists the torrents that were added, so they are re-added (and
@@ -32,6 +35,8 @@ type sessionEntry struct {
 	// Sequential downloads the first and last parts of the video first and
 	// then the rest in order, so playback can start early. On by default.
 	Sequential bool `json:"sequential"`
+	// Paused stops all downloading and uploading for the torrent.
+	Paused bool `json:"paused,omitempty"`
 }
 
 var (
@@ -59,8 +64,13 @@ func Start(dir string) error {
 	log.Println("Torrent engine downloading to", dir)
 
 	for _, e := range loadSession() {
-		if _, err := add(e.Magnet, e.Sequential); err != nil {
+		hash, err := add(e.Magnet, e.Sequential)
+		if err != nil {
 			log.Println("Could not resume torrent:", err)
+			continue
+		}
+		if e.Paused {
+			_ = SetPaused(hash, true)
 		}
 	}
 	return nil
@@ -130,6 +140,35 @@ func SetSequential(hash string, on bool) error {
 	return nil
 }
 
+// SetPaused stops or resumes all data transfer for a torrent.
+func SetPaused(hash string, paused bool) error {
+	t, err := find(hash)
+	if err != nil {
+		return err
+	}
+	if paused {
+		t.DisallowDataDownload()
+		t.DisallowDataUpload()
+	} else {
+		t.AllowDataDownload()
+		t.AllowDataUpload()
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if e, ok := sessions[t.InfoHash().HexString()]; ok {
+		e.Paused = paused
+		saveSessionLocked()
+	}
+	return nil
+}
+
+func isPaused(t *torrent.Torrent) bool {
+	mu.Lock()
+	defer mu.Unlock()
+	e, ok := sessions[t.InfoHash().HexString()]
+	return ok && e.Paused
+}
+
 func isSequential(t *torrent.Torrent) bool {
 	mu.Lock()
 	defer mu.Unlock()
@@ -138,16 +177,82 @@ func isSequential(t *torrent.Torrent) bool {
 }
 
 // Remove stops a torrent. Downloaded data is kept on disk.
-func Remove(hash string) error {
+// Remove stops a torrent and, with deleteFiles, deletes everything it
+// downloaded (finished and *.part files, then any folders left empty).
+func Remove(hash string, deleteFiles bool) error {
 	t, err := find(hash)
 	if err != nil {
 		return err
 	}
+	var paths []string
+	if deleteFiles && t.Info() != nil {
+		for _, f := range t.Files() {
+			paths = append(paths, filepath.Join(dataDir, filepath.FromSlash(f.Path())))
+		}
+	}
+	// Drop closes the storage, so no file handles are left open on Windows.
 	t.Drop()
 	mu.Lock()
 	delete(sessions, t.InfoHash().HexString())
 	saveSessionLocked()
 	mu.Unlock()
+
+	if len(paths) > 0 {
+		go deleteWithRetry(paths)
+	}
+	return nil
+}
+
+// deleteWithRetry deletes the files, retrying with backoff while Windows
+// reports them in use (e.g. a player still streaming one).
+func deleteWithRetry(paths []string) {
+	delay := 500 * time.Millisecond
+	for attempt := 1; ; attempt++ {
+		var failed []string
+		for _, p := range paths {
+			if err := deleteDownloaded(p); err != nil {
+				if attempt == 1 || delay >= 30*time.Second {
+					log.Printf("Could not delete %s (attempt %d): %v", p, attempt, err)
+				}
+				failed = append(failed, p)
+			}
+		}
+		if len(failed) == 0 || delay > time.Minute {
+			return
+		}
+		paths = failed
+		time.Sleep(delay)
+		delay *= 2
+	}
+}
+
+// deleteDownloaded removes a torrent file (finished or .part) and then its
+// parent folders while they are empty, never leaving dataDir. Paths come
+// from torrent metadata sent by peers, so anything outside dataDir is refused.
+func deleteDownloaded(path string) error {
+	root, err := filepath.Abs(dataDir)
+	if err != nil {
+		return err
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	if rel, err := filepath.Rel(root, abs); err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+		return fmt.Errorf("refusing to delete outside the download folder")
+	}
+	for _, p := range []string{abs, abs + ".part"} {
+		// finished files are marked read-only by anacrolix
+		_ = os.Chmod(p, 0644)
+		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	for dir := filepath.Dir(abs); dir != root && strings.HasPrefix(dir, root); dir = filepath.Dir(dir) {
+		if os.Remove(dir) != nil {
+			break // not empty (or gone already)
+		}
+	}
 	return nil
 }
 
@@ -225,6 +330,7 @@ type Status struct {
 	Peers      int          `json:"peers"`
 	Seeders    int          `json:"seeders"`
 	Sequential bool         `json:"sequential"`
+	Paused     bool         `json:"paused"`
 	Files      []FileStatus `json:"files"`
 }
 
@@ -258,6 +364,7 @@ func statusOf(t *torrent.Torrent) Status {
 		Peers:      stats.ActivePeers,
 		Seeders:    stats.ConnectedSeeders,
 		Sequential: isSequential(t),
+		Paused:     isPaused(t),
 	}
 	if t.Info() == nil {
 		return s

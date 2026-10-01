@@ -430,11 +430,23 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 		MetaData     *models.MetaDatum     `json:"metaData"`
 		UserEpisode  *models.UserEpisode   `json:"userEpisode"`
 		MediaFiles   []*models.MediaFile   `json:"mediaFiles"`
-		TorrentFiles []*models.TorrentFile `json:"torrentFiles"`
+		TorrentFiles []TorrentWithPeers    `json:"torrentFiles"`
 		IsWatched    bool                  `json:"isWatched"`
 	}
+
+	// one peer-count lookup (and at most one tracker scrape) for every
+	// torrent of every episode
+	var allTorrents []*models.TorrentFile
+	for _, e := range episodes {
+		allTorrents = append(allTorrents, e.R.EpisodeIdTorrentFiles...)
+	}
+	withPeers := withPeerCounts(allTorrents)
+
 	var result = []Result{}
 	for _, e := range episodes {
+		n := len(e.R.EpisodeIdTorrentFiles)
+		episodeTorrents := withPeers[:n:n]
+		withPeers = withPeers[n:]
 		var userEpisode *models.UserEpisode
 		if e.R.EpisodeIdUserEpisodes != nil && len(e.R.EpisodeIdUserEpisodes) > 0 {
 			userEpisode = e.R.EpisodeIdUserEpisodes[0]
@@ -444,7 +456,7 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 			e.R.MetaDataIdMetaDatum,
 			userEpisode,
 			e.R.EpisodeIdMediaFiles,
-			e.R.EpisodeIdTorrentFiles,
+			episodeTorrents,
 			userEpisode != nil && userEpisode.IsWatched.Bool,
 		})
 	}
@@ -465,12 +477,12 @@ func (s *Server) GetMediaFilesByMetaId(c *websocket.Conn, req PayloadRequest) {
 		return
 	}
 	type Result struct {
-		MediaFiles   []*models.MediaFile   `json:"mediaFiles,omitempty"`
-		TorrentFiles []*models.TorrentFile `json:"torrentFiles,omitempty"`
+		MediaFiles   []*models.MediaFile `json:"mediaFiles,omitempty"`
+		TorrentFiles []TorrentWithPeers  `json:"torrentFiles,omitempty"`
 	}
 	var result = Result{
 		mediaFiles,
-		torrentFiles,
+		withPeerCounts(torrentFiles),
 	}
 	transmitPromiseResponse(c, req, result)
 }

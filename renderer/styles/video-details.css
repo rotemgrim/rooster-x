@@ -336,6 +336,23 @@ video-details {
       min-width: var(--poster-width);
       min-height: 165px;
     }
+    /* Opens the torrent list on episodes that already have local files. */
+    & .ep-torrents-btn {
+      position: absolute;
+      top: 1.6em;
+      left: 0.3em;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 0.2em;
+      padding: 0.1em 0.5em;
+      border-radius: 1em;
+      background: rgba(0, 0, 0, 0.65);
+      font-size: 13px;
+      cursor: pointer;
+      & i { font-size: 16px; }
+      &:hover, &.open { background: #5e1d9e; }
+    }
     /* MPV watch progress overlay (sits at the bottom of the thumbnail). */
     & .ep-progress {
       position: absolute;
@@ -479,6 +496,13 @@ torrent-file-card {
       &:checked::after { transform: translateX(1em); }
     }
   }
+  & .engine-action {
+    font-size: 2em !important;
+    margin-left: 0.3em;
+    opacity: 0.8;
+    &:hover { opacity: 1; }
+  }
+  & .engine-delete:hover { color: #f87171 !important; }
   & .engine-play {
     font-size: 1.4em !important;
     &:hover { color: #6bec5d !important; }
@@ -536,6 +560,18 @@ torrent-file-card {
     display: flex;
     align-items: center;
     min-width: 0;
+  }
+  & .peers {
+    display: flex;
+    gap: 0.6em;
+    margin-left: 0.5em;
+    padding: 0 0.6em;
+    border-radius: 1.2em;
+    font-size: 1.6em;
+    color: white;
+    &.good { background-color: #15803d; }
+    &.low  { background-color: #b45309; }
+    &.dead { background-color: #4b5563; color: #d1d5db; }
   }
 }
 

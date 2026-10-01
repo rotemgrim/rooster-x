@@ -81,6 +81,14 @@ export class IpcService {
         return promiseIpc.send("engine-set-sequential", {infoHash, sequential}) as Promise<boolean>;
     }
 
+    public static enginePause(infoHash: string, paused: boolean): Promise<boolean> {
+        return promiseIpc.send("engine-pause", {infoHash, paused}) as Promise<boolean>;
+    }
+
+    public static engineRemove(infoHash: string, deleteFiles: boolean) {
+        return promiseIpc.send("engine-remove", {infoHash, deleteFiles});
+    }
+
     public static engineStatus(infoHash: string): Promise<IEngineStatus> {
         return promiseIpc.send("engine-status", {infoHash}) as Promise<IEngineStatus>;
     }
@@ -411,6 +419,7 @@ export interface IEngineStatus {
     peers: number;
     seeders: number;
     sequential: boolean;
+    paused: boolean;
     // chunks: 100 digits (0-9), how much of each 1% slice of the file is downloaded
     files: {index: number; path: string; length: number; completed: number; chunks?: string}[] | null;
 }

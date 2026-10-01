@@ -68,6 +68,11 @@ export class EpisodeCard extends LitElement {
         }
     }
 
+    private toggleTorrents(e: Event) {
+        e.stopPropagation();
+        this.isShowDownloadOptions = !this.isShowDownloadOptions;
+    }
+
     private playFile(mFile: MediaFile) {
         this.dispatchEvent(new CustomEvent("playMedia", {detail: mFile}));
     }
@@ -143,6 +148,13 @@ export class EpisodeCard extends LitElement {
                     @click=${this.setWatch}
                     ?checked=${this.episode.isWatched}
                     title="${this.episode.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
+                ${this.episode.mediaFiles?.length > 0 && this.episode.torrentFiles?.length > 0
+                    ? html`<div class="ep-torrents-btn ${this.isShowDownloadOptions ? "open" : ""}"
+                          title="${this.isShowDownloadOptions ? "Hide" : "Show"} ${this.episode.torrentFiles.length} torrents"
+                          @click=${this.toggleTorrents}>
+                          <i class="material-icons">cloud_download</i>${this.episode.torrentFiles.length}
+                      </div>`
+                    : ""}
                 <div class="image" tabindex="0" @click=${this.playEpisode} title="${this.getTitle()}">
                     ${this.episode.mediaFiles?.length > 0
                         ? html`<i class="material-icons">play_circle_outline</i>`
