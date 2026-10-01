@@ -464,9 +464,6 @@ func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {
 				return nil
 			}
 
-			fmt.Sprintf("scanning name: %s", tor.Title)
-			//log.Printf("scanning name: %s\n", tor.Title)
-
 			if len(tor.Title) < 3 {
 				return nil
 			}

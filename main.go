@@ -173,7 +173,7 @@ func onReady() {
 	// directories array to walk
 	dirs := config.Directories
 	WalkerInstance := walker.NewWalker(dirs, ServerInstance, tmdbClient)
-	TorrentsFetcher := torrents.NewTorrentFetcher("https://thepiratebay.org", ServerInstance, tmdbClient)
+	TorrentsFetcher := torrents.NewTorrentFetcher(ServerInstance, tmdbClient)
 
 	// create a new app
 	xtreamClient := iptv.NewXtreamClient(config.Xtream.Username, config.Xtream.Password, config.Xtream.Server)
@@ -249,7 +249,7 @@ func initializeConfig() Config {
 		file, err := os.Create("config.yaml")
 		if err != nil {
 			log.Println("Error creating config file")
-			panic(fmt.Errorf("Error creating config file", err))
+			panic(fmt.Errorf("Error creating config file: %w", err))
 		}
 		defer file.Close()
 
@@ -284,7 +284,7 @@ xtream:
 		_, err = file.WriteString(string(defaultConfig))
 		if err != nil {
 			log.Println("Error writing to config file")
-			panic(fmt.Errorf("Error writing to config file", err))
+			panic(fmt.Errorf("Error writing to config file: %w", err))
 		}
 	}
 
@@ -292,14 +292,14 @@ xtream:
 	configData, err := os.ReadFile("config.yaml")
 	if err != nil {
 		log.Println("Error reading config file")
-		panic(fmt.Errorf("Error reading config file", err))
+		panic(fmt.Errorf("Error reading config file: %w", err))
 	}
 
 	// unmarshal the config file
 	var cfg Config
 	err = yaml.Unmarshal(configData, &cfg)
 	if err != nil {
-		panic(fmt.Errorf("Error unmarshalling config file", err))
+		panic(fmt.Errorf("Error unmarshalling config file: %w", err))
 	}
 
 	// spew.Dump(cfg)

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type XtreamClient struct {
@@ -33,7 +34,9 @@ func (x *XtreamClient) RefreshLiveStreams() error {
 
 	log.Println("Fetching live streams from xtream:", x.Server)
 
-	resp, err := http.Get(url)
+	// the live streams list can be several MB, so allow a generous timeout
+	client := http.Client{Timeout: 2 * time.Minute}
+	resp, err := client.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to fetch live streams: %w", err)
 	}

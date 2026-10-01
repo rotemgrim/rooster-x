@@ -48,6 +48,10 @@ func createTablesIfNotExist(db *sql.DB) {
 		log.Printf("Warning: torrent infoHash migration failed: %v", err)
 	}
 
+	if err := MigrateAddTorrentImdbId(db); err != nil {
+		log.Printf("Warning: torrent imdbId migration failed: %v", err)
+	}
+
 	// Snapshot tables for the torrents/folders views (materialised on sweep).
 	if err := EnsureFeedTables(db); err != nil {
 		log.Printf("Warning: feed tables creation failed: %v", err)

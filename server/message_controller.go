@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 
 	"go-poc/db"
 	"go-poc/models"
@@ -1058,47 +1056,19 @@ func (s *Server) FetchChannelIcon(c *websocket.Conn, req PayloadRequest) {
 		return
 	}
 
-	// Try to download icon from various sources
-	var err error
-	var imageData []byte
-
-	// Priority 1: Use logo URL from M3U data if provided
-	if iconReq.LogoUrl != "" {
-		log.Printf("Trying M3U logo URL: %s", iconReq.LogoUrl)
-		imageData, err = fetchValidImage(iconReq.LogoUrl)
-		if err == nil && len(imageData) > 0 {
-			goto saveIcon
-		}
+	// The M3U logo URL is the only icon source; Clearbit's logo API was shut
+	// down and Google Images no longer returns results to plain HTTP clients.
+	if iconReq.LogoUrl == "" {
+		transmitPromiseReject(c, req, "could not find icon")
+		return
+	}
+	imageData, err := fetchValidImage(iconReq.LogoUrl)
+	if err != nil {
 		log.Printf("M3U logo failed for %s: %v", iconReq.CleanName, err)
+		transmitPromiseReject(c, req, "could not find icon")
+		return
 	}
 
-	// Priority 2: Try Clearbit (works for some brands)
-	imageData, err = fetchValidImage(fmt.Sprintf("https://logo.clearbit.com/%s.com", strings.ToLower(strings.ReplaceAll(safeFileName, " ", ""))))
-	if err == nil && len(imageData) > 0 {
-		goto saveIcon
-	}
-
-	// Priority 3: Try with "tv" suffix
-	imageData, err = fetchValidImage(fmt.Sprintf("https://logo.clearbit.com/%stv.com", strings.ToLower(strings.ReplaceAll(safeFileName, " ", ""))))
-	if err == nil && len(imageData) > 0 {
-		goto saveIcon
-	}
-
-	// Priority 4: Try Google Image search
-	log.Printf("Trying Google Image search for %s", iconReq.CleanName)
-	imageData, err = searchGoogleImage(iconReq.CleanName)
-	if err == nil && len(imageData) > 0 {
-		goto saveIcon
-	}
-	log.Printf("Google Image search failed for %s: %v", iconReq.CleanName, err)
-
-	// No icon found
-	log.Printf("No icon found for %s", iconReq.CleanName)
-	transmitPromiseReject(c, req, "could not find icon")
-	return
-
-saveIcon:
-	// Save the icon
 	err = os.WriteFile(iconPath, imageData, 0644)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not save icon: %s", err))
@@ -1188,121 +1158,4 @@ func isValidImageData(data []byte) bool {
 		return true
 	}
 	return false
-}
-
-// searchGoogleImage searches Google Images for a channel logo and returns the first valid image
-func searchGoogleImage(channelName string) ([]byte, error) {
-	// Build search query: "CHANNEL NAME" logo icon israel tv
-	query := fmt.Sprintf(`"%s" logo icon israel tv`, channelName)
-	searchURL := fmt.Sprintf("https://www.google.com/search?q=%s&tbm=isch&tbs=isz:i", url.QueryEscape(query))
-
-	req, err := http.NewRequest("GET", searchURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Set headers to mimic a browser
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-
-	resp, err := iconHttpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("search request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("search returned status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read search results: %w", err)
-	}
-
-	// Extract image URLs from Google Image search results
-	// Google embeds image URLs in the page in various formats
-	htmlStr := string(body)
-
-	// Try to find image URLs in the response - Google uses data attributes and JSON
-	imageURLs := extractImageURLs(htmlStr)
-
-	if len(imageURLs) == 0 {
-		return nil, fmt.Errorf("no images found in search results")
-	}
-
-	// Try each URL until we get a valid image
-	for i, imgURL := range imageURLs {
-		if i >= 5 { // Only try first 5 results
-			break
-		}
-		log.Printf("Trying Google image %d: %s", i+1, imgURL[:min(80, len(imgURL))]+"...")
-		imageData, err := fetchValidImage(imgURL)
-		if err == nil && len(imageData) > 0 {
-			return imageData, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no valid images found")
-}
-
-// extractImageURLs extracts image URLs from Google Image search HTML
-func extractImageURLs(html string) []string {
-	var urls []string
-	seen := make(map[string]bool)
-
-	// Google embeds image data in AF_initDataCallback with image URLs in arrays like:
-	// ["https://example.com/image.jpg",width,height]
-	// We want external URLs (not google/gstatic)
-
-	// Pattern: Look for image URLs in JSON arrays with dimensions
-	// This pattern looks for URLs followed by width/height numbers
-	jsonPattern := regexp.MustCompile(`\["(https?://[^"]+)",(\d+),(\d+)\]`)
-	matches := jsonPattern.FindAllStringSubmatch(html, -1)
-	for _, match := range matches {
-		if len(match) > 3 {
-			imgURL := match[1]
-			// Skip Google's own images
-			if strings.Contains(imgURL, "google.com") ||
-				strings.Contains(imgURL, "gstatic.com") ||
-				strings.Contains(imgURL, "googleapis.com") ||
-				strings.Contains(imgURL, "ggpht.com") {
-				continue
-			}
-			// Unescape
-			imgURL = strings.ReplaceAll(imgURL, `\u003d`, "=")
-			imgURL = strings.ReplaceAll(imgURL, `\u0026`, "&")
-			imgURL = strings.ReplaceAll(imgURL, `\\u003d`, "=")
-			imgURL = strings.ReplaceAll(imgURL, `\\u0026`, "&")
-			if !seen[imgURL] {
-				seen[imgURL] = true
-				urls = append(urls, imgURL)
-			}
-		}
-	}
-
-	// Fallback: Look for URLs with common image extensions
-	imgExtPattern := regexp.MustCompile(`"(https?://[^"]*\.(?:jpg|jpeg|png|gif|webp)(?:\?[^"]*)?)"`)
-	matches = imgExtPattern.FindAllStringSubmatch(html, -1)
-	for _, match := range matches {
-		if len(match) > 1 {
-			imgURL := match[1]
-			if strings.Contains(imgURL, "google.com") ||
-				strings.Contains(imgURL, "gstatic.com") ||
-				strings.Contains(imgURL, "googleapis.com") ||
-				strings.Contains(imgURL, "ggpht.com") {
-				continue
-			}
-			imgURL = strings.ReplaceAll(imgURL, `\u003d`, "=")
-			imgURL = strings.ReplaceAll(imgURL, `\u0026`, "&")
-			if !seen[imgURL] {
-				seen[imgURL] = true
-				urls = append(urls, imgURL)
-			}
-		}
-	}
-
-	log.Printf("Found %d unique image URLs from Google", len(urls))
-	return urls
 }

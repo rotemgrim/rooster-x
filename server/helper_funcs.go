@@ -82,7 +82,7 @@ func GetYouTubeTrailer(title string, year int) (string, error) {
 	url := fmt.Sprintf("https://www.youtube.com/results?search_query=%s", query)
 
 	// get the page with fetch
-	response, err := http.Get(url)
+	response, err := apiHttpClient.Get(url)
 	if err != nil {
 		log.Println("Error fetching youtube page:", err)
 		return "", err
@@ -108,6 +108,9 @@ func GetYouTubeTrailer(title string, year int) (string, error) {
 	}
 	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", match[1]), nil
 }
+
+// apiHttpClient is used for small API/page requests so a stalled server can't hang a handler forever.
+var apiHttpClient = &http.Client{Timeout: 15 * time.Second}
 
 type ImdbRating struct {
 	Score  float64
@@ -149,7 +152,7 @@ func GetRatingsFromTMDB(imdbId string) (ImdbRating, error) {
 
 	url := fmt.Sprintf("https://api.themoviedb.org/3/find/%s?api_key=%s&external_source=imdb_id", imdbId, tmdbApiKey)
 
-	resp, err := http.Get(url)
+	resp, err := apiHttpClient.Get(url)
 	if err != nil {
 		return ImdbRating{}, err
 	}
