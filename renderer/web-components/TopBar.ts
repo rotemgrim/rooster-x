@@ -104,6 +104,11 @@ export class TopBar extends LitElement {
         this.requestUpdate();
     }
 
+    public showDownloads() {
+        this.rooster.showDownloads();
+        this.requestUpdate();
+    }
+
     private toggleSideBar() {
         this.rooster.toggleSideBar();
     }
@@ -181,6 +186,10 @@ export class TopBar extends LitElement {
                 <div tabindex="0" class="filter ${this.rooster.view === "lists" ? "active" : ""}"
                      @click="${this.showLists}">
                     <i class="material-icons">playlist_play</i>
+                </div>
+                <div tabindex="0" class="filter ${this.rooster.view === "downloads" ? "active" : ""}"
+                     title="Downloads" @click="${this.showDownloads}">
+                    <i class="material-icons">downloading</i>
                 </div>
                 <div tabindex="0" class="filter" @click="${this.showFilters}" style="display: block; color: white;">
                     <i class="material-icons">filter_list</i>

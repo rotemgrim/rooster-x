@@ -93,6 +93,10 @@ export class IpcService {
         return promiseIpc.send("engine-status", {infoHash}) as Promise<IEngineStatus>;
     }
 
+    public static engineList(): Promise<IEngineStatus[] | null> {
+        return promiseIpc.send("engine-status", {}) as Promise<IEngineStatus[] | null>;
+    }
+
     public static getWatchProgress(kind: "movie" | "episode", id: number): Promise<null | {
         roosterId: string;
         kind: string;
@@ -416,10 +420,23 @@ export interface IEngineStatus {
     hasInfo: boolean;
     length: number;
     completed: number;
-    peers: number;
+    peers: number; // connected, seeders included
     seeders: number;
+    knownPeers: number;
     sequential: boolean;
     paused: boolean;
+    state: "metadata" | "downloading" | "stalled" | "seeding" | "paused" | "completed";
+    downSpeed: number; // bytes/s
+    upSpeed: number;
+    downloaded: number; // payload bytes over all runs
+    uploaded: number;
+    addedAt: number; // unix seconds, 0 = unknown
+    completedAt: number;
+    availability: number;
+    numPieces: number;
+    pieceLength: number;
+    piecesComplete: number;
+    savePath: string;
     // chunks: 100 digits (0-9), how much of each 1% slice of the file is downloaded
     files: {index: number; path: string; length: number; completed: number; chunks?: string}[] | null;
 }

@@ -10,6 +10,7 @@ import "./SettingsPage";
 import "./Channels";
 import "./Lists";
 import "./ListDetail";
+import "./DownloadsPage";
 import {type MetaData} from "../entity/MetaData";
 import {IMetaDataExtended} from "../common/models/IMetaDataExtended";
 import {type User} from "../entity/User";
@@ -47,7 +48,7 @@ type GroupMetaData = {
     isExpanded: boolean;
 }
 
-type View = "folders" | "torrents" | "channels" | "lists";
+type View = "folders" | "torrents" | "channels" | "lists" | "downloads";
 type Route = {view: View | null; id: number | null};
 
 // @ts-ignore
@@ -134,7 +135,7 @@ export class RoosterX extends LitElement {
 
         // The lists/channels views don't use the media grid dataset, so skip
         // the initial stream when the user lands directly on one of them.
-        if (initialView !== "lists" && initialView !== "channels") {
+        if (initialView !== "lists" && initialView !== "channels" && initialView !== "downloads") {
             this.streamMedia({
                 filter: "all",
                 isTorrents: this._showTorrents,
@@ -434,7 +435,7 @@ export class RoosterX extends LitElement {
             };
         }
         const m = window.location.pathname.match(
-            /^\/(folders|torrents|channels)(?:\/(?:movie|series|tv|episode)\/(\d+))?\/?$/,
+            /^\/(folders|torrents|channels|downloads)(?:\/(?:movie|series|tv|episode)\/(\d+))?\/?$/,
         );
         if (!m) return {view: null, id: null};
         const id = m[2] ? Number(m[2]) : null;
@@ -454,7 +455,7 @@ export class RoosterX extends LitElement {
     private getLastView(): View | null {
         try {
             const v = localStorage.getItem(RoosterX.LAST_VIEW_KEY);
-            if (v === "folders" || v === "torrents" || v === "channels" || v === "lists") return v;
+            if (v === "folders" || v === "torrents" || v === "channels" || v === "lists" || v === "downloads") return v;
         } catch (_) {}
         return null;
     }
@@ -487,7 +488,7 @@ export class RoosterX extends LitElement {
             history.pushState({view}, "", `/${view}`);
         }
 
-        if (view === "channels" || view === "lists") {
+        if (view === "channels" || view === "lists" || view === "downloads") {
             this.closeSideBar && this.closeSideBar();
             return;
         }
@@ -872,6 +873,10 @@ export class RoosterX extends LitElement {
         this.applyView("torrents", /* push */ true);
     }
 
+    public showDownloads() {
+        this.applyView("downloads", /* push */ true);
+    }
+
     public showFolders() {
         this.applyView("folders", /* push */ true);
     }
@@ -1162,7 +1167,9 @@ export class RoosterX extends LitElement {
                       Loading
                   </div>`
                 : ""}
-            ${this.view === "channels"
+            ${this.view === "downloads"
+                ? html`<downloads-page></downloads-page>`
+                : this.view === "channels"
                 ? html`<rooster-channels></rooster-channels>`
                 : this.view === "lists"
                 ? (this.listDetailId

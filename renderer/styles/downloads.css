@@ -1,0 +1,291 @@
+.downloads-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--top-bar-height));
+  color: #ddd;
+  font-size: 1.15em;
+  background: rgba(var(--black-background-rgb), 0.85);
+  color-scheme: dark; /* dark scrollbars */
+  user-select: none;
+
+  & .num {
+    text-align: right;
+  }
+
+  & .dl-empty {
+    padding: 2em;
+    text-align: center;
+    opacity: 0.6;
+  }
+
+  & .dl-progress {
+    position: relative;
+    height: 1.4em;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
+    & div {
+      height: 100%;
+      background: #2f7d32;
+    }
+    & span {
+      position: absolute;
+      inset: 0;
+      text-align: center;
+      line-height: 1.4em;
+      color: white;
+    }
+  }
+}
+
+.dl-filters {
+  display: flex;
+  gap: 0.4em;
+  padding: 0.4em 0.5em;
+  border-bottom: 1px solid #333;
+  background: #141414;
+  & button {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.3em 0.9em;
+    background: #222;
+    color: #ddd;
+    border: 1px solid #3a3a3a;
+    font: inherit;
+    cursor: pointer;
+    &:hover { background: #2c2c2c; }
+    &.active { background: #3a3a3a; color: white; border-color: #555; }
+    & i { font-size: 1.2em; }
+  }
+}
+
+.dl-table-wrap {
+  flex: 1;
+  min-height: 80px;
+  overflow: auto;
+}
+
+.dl-table {
+  table-layout: fixed;
+  border-collapse: collapse;
+  white-space: nowrap;
+
+  & th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #1b1b1b;
+    font-weight: normal;
+    text-align: left;
+    padding: 0.4em 0.5em;
+    border-right: 1px solid #333;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    &:hover { background: #262626; }
+    &.sorted { color: white; }
+  }
+  & .dl-th-label {
+    vertical-align: middle;
+  }
+  & .dl-sort {
+    position: absolute;
+    top: -0.55em;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.4em;
+    opacity: 0.8;
+  }
+  & .dl-col-resize {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    &:hover { background: rgba(255, 255, 255, 0.2); }
+  }
+
+  & td {
+    padding: 0.3em 0.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  & .dl-row {
+    cursor: default;
+    &:nth-child(even) { background: rgba(255, 255, 255, 0.03); }
+    &:hover { background: rgba(255, 255, 255, 0.08); }
+    &.selected { background: rgba(176, 20, 20, 0.75); color: white; }
+  }
+  & .dl-state-icon {
+    font-size: 1.2em;
+    vertical-align: middle;
+    margin-right: 0.4em;
+  }
+  & .state-downloading, & .state-metadata { color: #6bec5d; }
+  & .state-stalled { color: #b5d6a7; }
+  & .state-seeding { color: #7fb2ff; }
+  & .state-paused, & .state-completed { color: #999; }
+  & .selected { color: white !important; }
+}
+
+.dl-splitter {
+  height: 6px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: #222;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+  &:hover { background: #3a3a3a; }
+}
+
+.dl-details {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  max-height: 60vh;
+
+  & .dl-details-body {
+    flex: 1;
+    overflow: auto;
+    padding: 0.5em 1em;
+    user-select: text;
+  }
+  & h4 {
+    font-weight: normal;
+    margin: 0.6em 0 0.3em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid #333;
+  }
+  & .dl-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0.35em 1em;
+    padding: 0.5em;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  & .dl-field {
+    display: flex;
+    gap: 0.5em;
+    min-width: 0;
+    & span:first-child {
+      flex: 0 0 9.5em;
+      text-align: right;
+      opacity: 0.75;
+    }
+    & span:last-child {
+      overflow-wrap: anywhere;
+    }
+  }
+
+  & .dl-tabs {
+    display: flex;
+    gap: 0.4em;
+    padding: 0.3em 0.5em;
+    border-top: 1px solid #333;
+    background: #141414;
+    & button {
+      display: flex;
+      align-items: center;
+      gap: 0.3em;
+      padding: 0.3em 0.9em;
+      background: #222;
+      color: #ddd;
+      border: 1px solid #3a3a3a;
+      font: inherit;
+      cursor: pointer;
+      &:hover { background: #2c2c2c; }
+      &.active { background: #3a3a3a; color: white; }
+      & i { font-size: 1.2em; }
+    }
+  }
+}
+
+.dl-files {
+  width: 100%;
+  border-collapse: collapse;
+  & th {
+    font-weight: normal;
+    text-align: left;
+    padding: 0.3em 0.5em;
+    border-bottom: 1px solid #333;
+    &.num { text-align: right; }
+  }
+  & td {
+    padding: 0.25em 0.5em;
+    overflow-wrap: anywhere;
+  }
+  & td:nth-child(3) { width: 120px; }
+  & td:last-child { width: 2em; }
+  & .dl-play {
+    cursor: pointer;
+    font-size: 1.4em;
+    vertical-align: middle;
+    &:hover { color: #6bec5d; }
+  }
+}
+
+.dl-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  list-style: none;
+  padding: 0.3em 0;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  color: #ddd;
+  & li {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.45em 1em;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { background: #2f2f2f; color: white; }
+    &.danger:hover { color: #f87171; }
+    &.disabled { opacity: 0.4; cursor: default; background: none; }
+    &.separator { padding: 0; margin: 0.3em 0; border-top: 1px solid #333; cursor: default; }
+    & i { font-size: 1.3em; }
+  }
+}
+
+.dl-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.dl-dialog {
+  width: min(480px, calc(100vw - 32px));
+  padding: 1.4em;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  color: #ddd;
+  font-size: 1.15em;
+  & h3 { font-weight: normal; margin-bottom: 0.8em; color: white; }
+  & p { margin-bottom: 1em; overflow-wrap: anywhere; }
+  & label { display: flex; align-items: center; gap: 0.5em; cursor: pointer; }
+  & .dl-dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6em;
+    margin-top: 1.4em;
+    & button {
+      padding: 0.4em 1.2em;
+      background: #2c2c2c;
+      color: #ddd;
+      border: 1px solid #444;
+      font: inherit;
+      cursor: pointer;
+      &:hover { background: #383838; }
+      &.danger { background: #8b1a1a; border-color: #a52a2a; color: white; }
+      &.danger:hover { background: #a52020; }
+    }
+  }
+}
