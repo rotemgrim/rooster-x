@@ -421,6 +421,73 @@ torrent-file-card {
 
   & .raw {
     margin-left: 1.2em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Built-in torrent engine progress + actions */
+  position: relative;
+  overflow: hidden;
+  & .engine-chunks {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5px;
+  }
+  & .engine-status {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    margin-left: 0.5em;
+    padding: 0 0.6em;
+    border-radius: 1.2em;
+    background-color: rgba(0, 0, 0, 0.35);
+    font-size: 1.6em;
+  }
+  & .engine-seq {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    margin-left: 0.5em;
+    font-size: 1.2em;
+    cursor: pointer;
+    opacity: 0.85;
+    &:hover { opacity: 1; }
+    & input {
+      appearance: none;
+      position: relative;
+      width: 2.2em;
+      height: 1.2em;
+      margin: 0;
+      border-radius: 1em;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: background 0.15s;
+      &::after {
+        content: "";
+        position: absolute;
+        top: 0.15em;
+        left: 0.15em;
+        width: 0.9em;
+        height: 0.9em;
+        border-radius: 50%;
+        background: white;
+        transition: transform 0.15s;
+      }
+      &:checked { background: #16a34a; }
+      &:checked::after { transform: translateX(1em); }
+    }
+  }
+  & .engine-play {
+    font-size: 1.4em !important;
+    &:hover { color: #6bec5d !important; }
+  }
+  & .engine-external {
+    margin-left: auto;
+    font-size: 1.8em !important;
+    opacity: 0.6;
+    &:hover { opacity: 1; }
   }
   &:hover {
     background-color: #6bec5d;
@@ -455,6 +522,21 @@ torrent-file-card {
    the playable media-file rows, which keep the original blueviolet. */
 .torrent-file {
   background-color: #5e1d9e;
+  /* name on its own line, badges and engine controls underneath */
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3em;
+  padding: 0.4em 0.5em 0.6em;
+
+  & .raw {
+    margin-left: 0.2em;
+    font-size: 1.3em;
+  }
+  & .torrent-controls {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
 }
 
 .img-missing {

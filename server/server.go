@@ -12,6 +12,8 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+
+	"go-poc/engine"
 )
 
 type Sweeper interface {
@@ -105,6 +107,8 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 		// Serve local MediaFile bytes over HTTP (with Range support) so a
 		// phone on the LAN can hand the URL to VLC / Infuse / nPlayer.
 		http.HandleFunc("/file/", mediaFileHandler)
+		// Stream files from the embedded torrent engine while they download.
+		http.HandleFunc("/engine/stream/", engine.StreamHandler("/engine/stream/"))
 	}()
 
 	//go func() {

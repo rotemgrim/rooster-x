@@ -72,6 +72,19 @@ export class IpcService {
         ipcRenderer.send("open-in-mpv", {url, id});
     }
 
+    // Built-in torrent engine
+    public static engineAdd(magnet: string): Promise<string> {
+        return promiseIpc.send("engine-add", {magnet}) as Promise<string>;
+    }
+
+    public static engineSetSequential(infoHash: string, sequential: boolean): Promise<boolean> {
+        return promiseIpc.send("engine-set-sequential", {infoHash, sequential}) as Promise<boolean>;
+    }
+
+    public static engineStatus(infoHash: string): Promise<IEngineStatus> {
+        return promiseIpc.send("engine-status", {infoHash}) as Promise<IEngineStatus>;
+    }
+
     public static getWatchProgress(kind: "movie" | "episode", id: number): Promise<null | {
         roosterId: string;
         kind: string;
@@ -389,3 +402,15 @@ export class IpcService {
     }
 }
 
+export interface IEngineStatus {
+    infoHash: string;
+    name: string;
+    hasInfo: boolean;
+    length: number;
+    completed: number;
+    peers: number;
+    seeders: number;
+    sequential: boolean;
+    // chunks: 100 digits (0-9), how much of each 1% slice of the file is downloaded
+    files: {index: number; path: string; length: number; completed: number; chunks?: string}[] | null;
+}

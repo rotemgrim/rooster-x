@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go-poc/db"
+	"go-poc/engine"
 	EventBus "go-poc/event-bus"
 	"go-poc/iptv"
 	"go-poc/scheduler"
@@ -40,6 +41,7 @@ type Config struct {
 	TorrentsSweep        []string     `yaml:"torrents_sweep"`
 	ImdbRatingPoll       string       `yaml:"imdb_rating_poll"`
 	MetadataEnrichPoll   string       `yaml:"metadata_enrich_poll"`
+	DownloadDir          string       `yaml:"download_dir"`
 	Xtream               XtreamConfig `yaml:"xtream"`
 }
 
@@ -84,6 +86,7 @@ func main() {
 
 func onExit() {
 	app.Walker.StopWatch()
+	engine.Stop()
 	// handle the signal and exit
 	os.Remove("sweep.lock")
 	println("Exiting")
@@ -186,6 +189,19 @@ func onReady() {
 		XtreamClient:    xtreamClient,
 	}
 
+	// embedded torrent engine; downloads land in a watched directory by
+	// default so the walker picks them up like any other media file
+	downloadDir := config.DownloadDir
+	if downloadDir == "" && len(dirs) > 0 {
+		downloadDir = dirs[0]
+	}
+	if downloadDir == "" {
+		downloadDir = "downloads"
+	}
+	if err := engine.Start(downloadDir); err != nil {
+		log.Println("Torrent engine disabled:", err)
+	}
+
 	app.Walker.StartWatch()
 	go app.Server.Start(WalkerInstance, TorrentsFetcher)
 	app.Scheduler.Init()
@@ -273,6 +289,8 @@ torrents_sweep:
 imdb_rating_poll: "* * * * *" # Every minute
 
 metadata_enrich_poll: "0 2-3 * * *" # Nightly at 02:00 and 03:00 (within the 2-4 AM window)
+
+# download_dir: "B:\\downloads\\complete" # where the built-in torrent engine saves files (defaults to the first directory above)
 
 xtream:
     username: ""
