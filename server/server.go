@@ -94,7 +94,7 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 		// SPA fallback: if the requested file doesn't exist in the embedded
 		// FS, serve index.html so the client-side router can take over on
 		// hard refresh of routes like /movie/1202.
-		http.Handle("/", spaHandler(assets, assetsFS))
+		http.Handle("/", isolationHandler(spaHandler(assets, assetsFS)))
 
 		// Serve icons folder from filesystem
 		iconsFS := http.FileServer(http.Dir("icons"))
@@ -107,6 +107,7 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 		// Serve local MediaFile bytes over HTTP (with Range support) so a
 		// phone on the LAN can hand the URL to VLC / Infuse / nPlayer.
 		http.HandleFunc("/file/", mediaFileHandler)
+		http.HandleFunc("/roosterx.crt", certDownloadHandler)
 		// Stream files from the embedded torrent engine while they download.
 		http.HandleFunc("/engine/stream/", engine.StreamHandler("/engine/stream/"))
 	}()

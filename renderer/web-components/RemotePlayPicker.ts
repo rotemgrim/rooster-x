@@ -1,7 +1,6 @@
 import {html, LitElement, css} from "lit";
 import {customElement, property, state} from "lit/decorators.js";
 import {type MediaFile} from "../entity/MediaFile";
-import "./LibmediaPlayer";
 
 /**
  * Remote playback sheet. Shown when a non-local client (phone or another
@@ -28,7 +27,6 @@ export class RemotePlayPicker extends LitElement {
 
     @state() private httpUrl: string = "";
     @state() private copied: boolean = false;
-    @state() private showPlayer: boolean = false;
     @state() private showSmbConfig: boolean = false;
     @state() private serverPrefix: string = localStorage.getItem("rooster.mpv.serverPrefix") || "";
     @state() private clientPrefix: string = localStorage.getItem("rooster.mpv.clientPrefix") || "";
@@ -175,13 +173,6 @@ export class RemotePlayPicker extends LitElement {
         if (!this.open || !this.mediaFile) return html``;
         if (!this.httpUrl) this.httpUrl = this.buildFileUrl();
 
-        if (this.showPlayer) {
-            return html`<libmedia-player
-                .src=${this.httpUrl}
-                .name=${this.mediaFile.raw || this.mediaFile.path || ""}
-                @close=${this.closePlayer}></libmedia-player>`;
-        }
-
         return html`
             <div class="sheet" @click=${(e: Event) => e.stopPropagation()}>
                 <h3>Play on this device</h3>
@@ -216,7 +207,7 @@ export class RemotePlayPicker extends LitElement {
                     <span class="hint">Chrome-style intent:// URL pinned to VLC's Android package.</span>
                 </button>
 
-                <button class="choice" @click=${() => { this.showPlayer = true; }}>
+                <button class="choice" @click=${this.openInLibmedia}>
                     <span>Play in page (libmedia)</span>
                     <span class="hint">WebAssembly player. Decodes AC3/E-AC3/DTS audio the browser can't.</span>
                 </button>
@@ -254,6 +245,23 @@ export class RemotePlayPicker extends LitElement {
         const httpUrl = this.httpUrl || this.buildFileUrl();
         console.log("Opening inline in browser:", httpUrl);
         window.location.href = httpUrl;
+    };
+
+    /**
+     * Open the libmedia player page. Remote clients on plain HTTP are sent
+     * to the HTTPS listener (:8443): only a secure context gets the
+     * cross-origin isolation libmedia needs for multithreaded decoding.
+     * The file URL is passed as a path so it stays same-origin with the
+     * player page, which COEP requires.
+     */
+    private openInLibmedia = () => {
+        const name = this.mediaFile.raw || this.mediaFile.path || "";
+        const src = new URL(this.httpUrl || this.buildFileUrl()).pathname;
+        const query = `?src=${encodeURIComponent(src)}&name=${encodeURIComponent(name)}`;
+        const {protocol, hostname} = window.location;
+        const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+        const origin = protocol === "http:" && !isLocal ? `https://${hostname}:8443` : "";
+        window.location.href = `${origin}/player.html${query}`;
     };
 
     /**
@@ -455,12 +463,6 @@ export class RemotePlayPicker extends LitElement {
             return false;
         }
     }
-
-    private closePlayer = (e: Event) => {
-        e.stopPropagation();
-        this.showPlayer = false;
-        this.close();
-    };
 
     private close = () => {
         this.open = false;

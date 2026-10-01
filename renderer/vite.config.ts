@@ -36,6 +36,18 @@ function libmediaAssets(): Plugin {
 
     return {
         name: "libmedia-assets",
+        // Dev-server mirror of server/isolation.go: the player page and its
+        // assets are cross-origin isolated so libmedia can use threads.
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                const url = req.url || "";
+                if (url.startsWith("/player.html") || url.startsWith("/libmedia/")) {
+                    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+                    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+                }
+                next();
+            });
+        },
         async buildStart() {
             if (existsSync(dest)) rmSync(dest, {recursive: true});
             cpSync(resolve(AVPLAYER_DIR, "dist/esm"), dest, {recursive: true});
@@ -56,4 +68,12 @@ function libmediaAssets(): Plugin {
 
 export default defineConfig({
     plugins: [libmediaAssets()],
+    build: {
+        rollupOptions: {
+            input: {
+                main: resolve(__dirname, "index.html"),
+                player: resolve(__dirname, "player.html"),
+            },
+        },
+    },
 });

@@ -64,6 +64,8 @@ export class LibmediaPlayer extends LitElement {
             z-index: 1;
         }
         .top .name { flex: 1; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .top .mode { font-size: 0.75rem; color: #a8aeb8; white-space: nowrap; }
+        .top a.mode { color: #ff3344; }
 
         .status {
             position: absolute;
@@ -114,6 +116,7 @@ export class LibmediaPlayer extends LitElement {
                 <div id="screen"></div>
                 <div class="top">
                     <span class="name">${this.name}</span>
+                    ${this.renderMode()}
                     <button @click=${this.close}>✕ Close</button>
                 </div>
                 ${this.status ? html`<div class="status">${this.status}</div>` : null}
@@ -141,6 +144,19 @@ export class LibmediaPlayer extends LitElement {
                 <button @click=${this.toggleFullscreen}>⛶</button>
             </div>
         `;
+    }
+
+    /**
+     * Multithreaded decoding needs a cross-origin isolated page, which
+     * browsers only grant over trusted HTTPS. On HTTPS without isolation the
+     * self-signed cert isn't trusted yet, so link to it for installing.
+     */
+    private renderMode() {
+        if (self.crossOriginIsolated) return html`<span class="mode">multi-thread</span>`;
+        if (location.protocol !== "https:") return html`<span class="mode">single-thread</span>`;
+        return html`<a class="mode" href="/roosterx.crt"
+                       title="Install and trust this certificate on the device to enable multithreaded decoding">
+            single-thread · install certificate</a>`;
     }
 
     protected async firstUpdated() {
