@@ -27,6 +27,12 @@ export class RemotePlayPicker extends LitElement {
 
     @state() private httpUrl: string = "";
     @state() private copied: boolean = false;
+    @state() private showSmbConfig: boolean = false;
+    @state() private serverPrefix: string = localStorage.getItem("rooster.mpv.serverPrefix") || "";
+    @state() private clientPrefix: string = localStorage.getItem("rooster.mpv.clientPrefix") || "";
+
+    private static readonly LS_SERVER_PREFIX = "rooster.mpv.serverPrefix";
+    private static readonly LS_CLIENT_PREFIX = "rooster.mpv.clientPrefix";
 
     static styles = css`
         :host {
@@ -109,6 +115,47 @@ export class RemotePlayPicker extends LitElement {
         }
         button.copy:hover { background: #ff3344; border-color: #ff3344; }
 
+        .smb-config {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background: #0f1216;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .smb-config label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            color: #a8aeb8;
+        }
+        .smb-config input {
+            background: #14171c;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e8eaed;
+            padding: 0.4rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        .smb-config .preview { color: #a8aeb8; font-size: 0.75rem; word-break: break-all; }
+        .smb-config .preview code { color: #e8eaed; }
+        button.link {
+            appearance: none;
+            background: transparent;
+            border: none;
+            color: #a8aeb8;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 0.25rem 0;
+            text-align: left;
+            text-decoration: underline;
+        }
+        button.link:hover { color: #ff3344; }
+
         .actions { display: flex; justify-content: flex-end; margin-top: 1rem; gap: 0.5rem; }
         button.close {
             appearance: none;
@@ -135,6 +182,25 @@ export class RemotePlayPicker extends LitElement {
                     <span>Open in VLC</span>
                     <span class="hint">Direct hand-off to VLC via the vlc:// link.</span>
                 </button>
+
+                <button class="choice" @click=${this.openInMpv}>
+                    <span>Open in mpv</span>
+                    <span class="hint">Hand off to mpv via the mpv:// scheme (requires an mpv:// handler).</span>
+                </button>
+
+                <button class="choice" @click=${this.openInMpvSmb} ?disabled=${!this.canUseSmb()}>
+                    <span>Open in mpv (SMB)</span>
+                    <span class="hint">
+                        ${this.canUseSmb()
+                            ? html`Translate server path to a mapped drive and hand off to mpv://.`
+                            : html`Configure path mapping below to enable.`}
+                    </span>
+                </button>
+
+                <button class="link" @click=${() => { this.showSmbConfig = !this.showSmbConfig; }}>
+                    ${this.showSmbConfig ? "▾" : "▸"} Configure SMB path mapping
+                </button>
+                ${this.showSmbConfig ? this.renderSmbConfig() : null}
 
                 <button class="choice" @click=${this.openViaIntent}>
                     <span>Open via Android Intent</span>
@@ -200,6 +266,106 @@ export class RemotePlayPicker extends LitElement {
             + `end`;
         console.log("Opening via Android intent:", intentUrl);
         window.location.href = intentUrl;
+    };
+
+    private openInMpv = () => {
+        const httpUrl = this.httpUrl || this.buildFileUrl();
+        const mpvScheme = `mpv://${httpUrl}`;
+        console.log("mpv hand-off:", mpvScheme);
+        window.location.href = mpvScheme;
+    };
+
+    /**
+     * mpv hand-off using a client-side path. Useful when the client has a
+     * mapped SMB drive (e.g. Z:\) pointing at the same storage the server
+     * exposes. We strip the configured server-side prefix from the file's
+     * path and prepend the client-side prefix.
+     */
+    private openInMpvSmb = () => {
+        const local = this.buildSmbPath();
+        if (!local) {
+            console.warn("openInMpvSmb: cannot translate path; check configured prefixes");
+            this.showSmbConfig = true;
+            return;
+        }
+        const mpvScheme = `mpv://${local}`;
+        console.log("mpv SMB hand-off:", mpvScheme);
+        window.location.href = mpvScheme;
+    };
+
+    private canUseSmb(): boolean {
+        return !!this.clientPrefix && !!(this.mediaFile?.path || this.mediaFile?.raw);
+    }
+
+    private buildSmbPath(): string | null {
+        if (!this.clientPrefix) return null;
+        const raw = this.mediaFile?.path || this.mediaFile?.raw || "";
+        if (!raw) return null;
+
+        let rest = raw;
+        if (this.serverPrefix && raw.startsWith(this.serverPrefix)) {
+            rest = raw.slice(this.serverPrefix.length);
+        }
+
+        // Detect whether the client prefix targets Windows (drive letter or
+        // UNC) vs POSIX, and normalize separators accordingly.
+        const isWindowsClient = /^[a-zA-Z]:[\\/]/.test(this.clientPrefix)
+            || this.clientPrefix.startsWith("\\\\");
+        const sep = isWindowsClient ? "\\" : "/";
+        rest = rest.replace(/[\\/]+/g, sep).replace(new RegExp(`^\\${sep}+`), "");
+
+        let prefix = this.clientPrefix;
+        if (!prefix.endsWith("/") && !prefix.endsWith("\\")) prefix += sep;
+
+        return prefix + rest;
+    }
+
+    private renderSmbConfig() {
+        const preview = this.buildSmbPath();
+        return html`
+            <div class="smb-config">
+                <label>
+                    Server path prefix to strip
+                    <input
+                        type="text"
+                        .value=${this.serverPrefix}
+                        placeholder="/mnt/storage"
+                        @input=${(e: Event) => { this.serverPrefix = (e.target as HTMLInputElement).value; }}
+                    />
+                </label>
+                <label>
+                    Client path prefix (mapped drive or UNC)
+                    <input
+                        type="text"
+                        .value=${this.clientPrefix}
+                        placeholder="Z:\\ or \\\\server\\storage\\"
+                        @input=${(e: Event) => { this.clientPrefix = (e.target as HTMLInputElement).value; }}
+                    />
+                </label>
+                <div class="preview">
+                    Preview: ${preview
+                        ? html`<code>${preview}</code>`
+                        : html`<em>set a client prefix to preview</em>`}
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="copy" @click=${this.saveSmbConfig}>Save</button>
+                    <button class="copy" @click=${this.clearSmbConfig}>Clear</button>
+                </div>
+            </div>
+        `;
+    }
+
+    private saveSmbConfig = () => {
+        localStorage.setItem(RemotePlayPicker.LS_SERVER_PREFIX, this.serverPrefix);
+        localStorage.setItem(RemotePlayPicker.LS_CLIENT_PREFIX, this.clientPrefix);
+        this.showSmbConfig = false;
+    };
+
+    private clearSmbConfig = () => {
+        localStorage.removeItem(RemotePlayPicker.LS_SERVER_PREFIX);
+        localStorage.removeItem(RemotePlayPicker.LS_CLIENT_PREFIX);
+        this.serverPrefix = "";
+        this.clientPrefix = "";
     };
 
     private openInVlc = () => {
