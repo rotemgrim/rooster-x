@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bufio"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,14 +12,15 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go-poc/db"
 	m "go-poc/models"
-	"go-poc/torrents/tpb"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	url2 "net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -182,60 +185,112 @@ func GetRatingsFromTMDB(imdbId string) (ImdbRating, error) {
 	return ImdbRating{}, fmt.Errorf("no results found in TMDB for %s", imdbId)
 }
 
-func GetImdbRatingsFromImdb(imdbId string) (ImdbRating, error) {
-	imdbUrl := fmt.Sprintf("https://www.imdb.com/title/%s/", imdbId)
+const (
+	imdbRatingsUrl    = "https://datasets.imdbws.com/title.ratings.tsv.gz"
+	imdbRatingsFile   = "imdb_ratings.tsv.gz"
+	imdbRatingsMaxAge = 24 * time.Hour
+)
 
-	// Use chromedp (headless browser) to bypass AWS WAF JavaScript challenge
-	log.Printf("Fetching IMDB rating for %s using chromedp", imdbId)
-	ctx := context.Background()
-	html, err := tpb.FetchWaitFor(ctx, imdbUrl, `script[type="application/ld+json"]`, 30*time.Second)
-	if err != nil {
-		log.Printf("Error fetching IMDB page with chromedp for %s: %v", imdbId, err)
-		return ImdbRating{}, err
-	}
+var imdbRatingsMu sync.Mutex
 
-	log.Printf("IMDB chromedp response length for %s: %d", imdbId, len(html))
-
-	return parseImdbRating(imdbId, html)
+// ensureImdbRatingsFile downloads IMDb's official ratings dataset (refreshed daily
+// by IMDb) when the local copy is missing or older than a day. The imdb.com pages
+// sit behind an AWS WAF captcha, so scraping them no longer works.
+func ensureImdbRatingsFile() error {
+	return downloadImdbRatings(false)
 }
 
-func parseImdbRating(imdbId string, html string) (ImdbRating, error) {
-	ratingValuePattern := regexp.MustCompile(`"aggregateRating":\{"@type":"AggregateRating".*?"ratingValue":(\d+(\.\d+)?)`)
-	ratingCountPattern := regexp.MustCompile(`"aggregateRating":\{"@type":"AggregateRating".*?"ratingCount":(\d+)`)
-
-	// Find matches
-	ratingValueMatch := ratingValuePattern.FindStringSubmatch(html)
-	ratingCountMatch := ratingCountPattern.FindStringSubmatch(html)
-
-	// Extract values if matches are found
-	var ratingValue, ratingCount string
-	if len(ratingValueMatch) > 1 {
-		ratingValue = ratingValueMatch[1]
-	} else {
-		log.Printf("IMDB rating value not found for %s, response length: %d", imdbId, len(html))
-		return ImdbRating{}, fmt.Errorf("rating value not found in IMDB page for %s", imdbId)
+// RefreshImdbRatings re-downloads the IMDb ratings dataset regardless of its age.
+// Scheduled daily so lookups never have to wait on the download.
+func RefreshImdbRatings() {
+	if err := downloadImdbRatings(true); err != nil {
+		log.Println("Error refreshing IMDb ratings dataset:", err)
 	}
-	if len(ratingCountMatch) > 1 {
-		ratingCount = ratingCountMatch[1]
-	} else {
-		log.Printf("IMDB rating count not found for %s", imdbId)
+}
+
+func downloadImdbRatings(force bool) error {
+	imdbRatingsMu.Lock()
+	defer imdbRatingsMu.Unlock()
+
+	if info, err := os.Stat(imdbRatingsFile); !force && err == nil && time.Since(info.ModTime()) < imdbRatingsMaxAge {
+		return nil
 	}
 
-	score, err := strconv.ParseFloat(ratingValue, 63)
+	log.Println("Downloading IMDb ratings dataset")
+	client := http.Client{Timeout: 2 * time.Minute}
+	resp, err := client.Get(imdbRatingsUrl)
 	if err != nil {
-		score = -1
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("IMDb dataset returned status %d", resp.StatusCode)
 	}
 
-	votes, err := strconv.ParseInt(ratingCount, 10, 64)
+	tmp := imdbRatingsFile + ".tmp"
+	f, err := os.Create(tmp)
 	if err != nil {
-		votes = -1
+		return err
+	}
+	_, err = io.Copy(f, resp.Body)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return os.Rename(tmp, imdbRatingsFile)
+}
+
+// GetImdbRatingsFromImdb looks up a title in the IMDb ratings dataset.
+// A full scan of the ~1.7M rows takes around 100ms.
+func GetImdbRatingsFromImdb(imdbId string) (ImdbRating, error) {
+	if err := ensureImdbRatingsFile(); err != nil {
+		// a stale copy is still better than nothing
+		if _, statErr := os.Stat(imdbRatingsFile); statErr != nil {
+			return ImdbRating{}, err
+		}
+		log.Println("Could not refresh IMDb ratings dataset, using existing copy:", err)
 	}
 
-	return ImdbRating{
-		Score:  score,
-		Votes:  votes,
-		Source: "imdb",
-	}, nil
+	f, err := os.Open(imdbRatingsFile)
+	if err != nil {
+		return ImdbRating{}, err
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return ImdbRating{}, err
+	}
+	defer gz.Close()
+
+	prefix := imdbId + "	"
+	scanner := bufio.NewScanner(gz)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, prefix) {
+			continue
+		}
+		// tconst 	 averageRating 	 numVotes
+		fields := strings.Split(line, "	")
+		if len(fields) < 3 {
+			break
+		}
+		score, err := strconv.ParseFloat(fields[1], 64)
+		if err != nil {
+			return ImdbRating{}, err
+		}
+		votes, err := strconv.ParseInt(fields[2], 10, 64)
+		if err != nil {
+			return ImdbRating{}, err
+		}
+		return ImdbRating{Score: score, Votes: votes, Source: "imdb"}, nil
+	}
+	if err := scanner.Err(); err != nil {
+		return ImdbRating{}, err
+	}
+	return ImdbRating{}, fmt.Errorf("%s not found in IMDb ratings dataset", imdbId)
 }
 
 func ImdbRatingPoll() {

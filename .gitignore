@@ -7,3 +7,4 @@ db.sqlite
 /renderer/node_modules/
 /tmp/
 /.idea/
+/imdb_ratings.tsv.gz*

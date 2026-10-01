@@ -464,12 +464,18 @@ export class VideoDetails extends LitElement {
         }
     }
 
+    // Web links open in a browser tab directly from the client instead of
+    // going through the server's open-external handler.
+    private static openInNewTab(url: string) {
+        window.open(url, "_blank", "noopener,noreferrer");
+    }
+
     public openImdbLink() {
-        IpcService.openExternal(`https://www.imdb.com/title/${this.video.imdbId}/`);
+        VideoDetails.openInNewTab(`https://www.imdb.com/title/${this.video.imdbId}/`);
     }
 
     public trailerSearch() {
-        IpcService.openExternal(
+        VideoDetails.openInNewTab(
             `https://www.youtube.com/results?search_query=${this.video.title}+trailer+${this.video.year}`,
         );
     }
@@ -478,13 +484,13 @@ export class VideoDetails extends LitElement {
         if (this.video.type === "series") {
             const eps = _.filter(this._episodes, o => o.mediaFiles?.length > 0);
             const episodeMax = _.maxBy(eps, ["season", "episode"]);
-            IpcService.openExternal(
+            VideoDetails.openInNewTab(
                 `https://www.opensubtitles.org/en/search2/sublanguageid-all/moviename-` +
                     `${this.video.title}` +
                     `+${VideoDetails.getSeriesStringFromEpisode(episodeMax)}`,
             );
         } else {
-            IpcService.openExternal(
+            VideoDetails.openInNewTab(
                 `https://www.opensubtitles.org/en/search2/sublanguageid-all/moviename-` +
                     `${this.video.title}+${this.video.year}`,
             );
@@ -501,7 +507,7 @@ export class VideoDetails extends LitElement {
 
     public torrentSearch() {
         let sLink = "https://1337x.to/sort-category-search/";
-        const title = this.video.title.replace(" ", "+");
+        const title = this.video.title.replace(/ /g, "+");
         if (this.video.type === "series") {
             // get latest episode
             const eps = _.filter(this._episodes, o => o.mediaFiles?.length > 0);
@@ -512,7 +518,7 @@ export class VideoDetails extends LitElement {
             // movie
             sLink += `${title}/Movies/seeders/desc/1/`;
         }
-        IpcService.openExternal(sLink);
+        VideoDetails.openInNewTab(sLink);
     }
 
     private searchKeyPress(e) {

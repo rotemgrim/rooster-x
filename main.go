@@ -217,6 +217,9 @@ func onReady() {
 		app.Scheduler.Schedule(config.ImdbRatingPoll, server.ImdbRatingPoll)
 	}
 
+	// refresh the IMDb ratings dataset daily; IMDb publishes it around 01:00 UTC
+	app.Scheduler.Schedule("0 4 * * *", server.RefreshImdbRatings)
+
 	// schedule periodic metadata enrichment from TMDB.
 	// By default this is a nightly window (2-4 AM); see config.yaml.
 	if config.MetadataEnrichPoll != "" {

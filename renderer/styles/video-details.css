@@ -206,6 +206,8 @@ video-details {
     font-size: 6em;
     font-family: var(--title-font-family);
     padding-bottom: 0.1em;
+    user-select: text;
+    cursor: text;
   }
   & p {
     font-size: 2em;
