@@ -63,14 +63,37 @@
 }
 
 .dl-dialog.dl-settings {
+  width: min(540px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  & h4 {
+    font-weight: normal;
+    color: white;
+    margin: 1em 0 0.6em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid #333;
+  }
   & label {
     display: grid;
-    grid-template-columns: 11em 1fr 3.5em;
+    grid-template-columns: 14em 1fr 3.5em;
+    align-items: center;
     gap: 0.6em;
-    margin-bottom: 0.7em;
+    margin-bottom: 0.6em;
     cursor: default;
   }
-  & input {
+  & select {
+    grid-column: span 2;
+    padding: 0.3em 0.4em;
+    background: #111;
+    color: white;
+    border: 1px solid #444;
+    font: inherit;
+  }
+  & label.dl-check {
+    display: flex;
+    cursor: pointer;
+  }
+  & input[type="number"] {
     min-width: 0;
     padding: 0.3em 0.5em;
     background: #111;
@@ -163,6 +186,7 @@
   }
   & .state-downloading, & .state-metadata { color: #6bec5d; }
   & .state-stalled { color: #b5d6a7; }
+  & .state-queued { color: #d6c27a; }
   & .state-seeding { color: #7fb2ff; }
   & .state-paused, & .state-completed { color: #999; }
   & .selected { color: white !important; }

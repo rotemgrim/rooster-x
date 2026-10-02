@@ -423,9 +423,16 @@ export class IpcService {
 }
 
 export interface IEngineSettings {
-    seedDays: number; // stop seeding this many days after completing, 0 = forever
+    // a finished torrent stops seeding at either limit, 0 = no limit
+    seedDays: number;
+    ratioLimit: number;
+    seedEndAction: "pause" | "remove"; // remove keeps the files
     maxDownloadKiB: number; // KiB/s, 0 = unlimited
     maxUploadKiB: number;
+    maxActiveDownloads: number; // 0 = unlimited
+    maxConnsPerTorrent: number; // 0 = default (50)
+    sequentialByDefault: boolean;
+    addPaused: boolean;
 }
 
 export interface IEngineStatus {
@@ -439,7 +446,7 @@ export interface IEngineStatus {
     knownPeers: number;
     sequential: boolean;
     paused: boolean;
-    state: "metadata" | "downloading" | "stalled" | "seeding" | "paused" | "completed";
+    state: "metadata" | "downloading" | "stalled" | "queued" | "seeding" | "paused" | "completed";
     downSpeed: number; // bytes/s
     upSpeed: number;
     downloaded: number; // payload bytes over all runs

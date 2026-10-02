@@ -21,12 +21,13 @@ const STATE_LABEL: Record<Torrent["state"], string> = {
     metadata: "Downloading metadata",
     downloading: "Downloading",
     stalled: "Stalled",
+    queued: "Queued",
     seeding: "Seeding",
     paused: "Paused",
     completed: "Completed",
 };
 // sort order of the Status column
-const STATE_ORDER: Torrent["state"][] = ["downloading", "metadata", "stalled", "seeding", "paused", "completed"];
+const STATE_ORDER: Torrent["state"][] = ["downloading", "metadata", "stalled", "queued", "seeding", "paused", "completed"];
 
 const UNITS = ["B", "KiB", "MiB", "GiB", "TiB"];
 
@@ -83,7 +84,7 @@ const COLUMNS = {
     name: {
         label: "Name", width: 360,
         sortValue: t => t.name.toLowerCase(),
-        render: t => html`<span class="dl-state-icon material-icons">${t.state === "seeding" || t.state === "completed" ? "done" : t.state === "paused" ? "pause" : "south"}</span>${t.name || t.infoHash}`,
+        render: t => html`<span class="dl-state-icon material-icons">${t.state === "seeding" || t.state === "completed" ? "done" : t.state === "paused" ? "pause" : t.state === "queued" ? "schedule" : "south"}</span>${t.name || t.infoHash}`,
     },
     size: {label: "Size", width: 90, numeric: true, sortValue: t => t.length, render: t => (t.hasInfo ? formatSize(t.length) : "")},
     progress: {
@@ -509,14 +510,31 @@ export class DownloadsPage extends LitElement {
     private saveSettings(e: Event) {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
-        const num = (name: string) => Math.max(0, Number((form.elements.namedItem(name) as HTMLInputElement).value) || 0);
+        const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
+        const num = (name: string) => Math.max(0, Number(field(name).value) || 0);
+        const int = (name: string) => Math.round(num(name));
         IpcService.engineSaveSettings({
             seedDays: num("seedDays"),
-            maxDownloadKiB: Math.round(num("maxDownloadKiB")),
-            maxUploadKiB: Math.round(num("maxUploadKiB")),
+            ratioLimit: num("ratioLimit"),
+            seedEndAction: field("seedEndAction").value === "remove" ? "remove" : "pause",
+            maxDownloadKiB: int("maxDownloadKiB"),
+            maxUploadKiB: int("maxUploadKiB"),
+            maxActiveDownloads: int("maxActiveDownloads"),
+            maxConnsPerTorrent: int("maxConnsPerTorrent"),
+            sequentialByDefault: field("sequentialByDefault").checked,
+            addPaused: field("addPaused").checked,
         })
             .then(() => (this.settings = null))
             .catch(err => (this.settingsError = String(err)));
+    }
+
+    /** A number input row; 0 shows as empty with the placeholder (default "no limit"). */
+    private numberField(name: string, label: string, value: number, unit: string, step = "1", placeholder = "no limit") {
+        return html`<label>
+            <span>${label}</span>
+            <input name=${name} type="number" min="0" step=${step} placeholder=${placeholder} .value=${value ? String(value) : ""} />
+            <span>${unit}</span>
+        </label>`;
     }
 
     private renderSettingsDialog() {
@@ -527,22 +545,32 @@ export class DownloadsPage extends LitElement {
         return html`<div class="dl-dialog-backdrop" @click=${(e: Event) => e.target === e.currentTarget && (this.settings = null)}>
             <form class="dl-dialog dl-settings" role="dialog" aria-modal="true" @submit=${this.saveSettings}>
                 <h3>BitTorrent settings</h3>
+                <h4>Seeding</h4>
+                ${this.numberField("seedDays", "Stop seeding after", s.seedDays, "days", "any")}
+                ${this.numberField("ratioLimit", "or at share ratio", s.ratioLimit, "", "any")}
                 <label>
-                    <span>Stop seeding after</span>
-                    <input name="seedDays" type="number" min="0" step="any" .value=${String(s.seedDays)} />
-                    <span>days</span>
+                    <span>Then</span>
+                    <select name="seedEndAction" .value=${s.seedEndAction}>
+                        <option value="pause">Pause the torrent</option>
+                        <option value="remove">Remove it from the list (keep files)</option>
+                    </select>
                 </label>
-                <label>
-                    <span>Max download speed</span>
-                    <input name="maxDownloadKiB" type="number" min="0" step="1" .value=${String(s.maxDownloadKiB)} />
-                    <span>KiB/s</span>
+                <h4>Speed</h4>
+                ${this.numberField("maxDownloadKiB", "Max download speed", s.maxDownloadKiB, "KiB/s")}
+                ${this.numberField("maxUploadKiB", "Max upload speed", s.maxUploadKiB, "KiB/s")}
+                <h4>Downloads</h4>
+                ${this.numberField("maxActiveDownloads", "Max active downloads", s.maxActiveDownloads, "")}
+                ${this.numberField("maxConnsPerTorrent", "Max connections per torrent", s.maxConnsPerTorrent, "", "1", "50")}
+                <label class="dl-check">
+                    <input name="sequentialByDefault" type="checkbox" .checked=${s.sequentialByDefault} />
+                    New torrents download first &amp; last parts first, then in order
                 </label>
-                <label>
-                    <span>Max upload speed</span>
-                    <input name="maxUploadKiB" type="number" min="0" step="1" .value=${String(s.maxUploadKiB)} />
-                    <span>KiB/s</span>
+                <label class="dl-check">
+                    <input name="addPaused" type="checkbox" .checked=${s.addPaused} />
+                    Add new torrents paused
                 </label>
-                <p class="dl-hint">0 means no limit. Seeding time counts from when a torrent finished or was last resumed; when it runs out the torrent is paused.</p>
+                <p class="dl-hint">Empty or 0 means no limit. Seeding limits count from when a torrent finished or was last resumed.
+                    Torrents beyond the active download limit wait as Queued, oldest first.</p>
                 ${this.settingsError ? html`<p class="dl-error">${this.settingsError}</p>` : nothing}
                 <div class="dl-dialog-buttons">
                     <button type="button" @click=${() => (this.settings = null)}>Cancel</button>

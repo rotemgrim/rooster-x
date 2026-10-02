@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gorilla/websocket"
@@ -70,11 +71,12 @@ func (s *Server) EngineGetSettings(c *websocket.Conn, req PayloadRequest) {
 
 // EngineSaveSettings stores and applies the torrent client settings.
 func (s *Server) EngineSaveSettings(c *websocket.Conn, req PayloadRequest) {
-	data, _ := req.Data.(map[string]interface{})
-	seedDays, _ := data["seedDays"].(float64)
-	maxDown, _ := data["maxDownloadKiB"].(float64)
-	maxUp, _ := data["maxUploadKiB"].(float64)
-	st := engine.Settings{SeedDays: seedDays, MaxDownloadKiB: int(maxDown), MaxUploadKiB: int(maxUp)}
+	var st engine.Settings
+	b, _ := json.Marshal(req.Data)
+	if err := json.Unmarshal(b, &st); err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("invalid settings: %s", err))
+		return
+	}
 	if err := engine.SaveSettings(st); err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not save settings: %s", err))
 		return

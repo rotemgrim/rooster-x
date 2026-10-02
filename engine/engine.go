@@ -42,8 +42,9 @@ type sessionEntry struct {
 	// they were first seen.
 	AddedAt     int64 `json:"addedAt,omitempty"`
 	CompletedAt int64 `json:"completedAt,omitempty"`
-	// ResumedAt restarts the seeding time limit when a torrent is resumed.
-	ResumedAt int64 `json:"resumedAt,omitempty"`
+	// Resuming a torrent restarts its seeding time and ratio limits.
+	ResumedAt      int64 `json:"resumedAt,omitempty"`
+	ResumeUploaded int64 `json:"resumeUploaded,omitempty"`
 	// Payload bytes over all runs, for the share ratio.
 	Downloaded int64 `json:"downloaded,omitempty"`
 	Uploaded   int64 `json:"uploaded,omitempty"`
@@ -52,6 +53,7 @@ type sessionEntry struct {
 	baseDown, baseUp   int64 // totals from earlier runs
 	lastDown, lastUp   int64 // this run's counters at the previous sample
 	downSpeed, upSpeed float64
+	queued             bool // held back by the max active downloads setting
 }
 
 var (
@@ -84,13 +86,8 @@ func Start(dir string) error {
 	log.Println("Torrent engine downloading to", dir)
 
 	for _, e := range loadSession() {
-		hash, err := add(e)
-		if err != nil {
+		if _, err := add(e); err != nil {
 			log.Println("Could not resume torrent:", err)
-			continue
-		}
-		if e.Paused {
-			_ = SetPaused(hash, true)
 		}
 	}
 	go sampleLoop()
@@ -111,7 +108,8 @@ func Stop() {
 // Add starts downloading a magnet and returns its info hash. All files are
 // downloaded once the metadata arrives from peers, sequentially by default.
 func Add(magnet string) (string, error) {
-	return add(sessionEntry{Magnet: magnet, Sequential: true})
+	s := GetSettings()
+	return add(sessionEntry{Magnet: magnet, Sequential: s.SequentialByDefault, Paused: s.AddPaused})
 }
 
 func add(e sessionEntry) (string, error) {
@@ -136,7 +134,14 @@ func add(e sessionEntry) (string, error) {
 	e.baseDown, e.baseUp = e.Downloaded, e.Uploaded
 	sessions[hash] = &e
 	saveSessionLocked()
+	conns := maxConns(settings)
 	mu.Unlock()
+
+	t.SetMaxEstablishedConns(conns)
+	if e.Paused {
+		t.DisallowDataDownload()
+		t.DisallowDataUpload()
+	}
 
 	go func() {
 		select {
@@ -182,12 +187,19 @@ func SetPaused(hash string, paused bool) error {
 		t.AllowDataDownload()
 		t.AllowDataUpload()
 	}
+	done := t.Info() != nil && t.BytesMissing() == 0
 	mu.Lock()
 	defer mu.Unlock()
 	if e, ok := sessions[t.InfoHash().HexString()]; ok {
 		e.Paused = paused
+		// downloading was just allowed (or is off anyway); the queue
+		// re-checks it on the next sample
+		e.queued = false
 		if !paused {
 			e.ResumedAt = time.Now().Unix()
+			if done {
+				e.ResumeUploaded = e.Uploaded
+			}
 		}
 		saveSessionLocked()
 	}
@@ -356,8 +368,8 @@ type Status struct {
 	KnownPeers int    `json:"knownPeers"`
 	Sequential bool   `json:"sequential"`
 	Paused     bool   `json:"paused"`
-	// State is metadata, downloading, stalled, seeding, paused or completed
-	// (paused after finishing).
+	// State is metadata, downloading, stalled, queued, seeding, paused or
+	// completed (paused after finishing).
 	State       string `json:"state"`
 	DownSpeed   int64  `json:"downSpeed"` // bytes/s
 	UpSpeed     int64  `json:"upSpeed"`
@@ -408,6 +420,7 @@ func statusOf(t *torrent.Torrent) Status {
 		PiecesComplete: stats.PiecesComplete,
 		SavePath:       dataDir,
 	}
+	var queued bool
 	mu.Lock()
 	if e, ok := sessions[s.InfoHash]; ok {
 		s.Sequential = e.Sequential
@@ -418,6 +431,7 @@ func statusOf(t *torrent.Torrent) Status {
 		s.CompletedAt = e.CompletedAt
 		s.Downloaded = e.baseDown + stats.BytesReadUsefulData.Int64()
 		s.Uploaded = e.baseUp + stats.BytesWrittenData.Int64()
+		queued = e.queued
 	}
 	mu.Unlock()
 	if t.Info() == nil {
@@ -440,6 +454,8 @@ func statusOf(t *torrent.Torrent) Status {
 		s.State = "paused"
 	case done:
 		s.State = "seeding"
+	case queued:
+		s.State = "queued"
 	case s.DownSpeed > 0:
 		s.State = "downloading"
 	default:
@@ -505,12 +521,19 @@ func sampleLoop() {
 			return
 		case <-tick.C:
 		}
-		var seeded []string // finished seeding, to pause
+		var seeded []string // reached a seeding limit
+		var unfinished []*torrent.Torrent
 		for _, t := range client.Torrents() {
 			stats := t.Stats()
 			down := stats.BytesReadUsefulData.Int64()
 			up := stats.BytesWrittenData.Int64()
 			done := t.Info() != nil && t.BytesMissing() == 0
+			var completed int64
+			if done {
+				completed = t.BytesCompleted()
+			} else {
+				unfinished = append(unfinished, t)
+			}
 			mu.Lock()
 			if e, ok := sessions[t.InfoHash().HexString()]; ok {
 				e.downSpeed = smoothSpeed(e.downSpeed, down-e.lastDown)
@@ -521,16 +544,22 @@ func sampleLoop() {
 					e.CompletedAt = finishedAt(t)
 					saveSessionLocked()
 				}
-				if done && !e.Paused && seedingExpired(e, time.Now()) {
+				if done && !e.Paused && seedingDone(e, completed, time.Now()) {
 					seeded = append(seeded, t.InfoHash().HexString())
 				}
 			}
 			mu.Unlock()
 		}
+		remove := GetSettings().SeedEndAction == "remove"
 		for _, hash := range seeded {
-			log.Println("Seeding time limit reached, pausing", hash)
-			_ = SetPaused(hash, true)
+			log.Println("Seeding limit reached for", hash, "remove:", remove)
+			if remove {
+				_ = Remove(hash, false)
+			} else {
+				_ = SetPaused(hash, true)
+			}
 		}
+		applyQueue(unfinished)
 		if n%saveEvery == 0 {
 			mu.Lock()
 			saveSessionLocked()
