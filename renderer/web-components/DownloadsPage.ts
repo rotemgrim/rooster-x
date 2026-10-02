@@ -13,6 +13,7 @@ const POLL_MS = 1500;
 const STATE_LABEL: Record<EngineState, string> = {
     metadata: "Downloading metadata",
     downloading: "Downloading",
+    checking: "Checking",
     stalled: "Stalled",
     queued: "Queued",
     seeding: "Seeding",
@@ -22,6 +23,7 @@ const STATE_LABEL: Record<EngineState, string> = {
 const STATE_ICON: Record<EngineState, string> = {
     metadata: "south",
     downloading: "south",
+    checking: "sync",
     stalled: "south",
     queued: "schedule",
     seeding: "done",
@@ -29,7 +31,7 @@ const STATE_ICON: Record<EngineState, string> = {
     completed: "done",
 };
 // sort order of the Status column
-const STATE_ORDER: EngineState[] = ["downloading", "metadata", "stalled", "queued", "seeding", "paused", "completed"];
+const STATE_ORDER: EngineState[] = ["downloading", "checking", "metadata", "stalled", "queued", "seeding", "paused", "completed"];
 
 const progress = (t: Torrent) => (t.hasInfo && t.length ? t.completed / t.length : 0);
 const leechers = (t: Torrent) => t.peers - t.seeders;

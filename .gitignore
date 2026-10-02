@@ -8,3 +8,4 @@ db.sqlite
 /tmp/
 /.idea/
 /imdb_ratings.tsv.gz*
+/third_party/

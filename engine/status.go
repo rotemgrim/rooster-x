@@ -1,15 +1,15 @@
 package engine
 
 import (
-	"slices"
 	"sort"
+	"strings"
 
-	"github.com/anacrolix/torrent"
+	"go-poc/engine/lt"
 )
 
 type FileStatus struct {
 	Index     int    `json:"index"`
-	Path      string `json:"path"`
+	Path      string `json:"path"` // without the .part suffix
 	Length    int64  `json:"length"`
 	Completed int64  `json:"completed"`
 	// Chunks maps the file onto chunkBuckets equal slices, one digit each:
@@ -23,6 +23,7 @@ const chunkBuckets = 100
 type State string
 
 const (
+	StateChecking    State = "checking" // verifying data on disk
 	StateMetadata    State = "metadata"
 	StateDownloading State = "downloading"
 	StateStalled     State = "stalled" // downloading, but nothing is arriving
@@ -67,16 +68,21 @@ type Status struct {
 
 // List returns the status of every torrent in the engine.
 func List() []Status {
+	if ses == nil {
+		return []Status{}
+	}
+	statuses, err := ses.Statuses()
+	if err != nil {
+		return []Status{}
+	}
+	out := make([]Status, 0, len(statuses))
 	mu.Lock()
-	snaps := make([]sessionEntry, 0, len(sessions))
-	for _, e := range sessions {
-		snaps = append(snaps, *e)
+	for _, st := range statuses {
+		if e, ok := sessions[st.Hash]; ok {
+			out = append(out, statusOf(st, *e))
+		}
 	}
 	mu.Unlock()
-	out := make([]Status, 0, len(snaps))
-	for i := range snaps {
-		out = append(out, statusOf(&snaps[i]))
-	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
 }
@@ -84,93 +90,96 @@ func List() []Status {
 // Get returns the status of one torrent, including the chunk map of its
 // largest file.
 func Get(hash string) (Status, error) {
+	if ses == nil {
+		return Status{}, errNotRunning
+	}
+	st, err := ses.Status(hash, true)
+	if err != nil {
+		return Status{}, err
+	}
 	mu.Lock()
-	e, err := entryLocked(hash)
-	var snap sessionEntry
+	e, err := entryLocked(st.Hash)
+	var entry sessionEntry
 	if err == nil {
-		snap = *e
+		entry = *e
 	}
 	mu.Unlock()
 	if err != nil {
 		return Status{}, err
 	}
-	s := statusOf(&snap)
+	s := statusOf(st, entry)
 	if i := largestFile(s.Files); i >= 0 {
-		s.Files[i].Chunks = chunkMap(snap.live.t.Files()[i])
+		f := st.Files[i]
+		s.Files[i].Chunks = chunkMap(st.Pieces, st.PieceLength, f.Offset, f.Size)
 	}
 	return s, nil
 }
 
-// statusOf builds the status from a snapshot of the entry, so it needs no
-// lock.
-func statusOf(e *sessionEntry) Status {
-	t := e.live.t
-	stats := t.Stats()
+func statusOf(st lt.Status, e sessionEntry) Status {
 	s := Status{
-		InfoHash:       e.live.hash,
-		Name:           t.Name(),
-		Peers:          stats.ActivePeers,
-		Seeders:        stats.ConnectedSeeders,
-		KnownPeers:     stats.TotalPeers,
-		PiecesComplete: stats.PiecesComplete,
+		InfoHash:       st.Hash,
+		Name:           st.Name,
+		HasInfo:        st.HasMetadata,
+		Length:         st.TotalWanted,
+		Completed:      st.TotalWantedDone,
+		Done:           st.HasMetadata && st.Finished,
+		Peers:          st.NumPeers,
+		Seeders:        st.NumSeeds,
+		KnownPeers:     st.ListPeers,
 		Sequential:     e.Sequential,
-		Paused:         e.Paused,
-		DownSpeed:      int64(e.live.downSpeed),
-		UpSpeed:        int64(e.live.upSpeed),
+		Paused:         userPaused(st.Paused, st.AutoManaged),
+		State:          stateOf(st),
+		DownSpeed:      st.DownRate,
+		UpSpeed:        st.UpRate,
 		ETA:            -1,
-		Downloaded:     e.Downloaded,
-		Uploaded:       e.Uploaded,
-		AddedAt:        e.AddedAt,
-		CompletedAt:    e.CompletedAt,
-		SavePath:       dataDir,
+		Downloaded:     st.AllTimeDownload,
+		Uploaded:       st.AllTimeUpload,
+		Ratio:          shareRatio(st.AllTimeUpload, st.AllTimeDownload, st.TotalDone),
+		AddedAt:        st.AddedTime,
+		CompletedAt:    st.CompletedTime,
+		Availability:   max(st.DistributedCopies, 0),
+		NumPieces:      st.PieceCount,
+		PieceLength:    st.PieceLength,
+		PiecesComplete: st.NumPieces,
+		SavePath:       st.SavePath,
 	}
-	if t.Info() != nil {
-		s.HasInfo = true
-		s.Length = t.Length()
-		s.Completed = t.BytesCompleted()
-		s.Done = isComplete(t)
-		s.Ratio = shareRatio(e.Uploaded, e.Downloaded, s.Completed)
-		if !s.Done && s.DownSpeed > 0 {
-			s.ETA = (s.Length - s.Completed) / s.DownSpeed
-		}
-		s.NumPieces = t.NumPieces()
-		s.PieceLength = t.Info().PieceLength
-		s.Availability = availability(t)
-		for i, f := range t.Files() {
-			s.Files = append(s.Files, FileStatus{
-				Index:     i,
-				Path:      f.DisplayPath(),
-				Length:    f.Length(),
-				Completed: f.BytesCompleted(),
-			})
-		}
+	if !s.Done && s.DownSpeed > 0 {
+		s.ETA = (s.Length - s.Completed) / s.DownSpeed
 	}
-	s.State = stateOf(s, e.live.queued)
+	for _, f := range st.Files {
+		s.Files = append(s.Files, FileStatus{
+			Index:     f.Index,
+			Path:      strings.TrimSuffix(f.Path, partSuffix),
+			Length:    f.Size,
+			Completed: f.Done,
+		})
+	}
 	return s
 }
 
-// stateOf summarises a status; queued is the one input Status doesn't carry.
-func stateOf(s Status, queued bool) State {
+func stateOf(st lt.Status) State {
 	switch {
-	case s.Paused && s.Done:
+	case userPaused(st.Paused, st.AutoManaged) && st.Finished:
 		return StateCompleted
-	case s.Paused:
+	case userPaused(st.Paused, st.AutoManaged):
 		return StatePaused
-	case !s.HasInfo:
+	case st.State == lt.CheckingFiles || st.State == lt.CheckingResumeData:
+		return StateChecking
+	case !st.HasMetadata:
 		return StateMetadata
-	case s.Done:
+	case st.Finished:
 		return StateSeeding
-	case queued:
+	case st.Paused: // auto-managed: waiting for a download slot
 		return StateQueued
-	case s.DownSpeed > 0:
+	case st.DownRate > 0:
 		return StateDownloading
 	default:
 		return StateStalled
 	}
 }
 
-// largestFile returns the index of the biggest file, or -1 when there are
-// none.
+// largestFile returns the index in files of the biggest file, or -1 when
+// there are none.
 func largestFile(files []FileStatus) int {
 	largest := -1
 	for i, f := range files {
@@ -181,53 +190,28 @@ func largestFile(files []FileStatus) int {
 	return largest
 }
 
-// availability returns how many full copies of the torrent the connected
-// peers hold together: the count of the rarest piece plus the fraction of
-// pieces that are more common than that.
-func availability(t *torrent.Torrent) float64 {
-	n := t.NumPieces()
-	if n == 0 {
-		return 0
-	}
-	counts := make([]int, n)
-	for _, pc := range t.PeerConns() {
-		for _, i := range pc.PeerPieces().ToArray() {
-			if int(i) < n {
-				counts[i]++
-			}
-		}
-	}
-	rarest := slices.Min(counts)
-	above := 0
-	for _, c := range counts {
-		if c > rarest {
-			above++
-		}
-	}
-	return float64(rarest) + float64(above)/float64(n)
-}
-
-// chunkMap spreads the file's pieces over chunkBuckets slices by byte offset
-// and encodes how much of each slice is verified as a digit 0-9.
-func chunkMap(f *torrent.File) string {
-	length := f.Length()
-	if length == 0 {
+// chunkMap spreads a file over chunkBuckets slices by byte offset and
+// encodes how much of each slice is verified as a digit 0-9. pieces has a
+// '1' for every verified piece of the torrent; the file starts at offset.
+func chunkMap(pieces string, pieceLen, offset, length int64) string {
+	if length == 0 || pieceLen <= 0 {
 		return ""
 	}
 	// bucket i covers bytes [bound(i), bound(i+1)); rounding up guarantees
 	// bound(bucket+1) > pos, so the loop below always advances
 	bound := func(i int64) int64 { return (i*length + chunkBuckets - 1) / chunkBuckets }
 	var done [chunkBuckets]int64
-	var pos int64
-	for _, p := range f.State() {
-		for b := p.Bytes; b > 0; {
+	for pos := int64(0); pos < length; {
+		piece := (offset + pos) / pieceLen
+		end := min((piece+1)*pieceLen-offset, length)
+		have := piece < int64(len(pieces)) && pieces[piece] == '1'
+		for pos < end {
 			bucket := pos * chunkBuckets / length
-			take := min(b, bound(bucket+1)-pos)
-			if p.Complete {
+			take := min(end, bound(bucket+1)) - pos
+			if have {
 				done[bucket] += take
 			}
 			pos += take
-			b -= take
 		}
 	}
 	out := make([]byte, chunkBuckets)

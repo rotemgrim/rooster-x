@@ -1,96 +1,108 @@
 package engine
 
-// Helpers shared by the engine tests. They swap the package's globals
-// (client, dataDir, sessions, settings), so tests using them can't run in
-// parallel.
+// Helpers shared by the engine tests. They swap the package's globals (ses,
+// dataDir, sessions, settings), so tests using them can't run in parallel.
 
 import (
-	"crypto/rand"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/metainfo"
+	"go-poc/engine/internal/testtorrent"
+	"go-poc/engine/lt"
 )
 
-// startOfflineClient points the engine at a client with no networking, so
-// magnets stay without metadata (unfinished) and nothing is downloaded. It
-// opens no sockets at all, so Windows doesn't ask to allow engine.test.exe
-// through the firewall.
-func startOfflineClient(t *testing.T) {
+// startOffline points the engine at a libtorrent session that opens no
+// sockets (so Windows doesn't ask about the firewall) and finds no peers.
+func startOffline(t *testing.T) {
 	t.Helper()
-	cfg := torrent.NewDefaultClientConfig()
-	cfg.DataDir = t.TempDir()
-	cfg.NoDHT = true
-	cfg.DisableTrackers = true
-	cfg.NoDefaultPortForwarding = true
-	cfg.DisableTCP = true
-	cfg.DisableUTP = true
-	cfg.DisableWebseeds = true
-	c, err := torrent.NewClient(cfg)
+	s, err := lt.New(lt.Settings{ActiveDownloads: -1, ConnectionsLimit: totalConnections, Offline: true}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if addrs := c.ListenAddrs(); len(addrs) > 0 {
-		c.Close()
-		t.Fatalf("offline test client is listening on %v", addrs)
+	ses, dataDir = s, t.TempDir()
+	if err := os.MkdirAll(resumePath(""), 0755); err != nil {
+		t.Fatal(err)
 	}
-	client, dataDir = c, cfg.DataDir
 	t.Cleanup(func() {
-		c.Close()
-		client = nil
+		s.Close()
+		ses = nil
 		sessions = map[string]*sessionEntry{}
 		settings = defaultSettings
+		dirty = false
 	})
 }
 
-// addOfflineTorrent adds a magnet that never gets metadata, so it stays
-// unfinished. n picks a distinct info hash.
-func addOfflineTorrent(t *testing.T, n int, addedAt int64) string {
+// setSettings changes the settings without writing the settings file.
+func setSettings(t *testing.T, s Settings) {
 	t.Helper()
-	hash, err := add(sessionEntry{Magnet: fmt.Sprintf("magnet:?xt=urn:btih:%040x", n), AddedAt: addedAt})
+	mu.Lock()
+	settings = s
+	mu.Unlock()
+	if err := ses.ApplySettings(ltSettings(s)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// addTorrentFile adds a test torrent through the engine, like Add does for
+// a magnet but with the metadata already known.
+func addTorrentFile(t *testing.T, tt testtorrent.Torrent, o addOptions) string {
+	t.Helper()
+	o.torrentFile = tt.TorrentPath
+	hash, err := add(sessionEntry{Magnet: tt.Magnet}, o)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return hash
 }
 
-// addFinishedTorrent writes a file into the download folder, adds it as a
-// magnet like the app does, supplies its metadata locally and waits until
-// anacrolix has verified every piece.
-func addFinishedTorrent(t *testing.T) string {
+// addFinished writes a file into the download folder and adds it as a
+// torrent, then waits until libtorrent has verified every piece.
+func addFinished(t *testing.T, name string) (string, testtorrent.Torrent) {
 	t.Helper()
-	path := filepath.Join(dataDir, "movie.mkv")
-	data := make([]byte, 64<<10)
-	_, _ = rand.Read(data)
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		t.Fatal(err)
-	}
-	info := metainfo.Info{PieceLength: 16 << 10}
-	if err := info.BuildFromFilePath(path); err != nil {
-		t.Fatal(err)
-	}
-	mi := metainfo.MetaInfo{InfoBytes: bencode.MustMarshal(info)}
+	tt := testtorrent.Write(t, dataDir, name, 3*testtorrent.PieceLength)
+	hash := addTorrentFile(t, tt, addOptions{})
+	waitFor(t, "the torrent to be finished", func() bool {
+		st, err := ses.Status(hash, false)
+		return err == nil && st.Finished
+	})
+	return hash, tt
+}
 
-	hash, err := add(sessionEntry{Magnet: mi.Magnet(nil, &info).String()})
-	if err != nil {
-		t.Fatal(err)
-	}
-	tor, err := client.AddTorrent(&mi) // the same torrent, now with its metadata
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := tor.VerifyDataContext(t.Context()); err != nil {
-		t.Fatal(err)
-	}
-	for deadline := time.Now().Add(10 * time.Second); !isComplete(tor); time.Sleep(20 * time.Millisecond) {
+// addMissing adds a torrent whose data isn't on disk, so it stays
+// unfinished (there are no peers offline).
+func addMissing(t *testing.T, name string, o addOptions) string {
+	t.Helper()
+	tt := testtorrent.Write(t, t.TempDir(), name, testtorrent.PieceLength)
+	return addTorrentFile(t, tt, o)
+}
+
+// waitFor polls cond until it holds or 10s pass.
+func waitFor(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	for deadline := time.Now().Add(10 * time.Second); !cond(); time.Sleep(20 * time.Millisecond) {
 		if time.Now().After(deadline) {
-			t.Fatal("torrent never completed")
+			t.Fatalf("timed out waiting for %s", what)
 		}
 	}
-	return hash
+}
+
+// drainEvents handles libtorrent's events the way the loop does until cond
+// holds.
+func drainEvents(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	waitFor(t, what, func() bool {
+		handleEvents()
+		return cond()
+	})
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func inData(name string) string {
+	return filepath.Join(dataDir, name)
 }

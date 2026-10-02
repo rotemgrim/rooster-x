@@ -27,21 +27,32 @@ sqlboiler sqlite3 --add-global-variants --add-panic-variants
 
 ## Building
 
-better to run the build-script.sh to include the client-side
+The torrent engine is libtorrent (C++), linked in with cgo, so building needs
+MinGW-w64 gcc plus cmake and ninja (WinLibs has all three):
+
+```bash
+winget install BrechtSanders.WinLibs.POSIX.UCRT
+
+# once per machine: downloads, verifies and builds libtorrent into third_party/
+bash scripts/build-libtorrent.sh
+```
+
+better to run the build-script.sh to include the client-side (it also builds
+libtorrent when third_party/ is missing)
 
 ```bash
 
 ./build-script.sh
 
-go build -ldflags="-H windowsgui" -o roosterx.exe
+CGO_ENABLED=1 go build -ldflags="-H windowsgui -extldflags=-static" -o roosterx.exe
 ```
 
 ## change executable icon
 
-```bash
-go install github.com/tc-hib/go-winres@latest
-go-winres simply --icon youricon.png
+Replace icon.ico and rebuild the resource files (icon only: a manifest of our
+own can't be linked next to gcc's, see scripts/rsrc.rc):
 
-# and build regularly
-go build -ldflags="-H windowsgui" -o roosterx.exe
+```bash
+windres -F pe-x86-64 -i scripts/rsrc.rc -O coff -o rsrc_windows_amd64.syso
+windres -F pe-i386 -i scripts/rsrc.rc -O coff -o rsrc_windows_386.syso
 ```

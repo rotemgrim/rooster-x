@@ -1,15 +1,17 @@
-// Package engine embeds a BitTorrent client (anacrolix/torrent) so RoosterX
-// can download and stream torrents itself instead of handing magnets to an
-// external app.
+// Package engine embeds a BitTorrent client so RoosterX can download and
+// stream torrents itself instead of handing magnets to an external app. The
+// client is libtorrent (rasterbar), the library behind qBittorrent, reached
+// through the C++ shim in engine/lt; this package owns the policy on top:
+// part files, download order, seeding limits and settings.
 //
 // Files are written as "<name>.part" while downloading and renamed to their
-// real name once every piece of the file has been verified (anacrolix's part
-// files). The walker matches media by extension, so it ignores unfinished
-// files and picks them up when the rename happens.
+// real name once complete. The walker matches media by extension, so it
+// ignores unfinished files and picks them up when the rename happens.
 package engine
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -18,172 +20,198 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/metainfo"
-
-	_ "go-poc/engine/classicio" // must run before anacrolix's storage init
+	"go-poc/engine/lt"
 )
 
-// sessionFile lists the torrents that were added, so they are re-added (and
-// resume from the stored piece state) after a restart. anacrolix does not
-// persist its torrent list itself.
-const sessionFile = ".roosterx-torrents.json"
+const (
+	// sessionFile lists the torrents with our own per-torrent options.
+	sessionFile = ".roosterx-torrents.json"
+	// resumeDir holds libtorrent's fast-resume data (progress, metadata,
+	// totals, times), one file per torrent.
+	resumeDir = ".roosterx-resume"
+	// stateFile keeps the DHT state between runs.
+	stateFile  = ".roosterx-session"
+	partSuffix = ".part"
+)
 
 type sessionEntry struct {
+	Hash   string `json:"hash,omitempty"`
 	Magnet string `json:"magnet"`
 	// Sequential downloads the first and last parts of the video first and
-	// then the rest in order, so playback can start early. On by default.
+	// then the rest in order, so playback can start early.
 	Sequential bool `json:"sequential"`
-	// Paused stops all downloading and uploading for the torrent.
-	Paused bool `json:"paused,omitempty"`
-	// Unix seconds. Torrents added or finished before these were tracked get
-	// the time that was first seen.
-	AddedAt     int64 `json:"addedAt,omitempty"`
-	CompletedAt int64 `json:"completedAt,omitempty"`
 	// Resuming a finished torrent restarts its seeding time and ratio limits.
 	ResumedAt      int64 `json:"resumedAt,omitempty"`
 	ResumeUploaded int64 `json:"resumeUploaded,omitempty"`
-	// Payload bytes over all runs, updated every sample.
-	Downloaded int64 `json:"downloaded,omitempty"`
-	Uploaded   int64 `json:"uploaded,omitempty"`
 
-	live liveState // this run only, never saved
-}
+	// Written before libtorrent replaced the anacrolix engine. Read once, to
+	// carry a torrent over that has no resume data yet.
+	Paused      bool  `json:"paused,omitempty"`
+	AddedAt     int64 `json:"addedAt,omitempty"`
+	CompletedAt int64 `json:"completedAt,omitempty"`
+	Downloaded  int64 `json:"downloaded,omitempty"`
+	Uploaded    int64 `json:"uploaded,omitempty"`
 
-type liveState struct {
-	t                  *torrent.Torrent
-	hash               string
-	baseDown, baseUp   int64 // totals from earlier runs
-	lastDown, lastUp   int64 // this run's counters at the previous sample
-	downSpeed, upSpeed float64
-	queued             bool     // held back by the max active downloads setting
-	applied            transfer // what reconcileLocked last set on the torrent
+	// migrating: restored without resume data, so libtorrent doesn't know
+	// the unfinished data is in "<name>.part" files. It stays in upload mode
+	// until those names are applied (pendingRenames in flight) and the data
+	// is rechecked.
+	migrating      bool
+	pendingRenames int
 }
 
 var (
-	client  *torrent.Client
+	ses     *lt.Session
 	dataDir string
 
 	// mu guards sessions, dirty and settings.
 	mu       sync.Mutex
 	sessions = map[string]*sessionEntry{} // infoHash -> entry
-	// dirty means the session file is out of date; the sampler writes it.
+	// dirty means the session file is out of date; the loop writes it.
 	dirty bool
 
-	stopSampling = make(chan struct{})
-	samplerDone  = make(chan struct{})
+	stopLoop chan struct{}
+	loopDone chan struct{}
 )
+
+var errNotRunning = errors.New("torrent engine is not running")
 
 // Start creates the torrent client, downloading into dir.
 func Start(dir string) error {
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(dir, resumeDir), 0755); err != nil {
 		return err
 	}
 	dataDir = dir
 	loadSettings()
-	cfg := torrent.NewDefaultClientConfig()
-	cfg.DataDir = dir
-	cfg.Seed = true
-	cfg.DownloadRateLimiter = downLimiter
-	cfg.UploadRateLimiter = upLimiter
-	c, err := torrent.NewClient(cfg)
+	s, err := lt.New(ltSettings(settings), filepath.Join(dir, stateFile))
 	if err != nil {
 		return fmt.Errorf("could not start torrent client: %w", err)
 	}
-	client = c
-	log.Println("Torrent engine downloading to", dir)
+	ses = s
+	log.Println("Torrent engine (libtorrent) downloading to", dir)
 
 	for _, e := range loadSession() {
-		if _, err := add(e); err != nil {
+		if _, err := add(e, addOptions{paused: e.Paused, restored: true}); err != nil {
 			log.Println("Could not resume torrent:", err)
 		}
 	}
-	go sampleLoop()
+	stopLoop, loopDone = make(chan struct{}), make(chan struct{})
+	go loop()
 	return nil
 }
 
-// Stop saves the session and closes all connections, flushing piece state.
+// Stop saves resume data and the session, then shuts the client down.
 func Stop() {
-	if client == nil {
+	if ses == nil {
 		return
 	}
-	close(stopSampling)
-	<-samplerDone
-	mu.Lock()
-	dirty = true // keep this run's transfer totals
-	mu.Unlock()
+	close(stopLoop)
+	<-loopDone
+	if err := ses.SaveResume(resumePath(""), false, 15000); err != nil {
+		log.Println("Could not save torrent resume data:", err)
+	}
 	flushSession()
-	client.Close()
+	ses.Close()
 }
 
 // Add starts downloading a magnet and returns its info hash. All files are
 // downloaded once the metadata arrives from peers.
 func Add(magnet string) (string, error) {
 	s := GetSettings()
-	return add(sessionEntry{Magnet: magnet, Sequential: s.SequentialByDefault, Paused: s.AddPaused})
+	return add(sessionEntry{Magnet: magnet, Sequential: s.SequentialByDefault}, addOptions{paused: s.AddPaused})
 }
 
-func add(e sessionEntry) (string, error) {
-	if client == nil {
-		return "", fmt.Errorf("torrent engine is not running")
+type addOptions struct {
+	paused bool
+	// restored: from the session file, so data may already be on disk
+	restored bool
+	// torrentFile adds a .torrent instead of the magnet (tests).
+	torrentFile string
+}
+
+func add(e sessionEntry, o addOptions) (string, error) {
+	if ses == nil {
+		return "", errNotRunning
 	}
-	t, err := client.AddMagnet(e.Magnet)
+	resume := ""
+	if e.Hash != "" {
+		resume = resumePath(e.Hash)
+	}
+	_, statErr := os.Stat(resume)
+	hasResume := resume != "" && statErr == nil
+	migrating := o.restored && !hasResume
+	hash, err := ses.Add(lt.AddParams{
+		Magnet:          e.Magnet,
+		TorrentFile:     o.torrentFile,
+		ResumeFile:      resume,
+		SavePath:        dataDir,
+		Paused:          o.paused,
+		Sequential:      e.Sequential,
+		UploadMode:      migrating,
+		MaxConnections:  maxConns(GetSettings()),
+		AddedTime:       e.AddedAt,
+		CompletedTime:   e.CompletedAt,
+		TotalDownloaded: e.Downloaded,
+		TotalUploaded:   e.Uploaded,
+	})
 	if err != nil {
 		return "", err
 	}
-	hash := t.InfoHash().HexString()
 
 	mu.Lock()
-	defer mu.Unlock()
 	if _, ok := sessions[hash]; ok {
+		mu.Unlock()
 		return hash, nil // already added; keep its settings
 	}
-	if e.AddedAt == 0 {
-		e.AddedAt = time.Now().Unix()
-	}
-	e.live = liveState{
-		t:        t,
-		hash:     hash,
-		baseDown: e.Downloaded,
-		baseUp:   e.Uploaded,
-		applied:  transfer{down: true, up: true}, // anacrolix allows both by default
+	e.Hash, e.migrating = hash, migrating
+	if hasResume {
+		// libtorrent's resume data holds these now
+		e.Paused, e.AddedAt, e.CompletedAt, e.Downloaded, e.Uploaded = false, 0, 0, 0, 0
 	}
 	sessions[hash] = &e
-	t.SetMaxEstablishedConns(maxConns(settings))
-	commitLocked()
+	dirty = true
+	mu.Unlock()
 
-	go func() {
-		select {
-		case <-t.GotInfo():
-		case <-t.Closed():
-			return
-		}
-		t.DownloadAll()
-		go prioritize(t)
-		retryPartFileRenames(t)
-	}()
+	// a resumed or .torrent add has its metadata already
+	if st, err := ses.Status(hash, false); err == nil && st.HasMetadata && !hasResume {
+		onMetadata(hash)
+	}
 	return hash, nil
 }
 
 // SetSequential switches a torrent between sequential (first/last parts
 // first, then in order) and normal rarest-first downloading.
 func SetSequential(hash string, on bool) error {
-	return update(hash, func(e *sessionEntry) { e.Sequential = on })
+	if err := update(hash, func(e *sessionEntry) { e.Sequential = on }); err != nil {
+		return err
+	}
+	return applySequential(hash, on)
 }
 
-// SetPaused stops or resumes all data transfer for a torrent.
+// SetPaused stops all transfers for a torrent, or hands it back to the
+// download queue.
 func SetPaused(hash string, paused bool) error {
+	if ses == nil {
+		return errNotRunning
+	}
+	if err := ses.SetPaused(hash, paused); err != nil {
+		return err
+	}
+	if paused {
+		return nil
+	}
+	st, err := ses.Status(hash, false)
+	if err != nil || !st.Finished {
+		return err
+	}
+	// seeding limits count from here again
 	return update(hash, func(e *sessionEntry) {
-		e.Paused = paused
-		if !paused && isComplete(e.live.t) {
-			// seeding limits count from here again
-			e.ResumedAt = time.Now().Unix()
-			e.ResumeUploaded = e.Uploaded
-		}
+		e.ResumedAt = time.Now().Unix()
+		e.ResumeUploaded = st.AllTimeUpload
 	})
 }
 
-// update changes one torrent's entry and commits the change.
+// update changes one torrent's entry and marks the session file for saving.
 func update(hash string, change func(e *sessionEntry)) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -192,27 +220,8 @@ func update(hash string, change func(e *sessionEntry)) error {
 		return err
 	}
 	change(e)
-	commitLocked()
-	return nil
-}
-
-// commitLocked brings anacrolix in line with the entries and marks the
-// session file for saving. Call with mu held after changing any entry.
-func commitLocked() {
-	reconcileAllLocked()
 	dirty = true
-}
-
-func isSequential(t *torrent.Torrent) bool {
-	mu.Lock()
-	defer mu.Unlock()
-	e, ok := sessions[t.InfoHash().HexString()]
-	return ok && e.Sequential
-}
-
-// isComplete reports whether every piece of the torrent is verified.
-func isComplete(t *torrent.Torrent) bool {
-	return t.Info() != nil && t.BytesMissing() == 0
+	return nil
 }
 
 // entryLocked looks up a torrent by info hash. Call with mu held.
@@ -226,34 +235,44 @@ func entryLocked(hash string) (*sessionEntry, error) {
 // Remove stops a torrent and, with deleteFiles, deletes everything it
 // downloaded (finished and *.part files, then any folders left empty).
 func Remove(hash string, deleteFiles bool) error {
-	mu.Lock()
-	e, err := entryLocked(hash)
-	if err == nil {
-		delete(sessions, e.live.hash)
-		commitLocked() // its queue slot is free now
+	if ses == nil {
+		return errNotRunning
 	}
-	mu.Unlock()
-	if err != nil {
-		return err
-	}
-
-	t := e.live.t
 	var paths []string
-	if deleteFiles && t.Info() != nil {
-		for _, f := range t.Files() {
-			paths = append(paths, filepath.Join(dataDir, filepath.FromSlash(f.Path())))
+	if deleteFiles {
+		if st, err := ses.Status(hash, false); err == nil {
+			for _, f := range st.Files {
+				paths = append(paths, filepath.Join(st.SavePath, filepath.FromSlash(f.Path)))
+			}
 		}
 	}
-	// Drop closes the storage, so no file handles are left open on Windows.
-	t.Drop()
+	if err := ses.Remove(hash); err != nil {
+		return err
+	}
+	hash = strings.ToLower(hash)
+	mu.Lock()
+	delete(sessions, hash)
+	dirty = true
+	mu.Unlock()
+	_ = os.Remove(resumePath(hash))
+
 	if len(paths) > 0 {
 		go deleteWithRetry(paths)
 	}
 	return nil
 }
 
+// resumePath is a torrent's fast-resume file, or the folder for hash "".
+func resumePath(hash string) string {
+	if hash == "" {
+		return filepath.Join(dataDir, resumeDir)
+	}
+	return filepath.Join(dataDir, resumeDir, hash+".fastresume")
+}
+
 // deleteWithRetry deletes the files, retrying with backoff while Windows
-// reports them in use (e.g. a player still streaming one).
+// reports them in use (e.g. a player still streaming one, or libtorrent not
+// having closed it yet).
 func deleteWithRetry(paths []string) {
 	delay := 500 * time.Millisecond
 	for attempt := 1; ; attempt++ {
@@ -275,23 +294,24 @@ func deleteWithRetry(paths []string) {
 	}
 }
 
-// deleteDownloaded removes a torrent file (finished or .part) and then its
-// parent folders while they are empty, never leaving dataDir. Paths come
-// from torrent metadata sent by peers, so anything outside dataDir is refused.
+// deleteDownloaded removes a torrent file under either name (finished or
+// .part) and then its parent folders while they are empty, never leaving
+// dataDir. Paths come from torrent metadata sent by peers, so anything
+// outside dataDir is refused.
 func deleteDownloaded(path string) error {
 	root, err := filepath.Abs(dataDir)
 	if err != nil {
 		return err
 	}
-	abs, err := filepath.Abs(path)
+	abs, err := filepath.Abs(strings.TrimSuffix(path, partSuffix))
 	if err != nil {
 		return err
 	}
 	if rel, err := filepath.Rel(root, abs); err != nil || rel == "." || strings.HasPrefix(rel, "..") {
 		return fmt.Errorf("refusing to delete outside the download folder")
 	}
-	for _, p := range []string{abs, abs + ".part"} {
-		// finished files are marked read-only by anacrolix
+	for _, p := range []string{abs, abs + partSuffix} {
+		// files finished by the old anacrolix engine are read-only
 		_ = os.Chmod(p, 0644)
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
 			return err
@@ -303,73 +323,6 @@ func deleteDownloaded(path string) error {
 		}
 	}
 	return nil
-}
-
-const (
-	renameCheckEvery = 5 * time.Second
-	renameMaxBackoff = 10 * time.Minute
-)
-
-// retryPartFileRenames renames finished files that are still "*.part".
-// anacrolix renames a file when its last piece verifies, but only logs and
-// gives up if that fails, e.g. because another program has the file open on
-// Windows. Re-verifying one of the file's pieces makes anacrolix attempt the
-// rename again (closing its own handles first), so we do that with
-// exponential backoff until no part files are left.
-func retryPartFileRenames(t *torrent.Torrent) {
-	backoff := map[int]time.Duration{}
-	nextTry := map[int]time.Time{}
-	tick := time.NewTicker(renameCheckEvery)
-	defer tick.Stop()
-	for {
-		select {
-		case <-t.Closed():
-			return
-		case now := <-tick.C:
-			partsLeft := false
-			for i, f := range t.Files() {
-				part := filepath.Join(dataDir, filepath.FromSlash(f.Path())) + ".part"
-				if _, err := os.Stat(part); err != nil {
-					continue
-				}
-				partsLeft = true
-				if f.Length() == 0 || f.BytesCompleted() < f.Length() || now.Before(nextTry[i]) {
-					continue
-				}
-				// first retry one tick after completion, then double up to the cap
-				d := backoff[i]
-				if d == 0 {
-					d = renameCheckEvery
-				} else if d *= 2; d > renameMaxBackoff {
-					d = renameMaxBackoff
-				}
-				backoff[i] = d
-				nextTry[i] = now.Add(d)
-				log.Printf("Retrying rename of finished file %s (next retry in %v)", part, d)
-				if err := t.Piece(f.EndPieceIndex() - 1).VerifyData(); err != nil {
-					log.Printf("Could not re-verify %s: %v", part, err)
-				}
-			}
-			if !partsLeft && t.BytesMissing() == 0 {
-				return
-			}
-		}
-	}
-}
-
-func find(hash string) (*torrent.Torrent, error) {
-	if client == nil {
-		return nil, fmt.Errorf("torrent engine is not running")
-	}
-	var ih metainfo.Hash
-	if err := ih.FromHexString(hash); err != nil {
-		return nil, fmt.Errorf("invalid info hash %q", hash)
-	}
-	t, ok := client.Torrent(ih)
-	if !ok {
-		return nil, fmt.Errorf("torrent %s not found", hash)
-	}
-	return t, nil
 }
 
 func loadSession() []sessionEntry {
@@ -384,8 +337,8 @@ func loadSession() []sessionEntry {
 	return list
 }
 
-// flushSession writes the session file if anything changed. Only the sampler
-// (and Stop, after the sampler has exited) call it, so writes never race.
+// flushSession writes the session file if anything changed. Only the loop
+// (and Stop, after the loop has exited) call it, so writes never race.
 func flushSession() {
 	mu.Lock()
 	if !dirty {

@@ -25,5 +25,12 @@ cp -r renderer/dist server/static
 # copy icon.ico to static directory as favicon.ico
 cp renderer/images/icon.ico server/static/favicon.ico
 
-# Build the Go application
-go build -ldflags="-H windowsgui" -o roosterx.exe
+# Build the Go application with cgo: the torrent engine is libtorrent (C++),
+# linked in from third_party/. Needs gcc, cmake and ninja (MinGW-w64), e.g.
+# winget install BrechtSanders.WinLibs.POSIX.UCRT
+command -v gcc >/dev/null || { echo "gcc not found: install MinGW-w64 (see above)"; exit 1; }
+if [ ! -f third_party/libtorrent/lib/libtorrent-rasterbar.a ]; then
+    bash scripts/build-libtorrent.sh
+fi
+# -static avoids shipping the libstdc++/libgcc DLLs.
+CGO_ENABLED=1 go build -ldflags="-H windowsgui -extldflags=-static" -o roosterx.exe

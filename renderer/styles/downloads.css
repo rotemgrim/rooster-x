@@ -179,6 +179,7 @@
     margin-right: 0.4em;
   }
   & .state-downloading, & .state-metadata { color: #6bec5d; }
+  & .state-checking { color: #9ccfd8; }
   & .state-stalled { color: #b5d6a7; }
   & .state-queued { color: #d6c27a; }
   & .state-seeding { color: #7fb2ff; }

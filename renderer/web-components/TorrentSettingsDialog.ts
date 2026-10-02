@@ -98,7 +98,7 @@ export class TorrentSettingsDialog extends LitElement {
             ${this.number(d, "maxUploadKiB", "Max upload speed", "KiB/s")}
             <h4>Downloads</h4>
             ${this.number(d, "maxActiveDownloads", "Max active downloads")}
-            ${this.number(d, "maxConnsPerTorrent", "Max connections per torrent", "", {placeholder: "50"})}
+            ${this.number(d, "maxConnsPerTorrent", "Max connections per torrent", "", {placeholder: "100"})}
             ${this.checkbox(d, "sequentialByDefault", "New torrents download first & last parts first, then in order")}
             ${this.checkbox(d, "addPaused", "Add new torrents paused")}
             <p class="dl-hint">Empty or 0 means no limit. Seeding limits count from when a torrent finished or was last resumed.

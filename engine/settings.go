@@ -2,13 +2,12 @@ package engine
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
 
-	"golang.org/x/time/rate"
+	"go-poc/engine/lt"
 )
 
 const settingsFile = ".roosterx-engine.json"
@@ -34,25 +33,22 @@ type Settings struct {
 	// MaxActiveDownloads queues unfinished torrents beyond this many, oldest
 	// first. 0 = unlimited.
 	MaxActiveDownloads int `json:"maxActiveDownloads"`
-	// MaxConnsPerTorrent caps peer connections, 0 = anacrolix's default.
+	// MaxConnsPerTorrent caps peer connections, 0 = defaultConnsPerTorrent.
 	MaxConnsPerTorrent int `json:"maxConnsPerTorrent"`
 	// Options for newly added torrents.
 	SequentialByDefault bool `json:"sequentialByDefault"`
 	AddPaused           bool `json:"addPaused"`
 }
 
-const defaultConnsPerTorrent = 50
+const (
+	// qBittorrent's defaults
+	defaultConnsPerTorrent = 100
+	totalConnections       = 500
+)
 
 var defaultSettings = Settings{SeedDays: 2, SeedEndAction: SeedEndPause, SequentialByDefault: true}
 
-var (
-	settings = defaultSettings
-
-	// Our own limiters (anacrolix's default upload limiter is a shared
-	// global). The 1 MiB burst must exceed the largest single read/chunk.
-	downLimiter = rate.NewLimiter(rate.Inf, 1<<20)
-	upLimiter   = rate.NewLimiter(rate.Inf, 1<<20)
-)
+var settings = defaultSettings
 
 // GetSettings returns the current settings.
 func GetSettings() Settings {
@@ -63,8 +59,8 @@ func GetSettings() Settings {
 
 // SaveSettings applies new settings immediately and stores them.
 func SaveSettings(s Settings) error {
-	if client == nil {
-		return fmt.Errorf("torrent engine is not running")
+	if ses == nil {
+		return errNotRunning
 	}
 	s.SeedDays = max(s.SeedDays, 0)
 	s.RatioLimit = max(s.RatioLimit, 0)
@@ -76,14 +72,19 @@ func SaveSettings(s Settings) error {
 	s.MaxActiveDownloads = max(s.MaxActiveDownloads, 0)
 	s.MaxConnsPerTorrent = max(s.MaxConnsPerTorrent, 0)
 
-	applyLimits(s)
 	mu.Lock()
 	settings = s
-	for _, e := range sessions {
-		e.live.t.SetMaxEstablishedConns(maxConns(s))
+	hashes := make([]string, 0, len(sessions))
+	for hash := range sessions {
+		hashes = append(hashes, hash)
 	}
-	reconcileAllLocked()
 	mu.Unlock()
+	if err := ses.ApplySettings(ltSettings(s)); err != nil {
+		return err
+	}
+	for _, hash := range hashes {
+		_ = ses.SetMaxConnections(hash, maxConns(s))
+	}
 
 	b, _ := json.MarshalIndent(s, "", "  ")
 	return os.WriteFile(filepath.Join(dataDir, settingsFile), b, 0644)
@@ -91,25 +92,27 @@ func SaveSettings(s Settings) error {
 
 func loadSettings() {
 	b, err := os.ReadFile(filepath.Join(dataDir, settingsFile))
-	if err == nil {
-		// fields missing from older files keep their defaults
-		if err := json.Unmarshal(b, &settings); err != nil {
-			log.Println("Could not read torrent engine settings:", err)
-		}
+	if err != nil {
+		return
 	}
-	applyLimits(settings)
+	// fields missing from older files keep their defaults
+	if err := json.Unmarshal(b, &settings); err != nil {
+		log.Println("Could not read torrent engine settings:", err)
+	}
 }
 
-func applyLimits(s Settings) {
-	downLimiter.SetLimit(kibLimit(s.MaxDownloadKiB))
-	upLimiter.SetLimit(kibLimit(s.MaxUploadKiB))
-}
-
-func kibLimit(kib int) rate.Limit {
-	if kib <= 0 {
-		return rate.Inf
+// ltSettings translates the session-wide settings for libtorrent.
+func ltSettings(s Settings) lt.Settings {
+	active := s.MaxActiveDownloads
+	if active == 0 {
+		active = -1
 	}
-	return rate.Limit(kib * 1024)
+	return lt.Settings{
+		DownloadRateLimit: s.MaxDownloadKiB * 1024,
+		UploadRateLimit:   s.MaxUploadKiB * 1024,
+		ActiveDownloads:   active,
+		ConnectionsLimit:  totalConnections,
+	}
 }
 
 func maxConns(s Settings) int {
@@ -119,19 +122,27 @@ func maxConns(s Settings) int {
 	return defaultConnsPerTorrent
 }
 
+// seedStats are the inputs of the seeding limits for one torrent.
+type seedStats struct {
+	CompletedAt, ResumedAt int64 // unix seconds
+	Downloaded, Uploaded   int64 // all-time payload bytes
+	ResumeUploaded         int64 // Uploaded when last resumed
+	Completed              int64 // bytes on disk
+}
+
 // seedingDone reports whether a finished torrent reached its seeding time or
-// ratio limit. completed is the bytes it has on disk.
-func seedingDone(s Settings, e *sessionEntry, completed int64, now time.Time) bool {
-	if e.CompletedAt == 0 {
+// ratio limit.
+func seedingDone(s Settings, t seedStats, now time.Time) bool {
+	if t.CompletedAt == 0 {
 		return false
 	}
 	if s.SeedDays > 0 {
-		since := time.Unix(max(e.CompletedAt, e.ResumedAt), 0)
+		since := time.Unix(max(t.CompletedAt, t.ResumedAt), 0)
 		if now.Sub(since) >= time.Duration(s.SeedDays*float64(24*time.Hour)) {
 			return true
 		}
 	}
-	return s.RatioLimit > 0 && shareRatio(e.Uploaded-e.ResumeUploaded, e.Downloaded, completed) >= s.RatioLimit
+	return s.RatioLimit > 0 && shareRatio(t.Uploaded-t.ResumeUploaded, t.Downloaded, t.Completed) >= s.RatioLimit
 }
 
 // shareRatio is uploaded / downloaded, dividing by the size on disk instead

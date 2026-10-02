@@ -10,26 +10,25 @@ func TestSeedingDone(t *testing.T) {
 	hoursAgo := func(h int) int64 { return now.Add(-time.Duration(h) * time.Hour).Unix() }
 
 	tests := []struct {
-		name      string
-		s         Settings
-		e         sessionEntry
-		completed int64
-		want      bool
+		name string
+		s    Settings
+		st   seedStats
+		want bool
 	}{
-		{"not finished", Settings{SeedDays: 1}, sessionEntry{}, 0, false},
-		{"days reached", Settings{SeedDays: 2}, sessionEntry{CompletedAt: hoursAgo(49)}, 0, true},
-		{"days not reached", Settings{SeedDays: 2}, sessionEntry{CompletedAt: hoursAgo(47)}, 0, false},
-		{"fractional days", Settings{SeedDays: 0.5}, sessionEntry{CompletedAt: hoursAgo(13)}, 0, true},
-		{"resume restarts days", Settings{SeedDays: 2}, sessionEntry{CompletedAt: hoursAgo(49), ResumedAt: hoursAgo(1)}, 0, false},
-		{"no limits", Settings{}, sessionEntry{CompletedAt: hoursAgo(1000), Downloaded: 1, Uploaded: 100}, 1, false},
-		{"ratio reached", Settings{RatioLimit: 1}, sessionEntry{CompletedAt: 1, Downloaded: 1000, Uploaded: 1000}, 1000, true},
-		{"ratio not reached", Settings{RatioLimit: 1}, sessionEntry{CompletedAt: 1, Downloaded: 1000, Uploaded: 999}, 1000, false},
-		{"resume restarts ratio", Settings{RatioLimit: 1}, sessionEntry{CompletedAt: 1, Downloaded: 1000, Uploaded: 1500, ResumeUploaded: 1000}, 1000, false},
-		{"data from disk uses size", Settings{RatioLimit: 1}, sessionEntry{CompletedAt: 1, Uploaded: 2000}, 2000, true},
+		{"not finished", Settings{SeedDays: 1}, seedStats{}, false},
+		{"days reached", Settings{SeedDays: 2}, seedStats{CompletedAt: hoursAgo(49)}, true},
+		{"days not reached", Settings{SeedDays: 2}, seedStats{CompletedAt: hoursAgo(47)}, false},
+		{"fractional days", Settings{SeedDays: 0.5}, seedStats{CompletedAt: hoursAgo(13)}, true},
+		{"resume restarts days", Settings{SeedDays: 2}, seedStats{CompletedAt: hoursAgo(49), ResumedAt: hoursAgo(1)}, false},
+		{"no limits", Settings{}, seedStats{CompletedAt: hoursAgo(1000), Downloaded: 1, Uploaded: 100, Completed: 1}, false},
+		{"ratio reached", Settings{RatioLimit: 1}, seedStats{CompletedAt: 1, Downloaded: 1000, Uploaded: 1000, Completed: 1000}, true},
+		{"ratio not reached", Settings{RatioLimit: 1}, seedStats{CompletedAt: 1, Downloaded: 1000, Uploaded: 999, Completed: 1000}, false},
+		{"resume restarts ratio", Settings{RatioLimit: 1}, seedStats{CompletedAt: 1, Downloaded: 1000, Uploaded: 1500, ResumeUploaded: 1000, Completed: 1000}, false},
+		{"data from disk uses size", Settings{RatioLimit: 1}, seedStats{CompletedAt: 1, Uploaded: 2000, Completed: 2000}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := seedingDone(tt.s, &tt.e, tt.completed, now); got != tt.want {
+			if got := seedingDone(tt.s, tt.st, now); got != tt.want {
 				t.Errorf("seedingDone = %v, want %v", got, tt.want)
 			}
 		})

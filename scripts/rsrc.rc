@@ -1,0 +1,7 @@
+// Windows resources linked into roosterx.exe: just the icon. The manifest
+// comes from MinGW gcc (its default one), because ld cannot merge a second
+// manifest; DPI awareness is set in code instead (dpi_windows.go).
+// Rebuild the .syso files from the repo root with:
+//   windres -F pe-x86-64 -i scripts/rsrc.rc -O coff -o rsrc_windows_amd64.syso
+//   windres -F pe-i386 -i scripts/rsrc.rc -O coff -o rsrc_windows_386.syso
+1 ICON "../icon.ico"

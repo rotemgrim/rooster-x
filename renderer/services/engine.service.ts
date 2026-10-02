@@ -11,13 +11,14 @@ export interface IEngineSettings {
     maxDownloadKiB: number; // KiB/s, 0 = unlimited
     maxUploadKiB: number;
     maxActiveDownloads: number; // 0 = unlimited
-    maxConnsPerTorrent: number; // 0 = default (50)
+    maxConnsPerTorrent: number; // 0 = default (100)
     sequentialByDefault: boolean;
     addPaused: boolean;
 }
 
-// "stalled": downloading but nothing arriving; "completed": paused after finishing
-export type EngineState = "metadata" | "downloading" | "stalled" | "queued" | "seeding" | "paused" | "completed";
+// "checking": verifying data on disk; "stalled": downloading but nothing
+// arriving; "completed": paused after finishing
+export type EngineState = "checking" | "metadata" | "downloading" | "stalled" | "queued" | "seeding" | "paused" | "completed";
 
 export interface IEngineFile {
     index: number;
