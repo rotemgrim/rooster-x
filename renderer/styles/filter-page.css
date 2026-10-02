@@ -2,7 +2,10 @@
   overflow: hidden;
   position: relative;
 
+  /* fill the panel and scroll when the window is too short for everything */
   & .page-body {
+    flex: 1;
+    min-height: 0;
     overflow: auto;
   }
   & .page-body > div {
@@ -26,12 +29,11 @@
     overflow: hidden;
   }
 
+  /* under Sorting in the left column (pinning it to the bottom overlapped Sorting on short windows) */
   & .filters {
     margin-top: var(--top-bar-height);
     float: left;
     clear: left;
-    position: absolute;
-    bottom: 64px;
     min-width: 750px;
   }
 
