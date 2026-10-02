@@ -47,7 +47,7 @@ func handleEvents() {
 		case "metadata":
 			onMetadata(ev.Hash)
 		case "checked", "file_completed":
-			if !isMigrating(ev.Hash) {
+			if !isPreparing(ev.Hash) {
 				fixPartNames(ev.Hash, false)
 			}
 		case "file_renamed":

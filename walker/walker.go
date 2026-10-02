@@ -179,6 +179,9 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 			if !ok {
 				return
 			}
+			if ignoredWatchPath(event.Name) {
+				continue
+			}
 
 			// We just want to watch for file creation, so ignore everything
 			// outside of Create and Write.
@@ -208,6 +211,16 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 
 		}
 	}
+}
+
+// ignoredWatchPath reports watch events that must not trigger a sweep:
+// hidden entries (the torrent engine keeps its state in the download folder
+// as .roosterx-*, rewritten every few seconds while downloading) and
+// downloads in progress (*.part), which are never media. A finished
+// download is renamed to its real name, and that event is not ignored.
+func ignoredWatchPath(path string) bool {
+	name := filepath.Base(path)
+	return strings.HasPrefix(name, ".") || strings.HasSuffix(strings.ToLower(name), ".part")
 }
 
 func (w *Walker) releaseLock(msg string) {

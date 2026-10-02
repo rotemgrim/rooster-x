@@ -17,7 +17,19 @@ import (
 // sockets (so Windows doesn't ask about the firewall) and finds no peers.
 func startOffline(t *testing.T) {
 	t.Helper()
-	s, err := lt.New(lt.Settings{ActiveDownloads: -1, ConnectionsLimit: totalConnections, Offline: true}, "")
+	startSession(t, "")
+}
+
+// startLoopback is startOffline, but listening on loopback, which libtorrent
+// needs for connecting to a peer (a test seeder).
+func startLoopback(t *testing.T) {
+	t.Helper()
+	startSession(t, "127.0.0.1:0")
+}
+
+func startSession(t *testing.T, listen string) {
+	t.Helper()
+	s, err := lt.New(lt.Settings{ActiveDownloads: -1, ConnectionsLimit: totalConnections, Offline: true, OfflineListen: listen}, "")
 	if err != nil {
 		t.Fatal(err)
 	}

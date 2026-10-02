@@ -127,14 +127,14 @@ func TestRestoreFromResumeData(t *testing.T) {
 	startOffline(t)
 	dataDir = dir
 	for _, e := range entries {
-		if _, err := add(e, addOptions{restored: true}); err != nil {
+		if _, err := add(e, addOptions{}); err != nil {
 			t.Fatal(err)
 		}
 	}
 	mu.Lock()
 	e := sessions[hash]
 	mu.Unlock()
-	if e == nil || e.migrating || !e.Sequential {
+	if e == nil || e.preparing || !e.Sequential {
 		t.Fatalf("restored entry = %+v", e)
 	}
 	waitFor(t, "the restored torrent", func() bool {

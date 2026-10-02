@@ -19,14 +19,14 @@ const (
 	priorityTop    = 7
 )
 
-// onMetadata runs once a torrent's file list is known: it applies the part
-// file names and the download order, and finishes a migration.
+// onMetadata runs once a torrent's file list is known: it applies the
+// download order and part file names, and finishes preparing the torrent.
 func onMetadata(hash string) {
 	mu.Lock()
 	e, ok := sessions[hash]
-	var sequential, migrating bool
+	var sequential, preparing bool
 	if ok {
-		sequential, migrating = e.Sequential, e.migrating
+		sequential, preparing = e.Sequential, e.preparing
 	}
 	mu.Unlock()
 	if !ok {
@@ -37,64 +37,69 @@ func onMetadata(hash string) {
 			log.Println("Could not set download order:", err)
 		}
 	}
-	renames := fixPartNames(hash, migrating)
-	if !migrating {
+	renames, recheck := fixPartNames(hash, preparing)
+	if !preparing {
 		return
 	}
 	mu.Lock()
-	e.pendingRenames = renames
+	e.pendingRenames, e.recheck = renames, recheck
 	mu.Unlock()
 	if renames == 0 {
-		finishMigration(hash)
+		finishPreparing(hash)
 	}
 }
 
-// onRenamed counts down a migration's renames and finishes it after the last.
+// onRenamed counts down a preparing torrent's renames and finishes preparing
+// it after the last.
 func onRenamed(hash string) {
 	mu.Lock()
 	e, ok := sessions[hash]
 	done := false
-	if ok && e.migrating && e.pendingRenames > 0 {
+	if ok && e.preparing && e.pendingRenames > 0 {
 		e.pendingRenames--
 		done = e.pendingRenames == 0
 	}
 	mu.Unlock()
 	if done {
-		finishMigration(hash)
+		finishPreparing(hash)
 	}
 }
 
-// finishMigration rechecks a migrated torrent's data under its part names and
-// lets it download again.
-func finishMigration(hash string) {
-	if err := ses.ForceRecheck(hash); err != nil {
-		log.Println("Could not recheck migrated torrent:", err)
-	}
-	if err := ses.SetUploadMode(hash, false); err != nil {
-		log.Println("Could not resume migrated torrent:", err)
-	}
+// finishPreparing lets the torrent download, after rechecking the data on
+// disk when a rename pointed it at data libtorrent hasn't checked yet.
+func finishPreparing(hash string) {
 	mu.Lock()
-	if e, ok := sessions[hash]; ok {
-		e.migrating = false
+	e, ok := sessions[hash]
+	recheck := ok && e.recheck
+	if ok {
+		e.preparing, e.recheck = false, false
 	}
 	mu.Unlock()
+	if recheck {
+		if err := ses.ForceRecheck(hash); err != nil {
+			log.Println("Could not recheck torrent:", err)
+		}
+	}
+	if err := ses.SetUploadMode(hash, false); err != nil {
+		log.Println("Could not start torrent:", err)
+	}
 }
 
 // fixPartNames renames the torrent's files to "<name>.part" while they are
-// unfinished and back once complete, and returns how many renames it asked
-// for. While libtorrent checks the data on disk every file looks unfinished,
+// unfinished and back once complete. It returns how many renames it asked
+// for, and whether one points at data already on disk (a .part file from the
+// anacrolix engine), which libtorrent then has to recheck. While libtorrent checks the data on disk every file looks unfinished,
 // so nothing is renamed then; the "checked" event runs it again. While
-// migrating, progress isn't known yet, so the names follow what is on disk
-// instead: an existing "<name>.part" keeps that name.
-func fixPartNames(hash string, migrating bool) int {
+// preparing, progress isn't known yet, so the names follow what is on disk
+// instead: only a file already under its real name keeps it.
+func fixPartNames(hash string, preparing bool) (renames int, recheck bool) {
 	st, err := ses.Status(hash, false)
 	checking := st.State == lt.CheckingFiles || st.State == lt.CheckingResumeData
-	if err != nil || !st.HasMetadata || (checking && !migrating) {
-		return 0
+	if err != nil || !st.HasMetadata || (checking && !preparing) {
+		return 0, false
 	}
-	renames := 0
 	for _, f := range st.Files {
-		want := partName(f, migrating, st.SavePath)
+		want := partName(f, preparing, st.SavePath)
 		if f.Path == want {
 			continue
 		}
@@ -103,14 +108,17 @@ func fixPartNames(hash string, migrating bool) int {
 			continue
 		}
 		renames++
+		if _, err := os.Stat(filepath.Join(st.SavePath, filepath.FromSlash(want))); err == nil {
+			recheck = true
+		}
 	}
-	return renames
+	return renames, recheck
 }
 
-func partName(f lt.File, migrating bool, savePath string) string {
+func partName(f lt.File, preparing bool, savePath string) string {
 	name := strings.TrimSuffix(f.Path, partSuffix)
 	unfinished := f.Done < f.Size
-	if migrating {
+	if preparing {
 		_, err := os.Stat(filepath.Join(savePath, filepath.FromSlash(name)))
 		unfinished = err != nil
 	}
@@ -174,7 +182,7 @@ func healPartNames() {
 	mu.Lock()
 	var hashes []string
 	for hash, e := range sessions {
-		if !e.migrating {
+		if !e.preparing {
 			hashes = append(hashes, hash)
 		}
 	}
@@ -184,9 +192,9 @@ func healPartNames() {
 	}
 }
 
-func isMigrating(hash string) bool {
+func isPreparing(hash string) bool {
 	mu.Lock()
 	defer mu.Unlock()
 	e, ok := sessions[hash]
-	return ok && e.migrating
+	return ok && e.preparing
 }

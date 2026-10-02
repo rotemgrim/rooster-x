@@ -76,11 +76,11 @@ func TestMigrationFindsPartFileData(t *testing.T) {
 	if err := os.Rename(tt.DataPath, tt.DataPath+".part"); err != nil {
 		t.Fatal(err)
 	}
-	hash := addTorrentFile(t, tt, addOptions{restored: true})
-	drainEvents(t, "the migration to finish", func() bool {
+	hash := addTorrentFile(t, tt, addOptions{})
+	drainEvents(t, "preparing to finish", func() bool {
 		mu.Lock()
 		defer mu.Unlock()
-		return !sessions[hash].migrating
+		return !sessions[hash].preparing
 	})
 	waitFor(t, "the recheck to find the data", func() bool {
 		st, err := ses.Status(hash, false)
@@ -93,7 +93,7 @@ func TestMigrationFindsPartFileData(t *testing.T) {
 func TestMigrationKeepsFinishedFiles(t *testing.T) {
 	startOffline(t)
 	tt := testtorrent.Write(t, dataDir, "movie.mkv", 2*testtorrent.PieceLength)
-	hash := addTorrentFile(t, tt, addOptions{restored: true})
+	hash := addTorrentFile(t, tt, addOptions{})
 	waitFor(t, "the recheck", func() bool {
 		st, err := ses.Status(hash, false)
 		return err == nil && st.Finished && !st.UploadMode

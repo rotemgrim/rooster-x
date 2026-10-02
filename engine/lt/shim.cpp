@@ -383,7 +383,8 @@ lt_session* lt_create(lt_settings const* s, char const* state_file, char** err)
 			| lt::alert_category::error | lt::alert_category::file_progress);
 		if (s->offline)
 		{
-			params.settings.set_str(lt::settings_pack::listen_interfaces, "");
+			params.settings.set_str(lt::settings_pack::listen_interfaces
+				, s->offline_listen ? s->offline_listen : "");
 			params.settings.set_bool(lt::settings_pack::enable_dht, false);
 			params.settings.set_bool(lt::settings_pack::enable_lsd, false);
 			params.settings.set_bool(lt::settings_pack::enable_upnp, false);
@@ -536,6 +537,19 @@ char* lt_rename_file(lt_session* s, char const* hash, int file, char const* name
 char* lt_force_recheck(lt_session* s, char const* hash)
 {
 	return with_torrent(s, hash, [](lt::torrent_handle const& h) { h.force_recheck(); });
+}
+
+int lt_listen_port(lt_session* s)
+{
+	try { return s->ses.listen_port(); }
+	catch (std::exception const&) { return 0; }
+}
+
+char* lt_connect_peer(lt_session* s, char const* hash, char const* ip, int port)
+{
+	return with_torrent(s, hash, [=](lt::torrent_handle const& h) {
+		h.connect_peer(lt::tcp::endpoint(lt::make_address(ip), std::uint16_t(port)));
+	});
 }
 
 char* lt_status(lt_session* s, char const* hash, int with_pieces, char** err)

@@ -52,12 +52,14 @@ type sessionEntry struct {
 	Downloaded  int64 `json:"downloaded,omitempty"`
 	Uploaded    int64 `json:"uploaded,omitempty"`
 
-	// migrating: restored without resume data, so libtorrent doesn't know
-	// the unfinished data is in "<name>.part" files. It stays in upload mode
-	// until those names are applied (pendingRenames in flight) and the data
-	// is rechecked.
-	migrating      bool
+	// preparing: added without resume data (a new magnet, or a torrent from
+	// the anacrolix engine). It stays in upload mode, connected but
+	// downloading nothing, until its files have their part names
+	// (pendingRenames in flight) and any data already on disk is rechecked,
+	// so an unfinished file never appears under its real name.
+	preparing      bool
 	pendingRenames int
+	recheck        bool // a rename pointed at data already on disk
 }
 
 var (
@@ -91,7 +93,7 @@ func Start(dir string) error {
 	log.Println("Torrent engine (libtorrent) downloading to", dir)
 
 	for _, e := range loadSession() {
-		if _, err := add(e, addOptions{paused: e.Paused, restored: true}); err != nil {
+		if _, err := add(e, addOptions{paused: e.Paused}); err != nil {
 			log.Println("Could not resume torrent:", err)
 		}
 	}
@@ -123,8 +125,6 @@ func Add(magnet string) (string, error) {
 
 type addOptions struct {
 	paused bool
-	// restored: from the session file, so data may already be on disk
-	restored bool
 	// torrentFile adds a .torrent instead of the magnet (tests).
 	torrentFile string
 }
@@ -139,7 +139,7 @@ func add(e sessionEntry, o addOptions) (string, error) {
 	}
 	_, statErr := os.Stat(resume)
 	hasResume := resume != "" && statErr == nil
-	migrating := o.restored && !hasResume
+	preparing := !hasResume
 	hash, err := ses.Add(lt.AddParams{
 		Magnet:          e.Magnet,
 		TorrentFile:     o.torrentFile,
@@ -147,7 +147,7 @@ func add(e sessionEntry, o addOptions) (string, error) {
 		SavePath:        dataDir,
 		Paused:          o.paused,
 		Sequential:      e.Sequential,
-		UploadMode:      migrating,
+		UploadMode:      preparing,
 		MaxConnections:  maxConns(GetSettings()),
 		AddedTime:       e.AddedAt,
 		CompletedTime:   e.CompletedAt,
@@ -157,13 +157,17 @@ func add(e sessionEntry, o addOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	st, stErr := ses.Status(hash, false)
+	// resume data saved mid-preparation (e.g. at shutdown) restores it still
+	// in upload mode
+	preparing = preparing || (stErr == nil && st.UploadMode)
 
 	mu.Lock()
 	if _, ok := sessions[hash]; ok {
 		mu.Unlock()
 		return hash, nil // already added; keep its settings
 	}
-	e.Hash, e.migrating = hash, migrating
+	e.Hash, e.preparing = hash, preparing
 	if hasResume {
 		// libtorrent's resume data holds these now
 		e.Paused, e.AddedAt, e.CompletedAt, e.Downloaded, e.Uploaded = false, 0, 0, 0, 0
@@ -173,7 +177,7 @@ func add(e sessionEntry, o addOptions) (string, error) {
 	mu.Unlock()
 
 	// a resumed or .torrent add has its metadata already
-	if st, err := ses.Status(hash, false); err == nil && st.HasMetadata && !hasResume {
+	if preparing && stErr == nil && st.HasMetadata {
 		onMetadata(hash)
 	}
 	return hash, nil

@@ -31,8 +31,10 @@ type Settings struct {
 	UploadRateLimit   int
 	ActiveDownloads   int // -1 = unlimited
 	ConnectionsLimit  int
-	// Offline opens no sockets and finds no peers; for tests.
-	Offline bool
+	// Offline finds no peers by itself and listens only on OfflineListen
+	// ("" = nowhere, or e.g. "127.0.0.1:0"); for tests.
+	Offline       bool
+	OfflineListen string
 }
 
 type AddParams struct {
@@ -117,14 +119,17 @@ type Session struct {
 	p  *C.lt_session
 }
 
-func cSettings(s Settings) C.lt_settings {
+// cSettings converts s for one call; the returned func frees it.
+func cSettings(s Settings) (C.lt_settings, func()) {
+	listen, free := cStr(s.OfflineListen)
 	return C.lt_settings{
 		download_rate_limit: C.int(s.DownloadRateLimit),
 		upload_rate_limit:   C.int(s.UploadRateLimit),
 		active_downloads:    C.int(s.ActiveDownloads),
 		connections_limit:   C.int(s.ConnectionsLimit),
 		offline:             cBool(s.Offline),
-	}
+		offline_listen:      listen,
+	}, free
 }
 
 func cBool(b bool) C.int {
@@ -151,7 +156,8 @@ func cStr(s string) (*C.char, func()) {
 
 // New starts a session. stateFile keeps DHT state between runs.
 func New(s Settings, stateFile string) (*Session, error) {
-	cs := cSettings(s)
+	cs, freeSettings := cSettings(s)
+	defer freeSettings()
 	state, free := cStr(stateFile)
 	defer free()
 	var e *C.char
@@ -190,7 +196,8 @@ func (s *Session) onTorrent(hash string, f func(p *C.lt_session, h *C.char) *C.c
 }
 
 func (s *Session) ApplySettings(settings Settings) error {
-	cs := cSettings(settings)
+	cs, free := cSettings(settings)
+	defer free()
 	return s.call(func(p *C.lt_session) error {
 		C.lt_apply_settings(p, &cs)
 		return nil
@@ -273,6 +280,25 @@ func (s *Session) RenameFile(hash string, file int, name string) error {
 
 func (s *Session) ForceRecheck(hash string) error {
 	return s.onTorrent(hash, func(p *C.lt_session, h *C.char) *C.char { return C.lt_force_recheck(p, h) })
+}
+
+// ListenPort is the port the session listens on, 0 when not listening.
+func (s *Session) ListenPort() int {
+	var port C.int
+	_ = s.call(func(p *C.lt_session) error {
+		port = C.lt_listen_port(p)
+		return nil
+	})
+	return int(port)
+}
+
+// ConnectPeer connects the torrent to a known peer (tests).
+func (s *Session) ConnectPeer(hash, ip string, port int) error {
+	cip, free := cStr(ip)
+	defer free()
+	return s.onTorrent(hash, func(p *C.lt_session, h *C.char) *C.char {
+		return C.lt_connect_peer(p, h, cip, C.int(port))
+	})
 }
 
 // Statuses returns every torrent's status.

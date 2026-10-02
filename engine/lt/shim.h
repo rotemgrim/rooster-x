@@ -20,9 +20,11 @@ typedef struct {
 	int upload_rate_limit;
 	int active_downloads; // -1 = unlimited
 	int connections_limit; // across all torrents
-	// Offline opens no sockets and finds no peers (no listening, DHT, local
-	// discovery or port mapping); for tests. Only read by lt_create.
+	// Offline finds no peers by itself (no DHT, local discovery or port
+	// mapping) and only listens on offline_listen ("" = nowhere, or e.g.
+	// "127.0.0.1:0"); for tests. Only read by lt_create.
 	int offline;
+	const char* offline_listen;
 } lt_settings;
 
 typedef struct {
@@ -66,6 +68,11 @@ char* lt_set_max_connections(lt_session* s, const char* hash, int n);
 char* lt_set_piece_priorities(lt_session* s, const char* hash, const int* pieces, int n, int priority);
 char* lt_rename_file(lt_session* s, const char* hash, int file, const char* name);
 char* lt_force_recheck(lt_session* s, const char* hash);
+
+// The port the session listens on, 0 when not listening (tests).
+int lt_listen_port(lt_session* s);
+// Connects the torrent to a known peer (tests).
+char* lt_connect_peer(lt_session* s, const char* hash, const char* ip, int port);
 
 // JSON array of torrent statuses; with_pieces adds the verified-piece
 // bitfield as a "0"/"1" string. hash may be NULL for all torrents.
