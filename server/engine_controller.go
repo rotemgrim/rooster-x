@@ -63,6 +63,25 @@ func (s *Server) EnginePause(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, paused)
 }
 
+// EngineGetSettings returns the torrent client settings.
+func (s *Server) EngineGetSettings(c *websocket.Conn, req PayloadRequest) {
+	transmitPromiseResponse(c, req, engine.GetSettings())
+}
+
+// EngineSaveSettings stores and applies the torrent client settings.
+func (s *Server) EngineSaveSettings(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	seedDays, _ := data["seedDays"].(float64)
+	maxDown, _ := data["maxDownloadKiB"].(float64)
+	maxUp, _ := data["maxUploadKiB"].(float64)
+	st := engine.Settings{SeedDays: seedDays, MaxDownloadKiB: int(maxDown), MaxUploadKiB: int(maxUp)}
+	if err := engine.SaveSettings(st); err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not save settings: %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, engine.GetSettings())
+}
+
 // EngineRemove stops a torrent; with deleteFiles its downloaded files are
 // deleted too.
 func (s *Server) EngineRemove(c *websocket.Conn, req PayloadRequest) {

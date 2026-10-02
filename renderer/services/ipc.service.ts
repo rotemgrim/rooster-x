@@ -97,6 +97,14 @@ export class IpcService {
         return promiseIpc.send("engine-status", {}) as Promise<IEngineStatus[] | null>;
     }
 
+    public static engineGetSettings(): Promise<IEngineSettings> {
+        return promiseIpc.send("engine-get-settings", {}) as Promise<IEngineSettings>;
+    }
+
+    public static engineSaveSettings(settings: IEngineSettings): Promise<IEngineSettings> {
+        return promiseIpc.send("engine-save-settings", settings) as Promise<IEngineSettings>;
+    }
+
     public static getWatchProgress(kind: "movie" | "episode", id: number): Promise<null | {
         roosterId: string;
         kind: string;
@@ -412,6 +420,12 @@ export class IpcService {
         //     console.error('Error fetching Youtube trailer:', error);
         // }
     }
+}
+
+export interface IEngineSettings {
+    seedDays: number; // stop seeding this many days after completing, 0 = forever
+    maxDownloadKiB: number; // KiB/s, 0 = unlimited
+    maxUploadKiB: number;
 }
 
 export interface IEngineStatus {

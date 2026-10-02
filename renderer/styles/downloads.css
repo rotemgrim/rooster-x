@@ -57,6 +57,44 @@
     &.active { background: #3a3a3a; color: white; border-color: #555; }
     & i { font-size: 1.2em; }
   }
+  & .dl-settings-button {
+    margin-left: auto;
+  }
+}
+
+.dl-dialog.dl-settings {
+  & label {
+    display: grid;
+    grid-template-columns: 11em 1fr 3.5em;
+    gap: 0.6em;
+    margin-bottom: 0.7em;
+    cursor: default;
+  }
+  & input {
+    min-width: 0;
+    padding: 0.3em 0.5em;
+    background: #111;
+    color: white;
+    border: 1px solid #444;
+    font: inherit;
+    text-align: right;
+    &:focus { outline: none; border-color: #888; }
+  }
+  & .dl-hint {
+    font-size: 0.9em;
+    opacity: 0.65;
+    margin: 0.4em 0 0;
+  }
+  & .dl-error {
+    color: #f87171;
+    margin: 0.6em 0 0;
+  }
+  & .dl-dialog-buttons .primary {
+    background: #2f6d32;
+    border-color: #3d8a40;
+    color: white;
+    &:hover { background: #378039; }
+  }
 }
 
 .dl-table-wrap {

@@ -42,6 +42,8 @@ type sessionEntry struct {
 	// they were first seen.
 	AddedAt     int64 `json:"addedAt,omitempty"`
 	CompletedAt int64 `json:"completedAt,omitempty"`
+	// ResumedAt restarts the seeding time limit when a torrent is resumed.
+	ResumedAt int64 `json:"resumedAt,omitempty"`
 	// Payload bytes over all runs, for the share ratio.
 	Downloaded int64 `json:"downloaded,omitempty"`
 	Uploaded   int64 `json:"uploaded,omitempty"`
@@ -67,15 +69,18 @@ func Start(dir string) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
+	dataDir = dir
+	loadSettings()
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DataDir = dir
 	cfg.Seed = true
+	cfg.DownloadRateLimiter = downLimiter
+	cfg.UploadRateLimiter = upLimiter
 	c, err := torrent.NewClient(cfg)
 	if err != nil {
 		return fmt.Errorf("could not start torrent client: %w", err)
 	}
 	client = c
-	dataDir = dir
 	log.Println("Torrent engine downloading to", dir)
 
 	for _, e := range loadSession() {
@@ -181,6 +186,9 @@ func SetPaused(hash string, paused bool) error {
 	defer mu.Unlock()
 	if e, ok := sessions[t.InfoHash().HexString()]; ok {
 		e.Paused = paused
+		if !paused {
+			e.ResumedAt = time.Now().Unix()
+		}
 		saveSessionLocked()
 	}
 	return nil
@@ -497,6 +505,7 @@ func sampleLoop() {
 			return
 		case <-tick.C:
 		}
+		var seeded []string // finished seeding, to pause
 		for _, t := range client.Torrents() {
 			stats := t.Stats()
 			down := stats.BytesReadUsefulData.Int64()
@@ -512,8 +521,15 @@ func sampleLoop() {
 					e.CompletedAt = finishedAt(t)
 					saveSessionLocked()
 				}
+				if done && !e.Paused && seedingExpired(e, time.Now()) {
+					seeded = append(seeded, t.InfoHash().HexString())
+				}
 			}
 			mu.Unlock()
+		}
+		for _, hash := range seeded {
+			log.Println("Seeding time limit reached, pausing", hash)
+			_ = SetPaused(hash, true)
 		}
 		if n%saveEvery == 0 {
 			mu.Lock()

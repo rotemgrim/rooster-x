@@ -1,7 +1,7 @@
 import {LitElement, html, nothing, type TemplateResult} from "lit";
 import {customElement, state} from "lit/decorators.js";
 import {repeat} from "lit/directives/repeat.js";
-import {IpcService, type IEngineStatus} from "../services/ipc.service";
+import {IpcService, type IEngineSettings, type IEngineStatus} from "../services/ipc.service";
 
 type Torrent = IEngineStatus;
 type SortKey = keyof typeof COLUMNS;
@@ -160,6 +160,9 @@ export class DownloadsPage extends LitElement {
     @state() private tab: "general" | "content" = "general";
     @state() private menu: {x: number; y: number; hash: string} | null = null;
     @state() private deleting: {hash: string; name: string; deleteFiles: boolean} | null = null;
+    // the settings dialog's draft while it is open
+    @state() private settings: IEngineSettings | null = null;
+    @state() private settingsError = "";
     private pollTimer: number | undefined;
 
     public createRenderRoot() {
@@ -284,6 +287,7 @@ export class DownloadsPage extends LitElement {
         if (e.key === "Escape") {
             this.menu = null;
             this.deleting = null;
+            this.settings = null;
         } else if (e.key === "Delete" && this.current && !this.deleting && !(e.target as HTMLElement).closest("input")) {
             this.askDelete(this.current);
         }
@@ -489,6 +493,62 @@ export class DownloadsPage extends LitElement {
                     <i class="material-icons">${f.icon}</i>${f.label} (${this.torrents.filter(f.test).length})
                 </button>`;
             })}
+            <button class="dl-settings-button" title="BitTorrent settings" @click=${this.openSettings}>
+                <i class="material-icons">settings</i>Settings
+            </button>
+        </div>`;
+    }
+
+    private openSettings() {
+        this.settingsError = "";
+        IpcService.engineGetSettings()
+            .then(s => (this.settings = s))
+            .catch(err => console.error("could not load torrent settings", err));
+    }
+
+    private saveSettings(e: Event) {
+        e.preventDefault();
+        const form = e.target as HTMLFormElement;
+        const num = (name: string) => Math.max(0, Number((form.elements.namedItem(name) as HTMLInputElement).value) || 0);
+        IpcService.engineSaveSettings({
+            seedDays: num("seedDays"),
+            maxDownloadKiB: Math.round(num("maxDownloadKiB")),
+            maxUploadKiB: Math.round(num("maxUploadKiB")),
+        })
+            .then(() => (this.settings = null))
+            .catch(err => (this.settingsError = String(err)));
+    }
+
+    private renderSettingsDialog() {
+        const s = this.settings;
+        if (!s) {
+            return nothing;
+        }
+        return html`<div class="dl-dialog-backdrop" @click=${(e: Event) => e.target === e.currentTarget && (this.settings = null)}>
+            <form class="dl-dialog dl-settings" role="dialog" aria-modal="true" @submit=${this.saveSettings}>
+                <h3>BitTorrent settings</h3>
+                <label>
+                    <span>Stop seeding after</span>
+                    <input name="seedDays" type="number" min="0" step="any" .value=${String(s.seedDays)} />
+                    <span>days</span>
+                </label>
+                <label>
+                    <span>Max download speed</span>
+                    <input name="maxDownloadKiB" type="number" min="0" step="1" .value=${String(s.maxDownloadKiB)} />
+                    <span>KiB/s</span>
+                </label>
+                <label>
+                    <span>Max upload speed</span>
+                    <input name="maxUploadKiB" type="number" min="0" step="1" .value=${String(s.maxUploadKiB)} />
+                    <span>KiB/s</span>
+                </label>
+                <p class="dl-hint">0 means no limit. Seeding time counts from when a torrent finished or was last resumed; when it runs out the torrent is paused.</p>
+                ${this.settingsError ? html`<p class="dl-error">${this.settingsError}</p>` : nothing}
+                <div class="dl-dialog-buttons">
+                    <button type="button" @click=${() => (this.settings = null)}>Cancel</button>
+                    <button type="submit" class="primary">Save</button>
+                </div>
+            </form>
         </div>`;
     }
 
@@ -511,6 +571,7 @@ export class DownloadsPage extends LitElement {
             ${this.renderDetails()}
             ${this.renderMenu()}
             ${this.renderDeleteDialog()}
+            ${this.renderSettingsDialog()}
         </div>`;
     }
 }
