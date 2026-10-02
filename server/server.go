@@ -154,6 +154,7 @@ func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
+	defer wsWriteLocks.Delete(conn)
 
 	// Add the new connection to the clients map
 	s.mutex.Lock()
@@ -193,6 +194,20 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+// wsWriteLocks holds one write lock per connection. gorilla/websocket allows a
+// single concurrent writer, and replies (message handlers) and broadcasts
+// (sweeps, torrent status) write to the same connection from different
+// goroutines.
+var wsWriteLocks sync.Map // *websocket.Conn -> *sync.Mutex
+
+// writeWS sends a text frame, serialized with every other write to c.
+func writeWS(c *websocket.Conn, payload []byte) error {
+	mu, _ := wsWriteLocks.LoadOrStore(c, &sync.Mutex{})
+	mu.(*sync.Mutex).Lock()
+	defer mu.(*sync.Mutex).Unlock()
+	return c.WriteMessage(websocket.TextMessage, payload)
+}
+
 // BroadcastMessage Function to broadcast messages to all clients
 func (s Server) BroadcastMessage(message string) {
 	s.mutex.Lock()
@@ -212,7 +227,7 @@ func (s Server) BroadcastMessage(message string) {
 	}
 
 	for client := range s.clients {
-		err = client.WriteMessage(websocket.TextMessage, jsonResult)
+		err = writeWS(client, jsonResult)
 		if err != nil {
 			log.Println("Error writing message:", err)
 			client.Close()

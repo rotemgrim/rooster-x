@@ -35,7 +35,7 @@ func transmitPromiseResponse(c *websocket.Conn, req PayloadRequest, data interfa
 		log.Println("Error marshalling result:", err)
 		return
 	}
-	err = c.WriteMessage(websocket.TextMessage, jsonResult)
+	err = writeWS(c, jsonResult)
 	if err != nil {
 		log.Println("Error writing message:", err)
 	}
@@ -52,7 +52,7 @@ func transmitPromiseChunk(c *websocket.Conn, req PayloadRequest, data interface{
 		log.Println("Error marshalling chunk:", err)
 		return err
 	}
-	err = c.WriteMessage(websocket.TextMessage, jsonResult)
+	err = writeWS(c, jsonResult)
 	if err != nil {
 		log.Println("Error writing chunk message:", err)
 	}
@@ -70,7 +70,7 @@ func transmitPromiseReject(c *websocket.Conn, req PayloadRequest, data interface
 		log.Println("Error marshalling result:", err)
 		return
 	}
-	err = c.WriteMessage(websocket.TextMessage, jsonResult)
+	err = writeWS(c, jsonResult)
 	if err != nil {
 		log.Println("Error writing message:", err)
 	}
