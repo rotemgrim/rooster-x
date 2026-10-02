@@ -6,6 +6,19 @@ import {formatClock} from "../common/commonUtils";
 
 const SUBTITLES_OFF = "off";
 
+/** How the picture fits the screen: CSS object-fit values on the canvas. */
+const FIT_MODES = [
+    {id: "contain", label: "Fit"},
+    {id: "cover", label: "Fill (crop)"},
+    {id: "fill", label: "Stretch"},
+    {id: "none", label: "Original size"},
+] as const;
+type FitMode = typeof FIT_MODES[number]["id"];
+const FIT_STORAGE_KEY = "rooster.player.fit";
+
+const SKIP_MS = 10_000;
+const DOUBLE_TAP_MS = 350;
+
 /**
  * Full-screen player UI for a /file/<id> URL, backed by libmedia (see
  * services/playback-session.ts). Unlike the browser's native <video>, it
@@ -25,6 +38,7 @@ export class LibmediaPlayer extends LitElement {
     @state() private notice: string = "";
     @state() private playing: boolean = false;
     @state() private currentMs: number = 0;
+    @state() private fit: FitMode = loadFitMode();
     @state() private volume: number = 1;
     @state() private needsAudioUnlock: boolean = false;
     @state() private orientationLocked: boolean = false;
@@ -33,7 +47,12 @@ export class LibmediaPlayer extends LitElement {
     @query("#screen") private screen!: HTMLDivElement;
 
     private readonly touchDevice = matchMedia("(pointer: coarse)").matches;
-    private seeking: boolean = false;
+    /**
+     * Position to show instead of the player's while the user drags the seek
+     * bar or a seek is in flight; null otherwise.
+     */
+    private heldPositionMs: number | null = null;
+    private lastTap: {time: number; side: "left" | "right"} | null = null;
     private noticeTimer: number | undefined;
 
     static styles = css`
@@ -48,10 +67,15 @@ export class LibmediaPlayer extends LitElement {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
         }
         #surface { flex: 1; min-height: 0; position: relative; }
-        #screen { position: absolute; inset: 0; overflow: hidden; }
-        #screen > canvas, #screen > video { width: 100% !important; height: 100% !important; object-fit: contain; }
+        #screen { position: absolute; inset: 0; overflow: hidden; touch-action: manipulation; }
+        #screen > canvas, #screen > video {
+            width: 100% !important; height: 100% !important; object-fit: var(--fit, contain);
+        }
         /* AVPlayer adds an ASS subtitle overlay (svg + .ASS-box) here; it must not eat clicks. */
         #screen * { pointer-events: none; }
+
+        /* Controls scale with the screen, see uiScale(). */
+        .top, .bar { zoom: var(--ui-scale, 1); }
 
         .top {
             position: absolute;
@@ -116,7 +140,7 @@ export class LibmediaPlayer extends LitElement {
         const message = this.status || this.notice;
         return html`
             <div id="surface">
-                <div id="screen"></div>
+                <div id="screen" style="--fit: ${this.fit}" @pointerup=${this.onScreenTap}></div>
                 <div class="top">
                     <span class="name">${this.name}</span>
                     ${this.renderMode()}
@@ -135,17 +159,20 @@ export class LibmediaPlayer extends LitElement {
                        .value=${String(this.currentMs)}
                        @input=${this.onSeekInput}
                        @change=${this.onSeekCommit}/>
-                <input class="vol" type="range" min="0" max="1" step="0.05"
-                       .value=${String(this.volume)}
-                       @input=${this.onVolume}/>
+                ${this.touchDevice
+                    ? null
+                    : html`<input class="vol" type="range" min="0" max="1" step="0.05"
+                                  .value=${String(this.volume)}
+                                  @input=${this.onVolume}/>`}
                 ${session && session.audioTracks.length > 1
-                    ? renderTrackSelect("Audio track", "🔊", session.audioTracks,
+                    ? renderSelect("Audio track", "🔊", session.audioTracks,
                         String(session.selectedAudio), this.onAudioTrack)
                     : null}
                 ${session?.subtitleTracks.length
-                    ? renderTrackSelect("Subtitles", "💬", [{id: SUBTITLES_OFF, label: "Off"}, ...session.subtitleTracks],
+                    ? renderSelect("Subtitles", "💬", [{id: SUBTITLES_OFF, label: "Off"}, ...session.subtitleTracks],
                         String(session.selectedSubtitle ?? SUBTITLES_OFF), this.onSubtitleTrack)
                     : null}
+                ${renderSelect("Picture size", "⤢", FIT_MODES, this.fit, this.onFit)}
                 ${this.touchDevice
                     ? html`<button title=${this.orientationLocked ? "Unlock rotation" : "Lock rotation"}
                                    @click=${this.toggleOrientationLock}>${this.orientationLocked ? "🔒" : "🔓"}</button>`
@@ -173,7 +200,7 @@ export class LibmediaPlayer extends LitElement {
             this.status = "Opening file…";
             const session = await openPlaybackSession(this.screen, this.src, {
                 time: ms => {
-                    if (!this.seeking) this.currentMs = ms;
+                    if (this.heldPositionMs === null) this.currentMs = ms;
                 },
                 playing: () => { this.playing = true; },
                 paused: () => { this.playing = false; },
@@ -203,11 +230,14 @@ export class LibmediaPlayer extends LitElement {
     public connectedCallback() {
         super.connectedCallback();
         document.addEventListener("fullscreenchange", this.onFullscreenChange);
+        window.addEventListener("resize", this.applyUiScale);
+        this.applyUiScale();
     }
 
     public disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener("fullscreenchange", this.onFullscreenChange);
+        window.removeEventListener("resize", this.applyUiScale);
         this.session?.destroy().catch(e => console.warn("libmedia destroy failed:", e));
         this.session = null;
     }
@@ -234,14 +264,46 @@ export class LibmediaPlayer extends LitElement {
     };
 
     private onSeekInput = (e: Event) => {
-        this.seeking = true;
-        this.currentMs = Number((e.target as HTMLInputElement).value);
+        this.heldPositionMs = this.currentMs = Number((e.target as HTMLInputElement).value);
     };
 
-    private onSeekCommit = (e: Event) => {
+    private onSeekCommit = (e: Event) => this.seekTo(Number((e.target as HTMLInputElement).value));
+
+    private seekTo(ms: number) {
         if (!this.session) return;
-        const ms = Number((e.target as HTMLInputElement).value);
-        return this.act(this.session.seek(ms)).finally(() => { this.seeking = false; });
+        const target = Math.max(0, Math.min(ms, this.session.durationMs));
+        this.heldPositionMs = this.currentMs = target;
+        return this.act(this.session.seek(target)).finally(() => {
+            // A later seek may already be holding its own target.
+            if (this.heldPositionMs === target) this.heldPositionMs = null;
+        });
+    }
+
+    /**
+     * Double tap on the left / right half skips back / forward; every
+     * further quick tap on the same side skips again.
+     */
+    private onScreenTap = (e: PointerEvent) => {
+        const rect = this.screen.getBoundingClientRect();
+        const side = e.clientX < rect.left + rect.width / 2 ? "left" : "right";
+        const last = this.lastTap;
+        this.lastTap = {time: e.timeStamp, side};
+        if (!last || last.side !== side || e.timeStamp - last.time > DOUBLE_TAP_MS) return;
+        this.notify(side === "left" ? "⏪ −10s" : "⏩ +10s", 700);
+        return this.seekTo((this.heldPositionMs ?? this.currentMs) + (side === "left" ? -SKIP_MS : SKIP_MS));
+    };
+
+    private onFit = (e: Event) => {
+        this.fit = (e.target as HTMLSelectElement).value as FitMode;
+        try {
+            localStorage.setItem(FIT_STORAGE_KEY, this.fit);
+        } catch {
+            // Storage unavailable (private mode): the choice just isn't remembered.
+        }
+    };
+
+    private applyUiScale = () => {
+        this.style.setProperty("--ui-scale", String(uiScale(this.touchDevice)));
     };
 
     private onVolume = (e: Event) => {
@@ -305,10 +367,10 @@ export class LibmediaPlayer extends LitElement {
         if (!document.fullscreenElement) this.orientationLocked = false;
     };
 
-    private notify(message: string) {
+    private notify(message: string, durationMs = 3000) {
         this.notice = message;
         clearTimeout(this.noticeTimer);
-        this.noticeTimer = window.setTimeout(() => { this.notice = ""; }, 3000);
+        this.noticeTimer = window.setTimeout(() => { this.notice = ""; }, durationMs);
     }
 
     private close = () => {
@@ -321,10 +383,30 @@ export class LibmediaPlayer extends LitElement {
  * live(): the user's pick changes the DOM directly, so when an operation
  * fails and the state stays the same, the selection must still be reset.
  */
-function renderTrackSelect(title: string, icon: string, tracks: {id: number | string; label: string}[],
-                           selected: string, onChange: (e: Event) => void) {
+function renderSelect(title: string, icon: string, options: readonly {id: number | string; label: string}[],
+                      selected: string, onChange: (e: Event) => void) {
     return html`<select title=${title} @change=${onChange}>
-        ${tracks.map(t => html`
+        ${options.map(t => html`
             <option value=${t.id} .selected=${live(String(t.id) === selected)}>${icon} ${t.label}</option>`)}
     </select>`;
+}
+
+function loadFitMode(): FitMode {
+    try {
+        const saved = localStorage.getItem(FIT_STORAGE_KEY);
+        return FIT_MODES.find(m => m.id === saved)?.id ?? "contain";
+    } catch {
+        return "contain";
+    }
+}
+
+/**
+ * Size factor for the controls. Phones in "desktop site" mode lay the page
+ * out ~980px wide and shrink it to fit, which made the controls tiny: the
+ * ratio of the viewport's short side to the screen's undoes that. Touch
+ * screens also get larger tap targets.
+ */
+function uiScale(touchDevice: boolean): number {
+    const desktopSiteShrink = Math.min(innerWidth, innerHeight) / Math.min(screen.width, screen.height);
+    return Math.max(1, desktopSiteShrink) * (touchDevice ? 1.25 : 1);
 }

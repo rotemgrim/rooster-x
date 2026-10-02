@@ -50,6 +50,7 @@ export async function openPlaybackSession(container: HTMLDivElement, src: string
         wasmBaseUrl: new URL("/libmedia/wasm", location.origin).href,
     });
     attachHandlers(player, handlers);
+    player.on("firstVideoRendered", () => renderAtVideoSize(player));
     try {
         await player.load(url);
     } catch (e) {
@@ -57,6 +58,25 @@ export async function openPlaybackSession(container: HTMLDivElement, src: string
         throw e;
     }
     return new PlaybackSession(player, enableExactSeek(AVPlayerCtor, player));
+}
+
+/**
+ * AVPlayer sizes its canvas to the container when playback starts and never
+ * again, so after rotating a phone the picture was letterboxed twice and
+ * tiny. Render at the video's own display size instead (anamorphic pixels
+ * corrected) and let the UI scale the canvas with object-fit, which also
+ * gives it every fit mode. Runs on the first frame: the video renderer
+ * doesn't exist before that, so resize() would be a no-op.
+ */
+function renderAtVideoSize(player: AVPlayer) {
+    const video = player.getStreams().find(s => s.mediaType.toLowerCase() === "video");
+    if (!video) return;
+    const {width, height, sampleAspectRatio: sar} = video.codecparProxy;
+    if (!width || !height) return;
+    const pixelAspect = sar.num > 0 && sar.den > 0 ? sar.num / sar.den : 1;
+    // resize() takes CSS pixels and multiplies by devicePixelRatio; the
+    // canvas buffer should be the video's resolution, not more.
+    player.resize(width * pixelAspect / devicePixelRatio, height / devicePixelRatio);
 }
 
 export type {PlaybackSession};
