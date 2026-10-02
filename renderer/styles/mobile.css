@@ -215,6 +215,16 @@
       font-size: 1.6em;
       height: 40vh;
     }
+    /* the switches sit at the screen edge, so their Yes/No goes on the left */
+    & .tgl-btn {
+      flex: 0 0 auto;
+      margin-left: 3em;
+    }
+    & .tgl-light + .tgl-btn:before,
+    & .tgl-light:checked + .tgl-btn:before {
+      right: auto;
+      left: -2.8em;
+    }
     /* the settings page reuses this layout */
     & .section {
       margin-bottom: 1em;
