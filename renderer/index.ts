@@ -1,6 +1,8 @@
 
 import "./web-components/RoosterXWrapper";
 import "./styles/init.css";
+// after init.css so the phone overrides win
+import "./styles/mobile.css";
 // import "./index.html";
 
 // document.documentElement.innerHTML = require("./index.html");

@@ -23,6 +23,7 @@ import {type TorrentFile} from "../entity/TorrentFile";
 import {VideoCard} from "./VideoCard";
 import {TopBar} from "./TopBar";
 import {fromNow} from "../common/commonUtils";
+import {applyCardLayout, cardLayout} from "../common/layout";
 
 type OrderConfig = {
     directionDescending: boolean;
@@ -231,14 +232,15 @@ export class RoosterX extends LitElement {
                 return;
             }
 
-            const videosInARow = this.getNumOfVideosInARow();
+            const layout = cardLayout();
+            const videosInARow = layout.perRow;
             console.log("videosInARow", videosInARow);
 
-            const videoHeight = 314;
+            const videoHeight = layout.height;
             // @ts-ignore
             const totalVideos = this._filteredMedia?.length || 0;
             const videoRows = Math.ceil(totalVideos / videosInARow);
-            const height = videoRows * videoHeight + 22.4 * (videoRows - 1) + 44.8;
+            const height = videoRows * videoHeight + layout.gap * (videoRows - 1) + 2 * layout.gap;
             this.videos.style.height = `${height}px`;
             console.log("height", height);
 
@@ -254,7 +256,7 @@ export class RoosterX extends LitElement {
             if (videosOffset > 0) {
                 this.videos.style.paddingTop = (videosOffset / videosInARow) * rowHeight + "px";
             } else {
-                this.videos.style.paddingTop = "1.4rem";
+                this.videos.style.paddingTop = `${layout.gap}px`;
             }
 
             this.videos.parentElement?.addEventListener(
@@ -269,11 +271,12 @@ export class RoosterX extends LitElement {
 
     private calculateHeightOffsetWithGroups() {
         requestAnimationFrame(() => {
-            const videosInARow = this.getNumOfVideosInARow();
-            const videoHeight = 314;
+            const layout = cardLayout();
+            const videosInARow = layout.perRow;
+            const videoHeight = layout.height;
             const groupMargin = 0; //22.4; // Margin between groups
             const groupTitleHeight = 0; //32.35 + groupMargin; // Height of the group header/title
-            const rowGap = 22.4; // Gap between rows of cards
+            const rowGap = layout.gap; // Gap between rows of cards
             
             // Build group metadata
             const groupsMetadata: GroupMetaData[] = [];
@@ -336,7 +339,7 @@ export class RoosterX extends LitElement {
                 // Log for debugging
                 console.log(`Visible groups: ${this.visibleGroupsData.length}, First group: ${firstVisibleGroup.groupName}`);
             } else {
-                this.videos.style.paddingTop = "1.4rem";
+                this.videos.style.paddingTop = `${layout.gap}px`;
             }
 
                 // Re-attach scroll handler
@@ -402,22 +405,6 @@ export class RoosterX extends LitElement {
                 }
             }
         }
-    }
-
-    private getNumOfVideosInARow(): number {
-        // globalThis.videosScrollPos = this.videos.scrollTop;
-        const width = window.innerWidth - 10;
-
-        // calculate how many videos fit in a row, include gaps between them
-        let videosInARow: number = Math.floor(width / 224);
-        const estimatedWidth = videosInARow * 224 + (videosInARow - 1) * 22.4;
-        if (width > estimatedWidth) {
-            return videosInARow;
-        } else if (estimatedWidth >= width) {
-            videosInARow--;
-        }
-
-        return videosInARow;
     }
 
     /**
@@ -556,9 +543,9 @@ export class RoosterX extends LitElement {
             if (this.videos && Array.isArray(this._filteredMedia)) {
                 const idx = (this._filteredMedia as IMetaDataExtended[]).findIndex(m => m.id === id);
                 if (idx >= 0) {
-                    const videosInARow = this.getNumOfVideosInARow() || 1;
-                    const row = Math.floor(idx / videosInARow);
-                    const approxY = row * (314 + 22.4);
+                    const layout = cardLayout();
+                    const row = Math.floor(idx / layout.perRow);
+                    const approxY = row * (layout.height + layout.gap);
                     this.videos.parentElement?.scrollTo({top: approxY, behavior: "auto"});
                 }
             }
@@ -577,7 +564,26 @@ export class RoosterX extends LitElement {
         // load filter config from local storage
         this._orderConfig = this.orderConfig || this._orderConfig;
         this._filterConfig = this.filterConfig || this._filterConfig;
+        applyCardLayout();
+        window.addEventListener("resize", this.onResize);
     }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        window.removeEventListener("resize", this.onResize);
+    }
+
+    // Rotating a phone changes the poster size and how many fit in a row.
+    // Height-only resizes (a mobile address bar sliding away) change neither.
+    private layoutWidth = window.innerWidth;
+    private onResize = () => {
+        if (window.innerWidth === this.layoutWidth) {
+            return;
+        }
+        this.layoutWidth = window.innerWidth;
+        applyCardLayout();
+        this.requestUpdate();
+    };
 
     set showMsg(value: string) {
         this._sweepStatus = value;
@@ -1180,7 +1186,7 @@ export class RoosterX extends LitElement {
                 ? (this.listDetailId
                     ? html`<list-detail .rooster=${this} .listId=${this.listDetailId}></list-detail>`
                     : html`<rooster-lists .rooster=${this}></rooster-lists>`)
-                : html` <div style="overflow-y: auto; overflow-x: hidden; display: block; height: calc(100vh - 64px);">
+                : html` <div class="videos-scroll">
                       <div
                           class="videos"
                           tabindex="0"

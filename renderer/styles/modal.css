@@ -39,3 +39,31 @@
     }
   }
 }
+
+/* Poster actions, opened by a long press or right click on a library poster */
+.modal.action-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  width: min(360px, calc(100vw - 32px));
+  & h3 {
+    margin-bottom: 0.4em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  & button {
+    display: flex;
+    align-items: center;
+    gap: 0.7em;
+    min-height: 44px;
+    padding: 0 1em;
+    background: #2c2c2c;
+    color: #ddd;
+    border: 1px solid #444;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    &:hover { background: #383838; color: white; }
+  }
+}

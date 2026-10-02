@@ -1,6 +1,6 @@
 /* ---- Lists overview (horizontal rows w/ stacked-poster preview) --------- */
 .lists-page {
-  height: calc(100vh - var(--top-bar-height));
+  height: calc(100dvh - var(--top-bar-height));
   overflow-y: auto;
   padding: 1.5rem 2rem;
   color: white;
@@ -158,7 +158,7 @@
 
 /* ---- List detail (vertical rows with drag-to-reorder) ------------------- */
 .list-detail-page {
-  height: calc(100vh - var(--top-bar-height));
+  height: calc(100dvh - var(--top-bar-height));
   overflow-y: auto;
   padding: 1.5rem 2rem;
   color: white;

@@ -91,6 +91,11 @@
       color: var(--accent-color);
     }
   }
+  /* phone-only search controls, see mobile.css */
+  & .search-toggle,
+  & .search .search-close {
+    display: none;
+  }
   & .refresh {
     user-select: none;
     -webkit-app-region: no-drag;

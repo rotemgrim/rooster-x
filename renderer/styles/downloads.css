@@ -1,7 +1,7 @@
 .downloads-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--top-bar-height));
+  height: calc(100dvh - var(--top-bar-height));
   color: #ddd;
   font-size: 1.15em;
   background: rgba(var(--black-background-rgb), 0.85);
@@ -64,7 +64,7 @@
 
 .modal.torrent-settings {
   width: min(540px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   overflow-y: auto;
   & h4 {
     font-weight: normal;

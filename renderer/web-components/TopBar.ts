@@ -1,6 +1,6 @@
 
 import {LitElement, html} from "lit";
-import {customElement, property} from "lit/decorators.js";
+import {customElement, property, state} from "lit/decorators.js";
 import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";
 import score from "string-score";
@@ -13,6 +13,8 @@ export class TopBar extends LitElement {
     @property() public _searchTerm: string = "";
     @property() public showProfileMenu: boolean = false;
     @property() public _toggleTorrents: boolean = false;
+    // Phones collapse the search box into an icon that opens it over the bar.
+    @state() private searchOpen = false;
 
     @property() public hours: string = "";
     @property() public minutes: string = "";
@@ -148,6 +150,11 @@ export class TopBar extends LitElement {
         }
     }
 
+    private openSearch() {
+        this.searchOpen = true;
+        this.updateComplete.then(() => (this.querySelector(".search input") as HTMLInputElement)?.focus());
+    }
+
     private static close() {
         // IpcService.hideMe();
         window.open('javascript:window.open("", "_self", "");window.close();', '_self');
@@ -168,7 +175,7 @@ export class TopBar extends LitElement {
 
     public render() {
         return html`
-        <div class="top-bar">
+        <div class="top-bar ${this.searchOpen ? "search-open" : ""}">
             <div>
                 <div class="logo" tabindex="0" @click="${this.toggleSideBar}"></div>
                 <div tabindex="0" class="filter ${this.rooster.view === "folders" ? "active" : ""}" 
@@ -191,10 +198,14 @@ export class TopBar extends LitElement {
                      title="Downloads" @click="${this.showDownloads}">
                     <i class="material-icons">downloading</i>
                 </div>
-                <div tabindex="0" class="filter" @click="${this.showFilters}" style="display: block; color: white;">
+                <div tabindex="0" class="filter filters-btn" @click="${this.showFilters}">
                     <i class="material-icons">filter_list</i>
                 </div>
+                <div tabindex="0" class="filter search-toggle ${this._searchTerm ? "active" : ""}" @click="${this.openSearch}">
+                    <i class="material-icons">search</i>
+                </div>
                 <div class="search">
+                    <i class="material-icons search-close" @click=${() => (this.searchOpen = false)}>arrow_back</i>
                     <input type="text" placeholder="Search..." @input="${this.search}">
                     ${this._searchTerm ? html`<i class="material-icons" @click=${this.clearSearch}>backspace</i>` : ""}
                 </div>
@@ -208,7 +219,7 @@ export class TopBar extends LitElement {
             <div>
                 ${this.rooster && this.rooster.user ?
                     html`<div class="user" @click=${() => this.showProfileMenu = !this.showProfileMenu}>
-                        ${this.rooster.user.firstName}
+                        <span class="user-name">${this.rooster.user.firstName}</span>
                         <i class="material-icons">account_circle</i>
                         ${this.showProfileMenu ?
                             html`<ul>

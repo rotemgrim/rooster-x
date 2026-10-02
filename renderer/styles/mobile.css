@@ -1,0 +1,757 @@
+/*
+ * Phone and touch-screen overrides. The rest of the styles are sized for a
+ * TV; everything here only applies on narrow screens (same breakpoint as
+ * PHONE_QUERY in common/layout.ts) or on screens without hover.
+ */
+
+/* ---- Touch screens: nothing can be revealed by hovering ------------------ */
+@media (hover: none) {
+  /* play / download icon on episode thumbnails */
+  .video-details .episode .image i {
+    opacity: 0.85;
+  }
+  /* the watched toggle on the details poster and episode thumbnails */
+  .video-details .watch-btn {
+    border-bottom-color: rgba(139, 118, 56, 0.55);
+    &:after {
+      opacity: 0.8;
+    }
+  }
+  /* a tap leaves :hover stuck on, so don't let it undo the watched tint */
+  .watched:hover img,
+  .video:hover .poster.watched img {
+    filter: sepia(100%);
+  }
+  .top-bar .logo:hover {
+    animation: none;
+  }
+  .lists-page .ll-row .ll-actions {
+    opacity: 1;
+  }
+  .episode .title[alt]:hover:before {
+    display: none;
+  }
+  /* long press opens the poster actions instead of the system image menu */
+  .video {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+  }
+}
+
+@media (max-width: 700px) {
+  :root {
+    --top-bar-height: 52px;
+    --side-bar-width: min(80vw, 320px);
+  }
+
+  /* ---- Top bar ---------------------------------------------------------- */
+  .top-bar {
+    padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    box-sizing: border-box;
+
+    & > div:first-child {
+      flex: 1;
+      min-width: 0;
+    }
+    & .logo {
+      flex: 0 0 auto;
+      width: 48px;
+      height: var(--top-bar-height);
+      background-size: 100px 100px;
+    }
+    & .filter {
+      margin-left: 0;
+      padding: 0 5px;
+      & i {
+        font-size: 24px;
+        display: block;
+      }
+    }
+    & .filters-btn,
+    & .close {
+      display: none;
+    }
+    & .search-toggle {
+      display: block;
+      margin-left: auto;
+    }
+    /* the search box opens over the whole bar */
+    & .search {
+      display: none;
+    }
+    &.search-open > div:first-child {
+      z-index: 3;
+    }
+    &.search-open .search {
+      display: flex;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--top-bar-height);
+      padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+      background: var(--black-background);
+      z-index: 5;
+
+      & .search-close {
+        display: block;
+        left: 0;
+        padding: 0 12px;
+        font-size: 24px;
+      }
+      & input {
+        flex: 1;
+        min-width: 0;
+        width: auto;
+        /* 16px keeps iOS from zooming in on focus */
+        font-size: 18px;
+      }
+      & i:not(.search-close) {
+        left: 0;
+        padding: 0 12px;
+        font-size: 24px;
+      }
+    }
+    & .clock {
+      display: none;
+    }
+    & > div:last-child {
+      flex: 0 0 auto;
+    }
+    & .user {
+      position: static;
+      width: auto;
+      height: var(--top-bar-height);
+      font-size: 1.6em;
+      & .user-name {
+        display: none;
+      }
+      & i {
+        font-size: 26px;
+        margin: 0 6px;
+      }
+      & ul {
+        top: var(--top-bar-height);
+        left: auto;
+        right: 0;
+        width: 120px;
+        & li {
+          padding: 0.8em;
+        }
+      }
+    }
+    & .maximize {
+      position: static;
+      width: 40px;
+      font-size: 2em;
+    }
+  }
+
+  /* ---- Side bar and its panels (filters, settings) ---------------------- */
+  .side-bar {
+    &.open {
+      box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
+    }
+    & ul {
+      padding: 0.8em;
+      font-size: 1.8em;
+      & li {
+        padding: 0.6em;
+        min-height: 44px;
+        box-sizing: border-box;
+      }
+    }
+  }
+
+  .panel {
+    position: fixed;
+    top: var(--top-bar-height);
+    left: 0;
+    width: 100%;
+    height: calc(100dvh - var(--top-bar-height));
+    z-index: 3;
+
+    & .page {
+      padding: 1em 1em calc(1em + env(safe-area-inset-bottom));
+      overflow-y: auto;
+      & h1 {
+        font-size: 2em;
+      }
+    }
+  }
+
+  .filters-page {
+    overflow: auto;
+
+    & .page-body > div {
+      min-width: 0;
+    }
+    & .sorting,
+    & .filters-genres,
+    & .filters {
+      float: none;
+      position: static;
+      width: auto;
+      min-width: 0;
+      height: auto;
+      margin-top: 1.5em;
+    }
+    & ul li {
+      font-size: 1.3em;
+      height: auto;
+      min-height: 48px;
+      justify-content: space-between;
+      gap: 0.5em;
+      & h3 {
+        font-weight: normal;
+      }
+    }
+    & select {
+      font-size: 1.2em;
+      max-width: 55%;
+    }
+    & #noMediaWithoutGenres {
+      font-size: 1.6em;
+      height: 40vh;
+    }
+    /* the settings page reuses this layout */
+    & .section {
+      margin-bottom: 1em;
+    }
+    & button {
+      min-height: 40px;
+      padding: 0 1em;
+      margin: 0.3em 0.3em 0.3em 0;
+    }
+    & input[type="text"] {
+      max-width: 100%;
+      box-sizing: border-box;
+      margin: 0.3em 0;
+    }
+  }
+
+  /* ---- Library grid ----------------------------------------------------- */
+  .videos-scroll {
+    padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: border-box;
+  }
+  .videos .group-header {
+    min-width: 0;
+    width: calc(100% - 2 * var(--card-gap));
+    font-size: 1.5em;
+  }
+  .video {
+    box-shadow: inset 0 0 20px #000;
+    & .poster.k4:before {
+      font-size: 1.2rem;
+      bottom: 0.2rem;
+      left: 0.2rem;
+    }
+    & .watch-btn {
+      border-bottom-width: 36px;
+      border-left-width: 36px;
+      &:after {
+        font-size: 16px;
+        right: 2px;
+        bottom: -34px;
+      }
+    }
+  }
+  /* the filters and settings panels cover the whole screen */
+  body:has(.panel) .goTop {
+    display: none;
+  }
+  .goTop {
+    right: 0.5rem;
+    bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    font-size: 2.4rem;
+  }
+
+  /* ---- Movie / series details ------------------------------------------- */
+  /* opaque: on a small screen the library showing through is just noise */
+  video-details {
+    padding: env(safe-area-inset-top) 0 0 0;
+    background: #0b0b0b;
+  }
+  .video-details {
+    display: block;
+    padding: 0 12px calc(2em + env(safe-area-inset-bottom));
+    letter-spacing: 0.03em;
+
+    /* poster on the left, rating and actions on the right */
+    & .aside {
+      position: static;
+      float: none;
+      width: auto;
+      max-width: none;
+      height: auto;
+      margin: 0;
+      padding-top: 56px;
+      display: grid;
+      grid-template-columns: 42% 1fr;
+      column-gap: 12px;
+      align-items: start;
+
+      /* a floating back button that stays put while the page scrolls */
+      & .close {
+        position: fixed;
+        top: calc(8px + env(safe-area-inset-top));
+        left: 8px;
+        z-index: 2;
+        width: 44px;
+        height: 44px;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.65);
+        font-size: 0;
+        & i {
+          font-size: 26px;
+        }
+      }
+      & .poster {
+        grid-row: span 3;
+        width: 100%;
+        max-width: none;
+        & img {
+          display: block;
+          width: 100%;
+          max-width: 100%;
+        }
+        & .watch-btn {
+          border-bottom-width: 44px;
+          border-left-width: 44px;
+          &:after {
+            font-size: 20px;
+            right: 3px;
+            bottom: -41px;
+          }
+        }
+      }
+      & .original-poster {
+        width: 100%;
+      }
+      & .rating {
+        font-size: 4.5em;
+      }
+      & .votes {
+        font-size: 1.3em;
+        margin-top: 0;
+        & i {
+          font-size: 20px;
+          padding: 8px;
+        }
+      }
+      & .torrent-search,
+      & .subs {
+        width: 100%;
+        height: 44px;
+        margin: 8px 0 0;
+        font-size: 2.2em;
+        box-sizing: border-box;
+      }
+    }
+
+    & .main-details {
+      float: none;
+      padding: 1.5em 0 0;
+
+      & .header {
+        flex-direction: column;
+        padding-bottom: 1rem;
+        & > div:first-child {
+          padding-right: 0;
+        }
+        & .trailer {
+          align-items: stretch;
+          & iframe {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+          }
+          & i {
+            align-self: flex-end;
+            padding: 8px;
+          }
+        }
+      }
+      & input[type="text"] {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      & button {
+        max-width: 100%;
+        white-space: normal;
+      }
+    }
+    & h1 {
+      font-size: 2.4em;
+      overflow-wrap: anywhere;
+    }
+    & p {
+      font-size: 1.3em;
+      letter-spacing: 0.5px;
+    }
+    & .small-details {
+      margin: 1em 0;
+      font-size: 1.25em;
+    }
+    & .add-to-list-btn {
+      min-height: 40px;
+      margin: 0 0.4rem 0.5rem 0;
+      box-sizing: border-box;
+    }
+    & .info-grid {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* episodes become rows: thumbnail and title side by side, plot below */
+    & .episodes {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      gap: 14px;
+    }
+    & .episode {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 42% 1fr;
+      grid-template-areas:
+        "image title"
+        "plot plot";
+      column-gap: 10px;
+      row-gap: 6px;
+      letter-spacing: normal;
+
+      & .title {
+        grid-area: title;
+        align-self: center;
+        width: auto;
+        white-space: normal;
+        font-size: 1.3em;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+      }
+      & .image {
+        grid-area: image;
+        height: auto;
+        aspect-ratio: 16 / 9;
+        border-radius: 4px;
+        & i {
+          font-size: 3em;
+        }
+      }
+      & img {
+        min-width: 0;
+        min-height: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      & .img-missing span {
+        font-size: 1.1em;
+      }
+      & .ep-torrents-btn {
+        top: 4px;
+        left: 4px;
+      }
+      & .watch-btn {
+        border-bottom-width: 36px;
+        border-left-width: 36px;
+        &:after {
+          font-size: 16px;
+          right: 2px;
+          bottom: -34px;
+        }
+      }
+      & .plot {
+        grid-area: plot;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+        font-size: 1.15em;
+        line-height: 1.4;
+        opacity: 0.75;
+        &.open {
+          -webkit-line-clamp: unset;
+        }
+      }
+    }
+  }
+  episode-card {
+    float: none;
+    display: block;
+    width: 100%;
+  }
+
+  /* playable files and torrents: let the name wrap under the badges */
+  .media-file,
+  .torrent-file {
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: 0.3em;
+    & i {
+      font-size: 2.2em;
+    }
+    & .resolution,
+    & .audio,
+    & .quality,
+    & .peers,
+    & .engine-status {
+      font-size: 1.3em;
+    }
+    & .raw {
+      flex-basis: 100%;
+      margin-left: 0.2em;
+      overflow-wrap: anywhere;
+    }
+  }
+  .torrent-file .torrent-controls {
+    flex-wrap: wrap;
+    row-gap: 0.3em;
+  }
+  .media-file + .buttons {
+    width: 3em;
+  }
+
+  /* ---- Did-you-watch prompt --------------------------------------------- */
+  .did-you-watched {
+    padding-top: calc(8vh + env(safe-area-inset-top));
+    box-sizing: border-box;
+
+    & h2 {
+      font-size: 1.6em;
+    }
+    & h1 {
+      font-size: 2.2em;
+    }
+    & .main {
+      max-width: none;
+      padding: 1em 1.2em;
+      & p {
+        font-size: 1.3em;
+      }
+      & .confirm {
+        width: 100%;
+        gap: 12px;
+        & button {
+          flex: 1;
+          width: auto;
+          margin: 0;
+          font-size: 3em;
+        }
+      }
+    }
+  }
+
+  /* ---- Lists ------------------------------------------------------------ */
+  .lists-page,
+  .list-detail-page {
+    padding: 1rem 0.8rem calc(1rem + env(safe-area-inset-bottom));
+  }
+  .lists-page {
+    & .ll-row {
+      gap: 0.8rem;
+      padding: 0.8rem;
+      & .ll-stack {
+        width: 120px;
+        height: 100px;
+        & img {
+          left: calc(50% + (var(--i) - 2) * 14px);
+          width: 64px;
+          height: 96px;
+        }
+      }
+      & .ll-meta .ll-name {
+        font-size: 1.15rem;
+        white-space: normal;
+      }
+      & .ll-actions {
+        flex-direction: column;
+        & button {
+          padding: 0.55rem;
+        }
+      }
+    }
+  }
+  .list-detail-page {
+    & .ld-header {
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      & h1 {
+        font-size: 1.4rem;
+        flex-basis: 100%;
+        order: 1;
+      }
+    }
+    & .ld-row {
+      gap: 0.6rem;
+      & .ld-info .ld-title {
+        white-space: normal;
+      }
+      & .ld-info .ld-sub {
+        flex-wrap: wrap;
+      }
+      & .ld-info .ld-progress .ld-progress-track {
+        min-width: 0;
+      }
+      & .ld-watch,
+      & .ld-remove {
+        align-self: center;
+        padding: 0.55rem;
+      }
+    }
+  }
+
+  /* ---- Downloads: cards and a details sheet (DownloadsPage.renderPhone) -- */
+  .dl-filters {
+    overflow-x: auto;
+    & button {
+      flex: 0 0 auto;
+      min-height: 40px;
+      white-space: nowrap;
+    }
+  }
+  .downloads-page.phone {
+    & .dl-cards {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    & .dl-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 6px 4px;
+      padding: 10px 4px 10px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid #2a2a2a;
+      cursor: pointer;
+      & .dl-progress {
+        grid-column: 1 / -1;
+        margin-right: 6px;
+      }
+    }
+    & .dl-card-name {
+      display: flex;
+      align-items: flex-start;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      line-height: 1.35;
+      color: white;
+    }
+    & .dl-card-more {
+      align-self: start;
+      width: 40px;
+      height: 40px;
+      margin: -8px 0;
+      background: none;
+      border: none;
+      color: #bbb;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    & .dl-card-stats {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      font-size: 0.95em;
+      opacity: 0.8;
+    }
+    & .dl-state-icon {
+      flex: 0 0 auto;
+      font-size: 1.2em;
+      margin-right: 0.3em;
+    }
+    & .state-downloading .dl-state-icon, & .state-metadata .dl-state-icon { color: #6bec5d; }
+    & .state-checking .dl-state-icon { color: #9ccfd8; }
+    & .state-stalled .dl-state-icon { color: #b5d6a7; }
+    & .state-queued .dl-state-icon { color: #d6c27a; }
+    & .state-seeding .dl-state-icon { color: #7fb2ff; }
+    & .state-paused .dl-state-icon, & .state-completed .dl-state-icon { color: #999; }
+  }
+  .dl-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.6);
+  }
+  .dl-sheet {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 80dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #1a1a1a;
+    border-top: 1px solid #3a3a3a;
+    border-radius: 12px 12px 0 0;
+
+    & .dl-sheet-header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 4px 8px 14px;
+      color: white;
+      & .dl-sheet-name {
+        flex: 1;
+        overflow-wrap: anywhere;
+      }
+      & button {
+        flex: 0 0 auto;
+        width: 40px;
+        height: 40px;
+        background: none;
+        border: none;
+        color: #ccc;
+        font-size: 22px;
+        cursor: pointer;
+      }
+    }
+    & .dl-tabs {
+      border-top: none;
+      border-bottom: 1px solid #333;
+    }
+    /* the rest of the details styling comes from .dl-details */
+    & .dl-fields {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    & .dl-field span:first-child {
+      flex-basis: 8.5em;
+    }
+    & .dl-files td:nth-child(3) {
+      width: 80px;
+    }
+  }
+  /* the menu opens as a sheet along the bottom instead of at the tap */
+  .dl-menu {
+    left: 8px !important;
+    right: 8px;
+    top: auto !important;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    min-width: 0;
+    & li:not(.separator) {
+      min-height: 44px;
+      box-sizing: border-box;
+      white-space: normal;
+    }
+  }
+
+  /* ---- Dialogs ---------------------------------------------------------- */
+  .modal.torrent-settings label {
+    grid-template-columns: 1fr 5em 3em;
+  }
+  .atl-popup .atl-body .atl-row {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+}

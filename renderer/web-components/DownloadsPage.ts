@@ -6,6 +6,7 @@ import {formatBytes, formatDuration, formatSpeed, formatUnixDate} from "../commo
 import {modal} from "./dialog";
 import {playTorrentFile} from "./RemotePlayPicker";
 import "./TorrentSettingsDialog";
+import {PHONE_QUERY} from "../common/layout";
 
 type Torrent = IEngineStatus;
 
@@ -145,6 +146,9 @@ export class DownloadsPage extends LitElement {
     @state() private menu: {x: number; y: number; hash: string} | null = null;
     @state() private deleting: {hash: string; name: string; deleteFiles: boolean} | null = null;
     @state() private showSettings = false;
+    // Phones get a card per torrent and a details sheet instead of the table.
+    @state() private phone = false;
+    private phoneQuery = window.matchMedia(PHONE_QUERY);
     private pollTimer: number | undefined;
 
     public createRenderRoot() {
@@ -156,6 +160,8 @@ export class DownloadsPage extends LitElement {
         this.refresh();
         document.addEventListener("pointerdown", this.closeMenuOutside);
         document.addEventListener("keydown", this.onKey);
+        this.phone = this.phoneQuery.matches;
+        this.phoneQuery.addEventListener("change", this.onPhoneChange);
     }
 
     public disconnectedCallback() {
@@ -163,7 +169,12 @@ export class DownloadsPage extends LitElement {
         window.clearTimeout(this.pollTimer);
         document.removeEventListener("pointerdown", this.closeMenuOutside);
         document.removeEventListener("keydown", this.onKey);
+        this.phoneQuery.removeEventListener("change", this.onPhoneChange);
     }
+
+    private onPhoneChange = (e: MediaQueryListEvent) => {
+        this.phone = e.matches;
+    };
 
     private refresh() {
         window.clearTimeout(this.pollTimer);
@@ -241,9 +252,11 @@ export class DownloadsPage extends LitElement {
             () => this.persistPrefs());
     }
 
-    private openMenu(e: MouseEvent, t: Torrent) {
+    private openMenu(e: MouseEvent, t: Torrent, select = true) {
         e.preventDefault();
-        this.selected = t.infoHash;
+        if (select) {
+            this.selected = t.infoHash;
+        }
         // keep the menu on screen
         this.menu = {x: Math.min(e.clientX, window.innerWidth - 230), y: Math.min(e.clientY, window.innerHeight - 200), hash: t.infoHash};
     }
@@ -427,6 +440,72 @@ export class DownloadsPage extends LitElement {
         </table>`;
     }
 
+    private renderCard(t: Torrent) {
+        return html`<div class="dl-card state-${t.state}" @click=${() => (this.selected = t.infoHash)}>
+            <div class="dl-card-name">
+                <span class="dl-state-icon material-icons">${STATE_ICON[t.state]}</span><span>${t.name || t.infoHash}</span>
+            </div>
+            <button class="dl-card-more material-icons" title="Actions"
+                @click=${(e: MouseEvent) => {
+                    e.stopPropagation();
+                    this.openMenu(e, t, false);
+                }}>more_vert</button>
+            ${progressBar(progress(t))}
+            <div class="dl-card-stats">
+                <span>${STATE_LABEL[t.state]}</span>
+                ${t.hasInfo ? html`<span>${formatBytes(t.length)}</span>` : nothing}
+                ${t.downSpeed ? html`<span>↓ ${formatSpeed(t.downSpeed)}</span>` : nothing}
+                ${t.upSpeed ? html`<span>↑ ${formatSpeed(t.upSpeed)}</span>` : nothing}
+                ${!t.done && t.eta >= 0 ? html`<span>${formatDuration(t.eta)} left</span>` : nothing}
+            </div>
+        </div>`;
+    }
+
+    private renderSheet() {
+        const t = this.current;
+        if (!t) {
+            return nothing;
+        }
+        return html`<div class="dl-sheet-backdrop" @click=${(e: Event) => e.target === e.currentTarget && (this.selected = "")}>
+            <div class="dl-sheet dl-details" role="dialog" aria-modal="true">
+                <div class="dl-sheet-header">
+                    <span class="dl-sheet-name">${t.name || t.infoHash}</span>
+                    <button class="material-icons" title="Actions" @click=${(e: MouseEvent) => this.openMenu(e, t)}>more_vert</button>
+                    <button class="material-icons" title="Close" @click=${() => (this.selected = "")}>close</button>
+                </div>
+                <div class="dl-tabs">
+                    <button class="${this.tab === "general" ? "active" : ""}" @click=${() => (this.tab = "general")}>
+                        <i class="material-icons">info</i>General
+                    </button>
+                    <button class="${this.tab === "content" ? "active" : ""}" @click=${() => (this.tab = "content")}>
+                        <i class="material-icons">folder</i>Content
+                    </button>
+                </div>
+                <div class="dl-details-body">
+                    ${this.tab === "general" ? this.renderGeneral(t) : this.renderContent(t)}
+                </div>
+            </div>
+        </div>`;
+    }
+
+    private renderPhone() {
+        const rows = this.sorted;
+        return html`<div class="downloads-page phone">
+            ${this.renderFilters()}
+            <div class="dl-cards">
+                ${repeat(rows, t => t.infoHash, t => this.renderCard(t))}
+                ${!this.loaded ? nothing
+                    : !this.torrents.length ? html`<div class="dl-empty">No torrents yet. Start one from a movie or episode's torrent list.</div>`
+                    : !rows.length ? html`<div class="dl-empty">No ${this.filter.label.toLowerCase()} torrents.</div>`
+                    : nothing}
+            </div>
+            ${this.renderSheet()}
+            ${this.renderMenu()}
+            ${this.renderDeleteDialog()}
+            ${this.showSettings ? html`<torrent-settings-dialog @close=${() => (this.showSettings = false)}></torrent-settings-dialog>` : nothing}
+        </div>`;
+    }
+
     private renderDetails() {
         const t = this.current;
         return html`<div class="dl-splitter" @pointerdown=${this.resizeDetails}></div>
@@ -447,6 +526,9 @@ export class DownloadsPage extends LitElement {
     }
 
     public render() {
+        if (this.phone) {
+            return this.renderPhone();
+        }
         const tableWidth = COLUMNS.reduce((sum, c) => sum + this.width(c), 0);
         const rows = this.sorted;
         return html`<div class="downloads-page">

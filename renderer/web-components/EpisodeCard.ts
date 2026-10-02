@@ -1,5 +1,5 @@
 import {LitElement, html, PropertyValues} from "lit";
-import {customElement, property} from "lit/decorators.js";
+import {customElement, property, state} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import {type MediaFile} from "../entity/MediaFile";
 import {VideoDetails} from "./VideoDetails";
@@ -24,6 +24,8 @@ export class EpisodeCard extends LitElement {
         duration: number;
         finished: boolean;
     } = null;
+    // The plot is clamped to a few lines on phones; tapping it shows all of it.
+    @state() private plotOpen = false;
 
     public createRenderRoot() {
         return this;
@@ -90,6 +92,8 @@ export class EpisodeCard extends LitElement {
     }
 
     private setWatch(e) {
+        // the button sits on the thumbnail, which plays the episode
+        e.stopPropagation();
         let isWatched;
         if (e.target.hasAttribute("checked")) {
             console.log("set unwatched");
@@ -143,11 +147,6 @@ export class EpisodeCard extends LitElement {
                         .padStart(2, "0")}
                     - ${this.episode.title}
                 </span>
-                <div
-                    class="watch-btn"
-                    @click=${this.setWatch}
-                    ?checked=${this.episode.isWatched}
-                    title="${this.episode.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
                 ${this.episode.mediaFiles?.length > 0 && this.episode.torrentFiles?.length > 0
                     ? html`<div class="ep-torrents-btn ${this.isShowDownloadOptions ? "open" : ""}"
                           title="${this.isShowDownloadOptions ? "Hide" : "Show"} ${this.episode.torrentFiles.length} torrents"
@@ -167,8 +166,13 @@ export class EpisodeCard extends LitElement {
                               alt="${this.episode.title}" />`
                         : html`<div class="img-missing"><span>${this.episode.title}</span></div>`}
                     ${this.renderWatchProgress()}
+                    <div
+                        class="watch-btn"
+                        @click=${this.setWatch}
+                        ?checked=${this.episode.isWatched}
+                        title="${this.episode.isWatched ? `Set Unwatched` : `Set Watched`}"></div>
                 </div>
-                <span class="plot">${this.episode.plot}</span>
+                <span class="plot ${this.plotOpen ? "open" : ""}" @click=${() => (this.plotOpen = !this.plotOpen)}>${this.episode.plot}</span>
             </div>
             ${this.isShowPlayOptions ? html`<br />${this.episode.mediaFiles.map(f => this.fileOptions(f))}` : ""}
             ${this.isShowDownloadOptions

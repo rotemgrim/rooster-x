@@ -66,17 +66,24 @@ body.no-scroll {
   }
 }
 
+.videos-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: block;
+  height: calc(100dvh - var(--top-bar-height));
+}
+
 .videos {
   position: relative;
-  height: calc(100vh - var(--top-bar-height));
+  height: calc(100dvh - var(--top-bar-height));
   overflow-x: auto;
   user-select: none;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 1.4rem;
-  padding: 1.4rem 0;
+  gap: var(--card-gap, 1.4rem);
+  padding: var(--card-gap, 1.4rem) 0;
   box-sizing: border-box;
 
   & .group-header {
@@ -133,7 +140,7 @@ body.no-scroll {
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 1.4rem;
+      gap: var(--card-gap, 1.4rem);
       flex-direction: row;
       width: 100%;
     }
@@ -171,8 +178,8 @@ video-card {
 }
 
 .video {
-  width: 224px;
-  height: 314px;
+  width: var(--card-w, 224px);
+  height: var(--card-h, 314px);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -202,8 +209,8 @@ video-card {
     }
 
     & img {
-      width: 224px;
-      height: 314px;
+      width: var(--card-w, 224px);
+      height: var(--card-h, 314px);
       z-index: -1;
     }
   }

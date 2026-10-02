@@ -1,6 +1,6 @@
 .panel {
   width: calc(100% - var(--side-bar-width));
-  height: calc(100vh - var(--top-bar-height));
+  height: calc(100dvh - var(--top-bar-height));
   background-color: transparent;
   position: absolute;
   right: 0;

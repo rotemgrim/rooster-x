@@ -2,6 +2,7 @@ import {LitElement, html} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import {formatClock} from "../common/commonUtils";
+import {isPhone} from "../common/layout";
 import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
@@ -639,7 +640,7 @@ export class VideoDetails extends LitElement {
                                       alt="${this.video.title}"
                                       class="video-poster-card-trans" />
                                   <img
-                                      src="${this.video.poster.replace("/w300/", "/original/")}"
+                                      src="${this.video.poster.replace("/w300/", isPhone() ? "/w780/" : "/original/")}"
                                       alt="${this.video.title}"
                                       class="original-poster" />`
                             : html` <div class="img-missing"><span>${this.video.title}</span></div>`}

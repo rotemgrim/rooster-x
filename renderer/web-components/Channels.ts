@@ -31,7 +31,7 @@ class RoosterChannels extends LitElement {
 
         .video-container {
             flex: 1;
-            height: calc(100vh - 4rem);
+            height: calc(100dvh - var(--top-bar-height, 4rem));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -42,7 +42,7 @@ class RoosterChannels extends LitElement {
         .video-container:fullscreen,
         .video-container:-webkit-full-screen {
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
         }
 
         video {
@@ -178,7 +178,7 @@ class RoosterChannels extends LitElement {
             display: flex;
             flex-direction: column;
             width: var(--sidebar-width);
-            height: calc(100vh - 4rem);
+            height: calc(100dvh - var(--top-bar-height, 4rem));
             background: var(--bg-1);
             border-left: 1px solid var(--border);
         }
@@ -410,6 +410,49 @@ class RoosterChannels extends LitElement {
             font-size: 0.85rem;
         }
         .list.grid-view .mark-broken-btn { display: none; }
+
+        /* Touch screens can't hover a row, so offer it on the playing one. */
+        @media (hover: none) {
+            .list li.playing .mark-broken-btn { opacity: 1; }
+        }
+
+        /* Phones: the player on top, the channel list filling the rest. */
+        @media (max-width: 700px) {
+            :host {
+                flex-direction: column;
+                height: calc(100dvh - var(--top-bar-height, 4rem));
+            }
+            .video-container {
+                flex: none;
+                height: auto;
+                aspect-ratio: 16 / 9;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                flex: 1;
+                min-height: 0;
+                border-left: none;
+                border-top: 1px solid var(--border);
+            }
+            .list {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+            .list li {
+                min-height: 44px;
+                box-sizing: border-box;
+            }
+            .icon-btn {
+                width: 40px;
+                height: 40px;
+            }
+            .search-input {
+                font-size: 16px;
+            }
+            .channel-osd {
+                max-width: 80%;
+            }
+        }
     `;
 
     @state() private isLoading = true;
