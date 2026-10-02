@@ -48,7 +48,16 @@ type GroupMetaData = {
     isExpanded: boolean;
 }
 
-type View = "folders" | "torrents" | "channels" | "lists" | "downloads";
+const VIEWS = ["folders", "torrents", "channels", "lists", "downloads"] as const;
+type View = typeof VIEWS[number];
+const isView = (v: unknown): v is View => VIEWS.includes(v as View);
+// Views that render their own page instead of the media grid, so they don't
+// stream the media dataset.
+const PAGE_VIEWS: ReadonlySet<View> = new Set<View>(["channels", "lists", "downloads"]);
+// /<view> or /<view>/<movie|series|tv|episode>/<id>; lists has its own shape.
+const GRID_ROUTE = new RegExp(
+    `^/(${VIEWS.filter(v => v !== "lists").join("|")})(?:/(?:movie|series|tv|episode)/(\\d+))?/?$`,
+);
 type Route = {view: View | null; id: number | null};
 
 // @ts-ignore
@@ -133,9 +142,7 @@ export class RoosterX extends LitElement {
         this._showTorrents = initialView === "torrents";
         this.saveLastView(initialView);
 
-        // The lists/channels views don't use the media grid dataset, so skip
-        // the initial stream when the user lands directly on one of them.
-        if (initialView !== "lists" && initialView !== "channels" && initialView !== "downloads") {
+        if (!PAGE_VIEWS.has(initialView)) {
             this.streamMedia({
                 filter: "all",
                 isTorrents: this._showTorrents,
@@ -434,9 +441,7 @@ export class RoosterX extends LitElement {
                 id: cardId !== null && Number.isFinite(cardId) ? cardId : null,
             };
         }
-        const m = window.location.pathname.match(
-            /^\/(folders|torrents|channels|downloads)(?:\/(?:movie|series|tv|episode)\/(\d+))?\/?$/,
-        );
+        const m = window.location.pathname.match(GRID_ROUTE);
         if (!m) return {view: null, id: null};
         const id = m[2] ? Number(m[2]) : null;
         return {
@@ -455,7 +460,7 @@ export class RoosterX extends LitElement {
     private getLastView(): View | null {
         try {
             const v = localStorage.getItem(RoosterX.LAST_VIEW_KEY);
-            if (v === "folders" || v === "torrents" || v === "channels" || v === "lists" || v === "downloads") return v;
+            if (isView(v)) return v;
         } catch (_) {}
         return null;
     }
@@ -488,7 +493,7 @@ export class RoosterX extends LitElement {
             history.pushState({view}, "", `/${view}`);
         }
 
-        if (view === "channels" || view === "lists" || view === "downloads") {
+        if (PAGE_VIEWS.has(view)) {
             this.closeSideBar && this.closeSideBar();
             return;
         }

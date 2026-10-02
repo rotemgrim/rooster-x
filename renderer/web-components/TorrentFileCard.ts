@@ -2,10 +2,9 @@ import {LitElement, html} from "lit";
 import {customElement, property, state} from "lit/decorators.js";
 import {type TorrentFile} from "../entity/TorrentFile";
 import {RoosterX} from "./RoosterX";
-import {IpcService, type IEngineStatus} from "../services/ipc.service";
+import {IpcService} from "../services/ipc.service";
+import {EngineService, largestVideo, type IEngineStatus} from "../services/engine.service";
 import {MediaFileCard} from "./MediaFileCard";
-
-const VIDEO_EXT = /\.(mkv|mp4|m4v|avi|mov|webm|ts|wmv)$/i;
 
 @customElement("torrent-file-card")
 export class TorrentFileCard extends LitElement {
@@ -32,7 +31,7 @@ export class TorrentFileCard extends LitElement {
         super.connectedCallback();
         // pick up torrents that are already downloading in the engine
         if (this.infoHash) {
-            IpcService.engineStatus(this.infoHash)
+            EngineService.status(this.infoHash)
                 .then(st => {
                     this.engine = st;
                     this.poll();
@@ -52,7 +51,7 @@ export class TorrentFileCard extends LitElement {
             return;
         }
         this.pollTimer = window.setTimeout(() => {
-            IpcService.engineStatus(this.infoHash)
+            EngineService.status(this.infoHash)
                 .then(st => (this.engine = st))
                 .catch(() => (this.engine = null))
                 .finally(() => this.engine && this.poll());
@@ -63,8 +62,8 @@ export class TorrentFileCard extends LitElement {
         if (this.engine) {
             return;
         }
-        IpcService.engineAdd(this.torrentFile.magnet)
-            .then(() => IpcService.engineStatus(this.infoHash))
+        EngineService.add(this.torrentFile.magnet)
+            .then(() => EngineService.status(this.infoHash))
             .then(st => {
                 this.engine = st;
                 this.poll();
@@ -79,21 +78,16 @@ export class TorrentFileCard extends LitElement {
 
     private play(e: Event) {
         e.stopPropagation();
-        const files = (this.engine?.files ?? []).filter(f => VIDEO_EXT.test(f.path));
-        if (!files.length) {
-            return;
+        const video = largestVideo(this.engine?.files);
+        if (video) {
+            EngineService.play(this.infoHash, video);
         }
-        const f = files.reduce((a, b) => (b.length > a.length ? b : a));
-        const name = encodeURIComponent(f.path.split("/").pop());
-        // plain http on the same host the UI was opened from; mpv rejects the
-        // self-signed cert used on :8443
-        IpcService.openInMPV(`http://${location.hostname}:8080/engine/stream/${this.infoHash}/${f.index}/${name}`);
     }
 
     private togglePause(e: Event) {
         e.stopPropagation();
         const paused = !this.engine.paused;
-        IpcService.enginePause(this.infoHash, paused)
+        EngineService.setPaused(this.infoHash, paused)
             .then(() => {
                 this.engine = {...this.engine, paused};
                 this.poll();
@@ -107,7 +101,7 @@ export class TorrentFileCard extends LitElement {
         if (!window.confirm(`Delete "${name}" and its downloaded files?`)) {
             return;
         }
-        IpcService.engineRemove(this.infoHash, true)
+        EngineService.remove(this.infoHash, true)
             .then(() => {
                 window.clearTimeout(this.pollTimer);
                 this.engine = null;
@@ -118,7 +112,7 @@ export class TorrentFileCard extends LitElement {
     private toggleSequential(e: Event) {
         e.stopPropagation();
         const on = (e.target as HTMLInputElement).checked;
-        IpcService.engineSetSequential(this.infoHash, on)
+        EngineService.setSequential(this.infoHash, on)
             .then(() => (this.engine = {...this.engine, sequential: on}))
             .catch(err => console.error("could not change download order", err));
     }
@@ -162,7 +156,7 @@ export class TorrentFileCard extends LitElement {
         }
         const pct = st.hasInfo && st.length ? Math.floor((st.completed / st.length) * 100) : 0;
         const label = st.paused ? `paused · ${pct}%` : st.hasInfo ? `${pct}%` : "fetching info…";
-        const canPlay = (st.files ?? []).some(f => VIDEO_EXT.test(f.path));
+        const canPlay = !!largestVideo(st.files);
         return html`<div class="engine-status" title="${st.seeders} seeders connected">
             ${label} · ${st.peers} peers
             ${canPlay ? html`<i class="material-icons engine-play" title="Stream in mpv" @click=${this.play}>play_circle</i>` : ""}

@@ -5,7 +5,7 @@ import {type User} from "../entity/User";
 import {type MetaData} from "../entity/MetaData";
 import {type Episode} from "../entity/Episode";
 
-const promiseIpc = new RendererPromiseIpc({ maxTimeoutMs: 120000 });
+export const promiseIpc = new RendererPromiseIpc({ maxTimeoutMs: 120000 });
 const ipcRenderer = promiseIpc.IpcRenderer();
 
 export class IpcService {
@@ -70,39 +70,6 @@ export class IpcService {
 
     public static openInMPV(url: string, id?: string | number) {
         ipcRenderer.send("open-in-mpv", {url, id});
-    }
-
-    // Built-in torrent engine
-    public static engineAdd(magnet: string): Promise<string> {
-        return promiseIpc.send("engine-add", {magnet}) as Promise<string>;
-    }
-
-    public static engineSetSequential(infoHash: string, sequential: boolean): Promise<boolean> {
-        return promiseIpc.send("engine-set-sequential", {infoHash, sequential}) as Promise<boolean>;
-    }
-
-    public static enginePause(infoHash: string, paused: boolean): Promise<boolean> {
-        return promiseIpc.send("engine-pause", {infoHash, paused}) as Promise<boolean>;
-    }
-
-    public static engineRemove(infoHash: string, deleteFiles: boolean) {
-        return promiseIpc.send("engine-remove", {infoHash, deleteFiles});
-    }
-
-    public static engineStatus(infoHash: string): Promise<IEngineStatus> {
-        return promiseIpc.send("engine-status", {infoHash}) as Promise<IEngineStatus>;
-    }
-
-    public static engineList(): Promise<IEngineStatus[] | null> {
-        return promiseIpc.send("engine-status", {}) as Promise<IEngineStatus[] | null>;
-    }
-
-    public static engineGetSettings(): Promise<IEngineSettings> {
-        return promiseIpc.send("engine-get-settings", {}) as Promise<IEngineSettings>;
-    }
-
-    public static engineSaveSettings(settings: IEngineSettings): Promise<IEngineSettings> {
-        return promiseIpc.send("engine-save-settings", settings) as Promise<IEngineSettings>;
     }
 
     public static getWatchProgress(kind: "movie" | "episode", id: number): Promise<null | {
@@ -422,42 +389,3 @@ export class IpcService {
     }
 }
 
-export interface IEngineSettings {
-    // a finished torrent stops seeding at either limit, 0 = no limit
-    seedDays: number;
-    ratioLimit: number;
-    seedEndAction: "pause" | "remove"; // remove keeps the files
-    maxDownloadKiB: number; // KiB/s, 0 = unlimited
-    maxUploadKiB: number;
-    maxActiveDownloads: number; // 0 = unlimited
-    maxConnsPerTorrent: number; // 0 = default (50)
-    sequentialByDefault: boolean;
-    addPaused: boolean;
-}
-
-export interface IEngineStatus {
-    infoHash: string;
-    name: string;
-    hasInfo: boolean;
-    length: number;
-    completed: number;
-    peers: number; // connected, seeders included
-    seeders: number;
-    knownPeers: number;
-    sequential: boolean;
-    paused: boolean;
-    state: "metadata" | "downloading" | "stalled" | "queued" | "seeding" | "paused" | "completed";
-    downSpeed: number; // bytes/s
-    upSpeed: number;
-    downloaded: number; // payload bytes over all runs
-    uploaded: number;
-    addedAt: number; // unix seconds, 0 = unknown
-    completedAt: number;
-    availability: number;
-    numPieces: number;
-    pieceLength: number;
-    piecesComplete: number;
-    savePath: string;
-    // chunks: 100 digits (0-9), how much of each 1% slice of the file is downloaded
-    files: {index: number; path: string; length: number; completed: number; chunks?: string}[] | null;
-}

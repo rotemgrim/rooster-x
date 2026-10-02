@@ -10,6 +10,7 @@
 @import "did-you-watched.css";
 @import "user-page.css";
 @import "lists.css";
+@import "modal.css";
 @import "downloads.css";
 
 * {

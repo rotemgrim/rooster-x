@@ -6,24 +6,28 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"time"
 
-	"github.com/anacrolix/torrent"
 	"golang.org/x/time/rate"
 )
 
 const settingsFile = ".roosterx-engine.json"
 
+// SeedEndAction is what happens to a torrent that reached a seeding limit.
+type SeedEndAction string
+
+const (
+	SeedEndPause  SeedEndAction = "pause"
+	SeedEndRemove SeedEndAction = "remove" // drop it from the list, keep the files
+)
+
 // Settings are the user-adjustable options of the torrent client.
 type Settings struct {
 	// A finished torrent stops seeding when either limit is reached, counted
 	// from when it completed or was last resumed. 0 = no limit.
-	SeedDays   float64 `json:"seedDays"`
-	RatioLimit float64 `json:"ratioLimit"`
-	// SeedEndAction is "pause", or "remove" to drop the torrent from the list
-	// and keep its files.
-	SeedEndAction string `json:"seedEndAction"`
+	SeedDays      float64       `json:"seedDays"`
+	RatioLimit    float64       `json:"ratioLimit"`
+	SeedEndAction SeedEndAction `json:"seedEndAction"`
 	// Speed caps in KiB/s, 0 = unlimited.
 	MaxDownloadKiB int `json:"maxDownloadKiB"`
 	MaxUploadKiB   int `json:"maxUploadKiB"`
@@ -39,8 +43,10 @@ type Settings struct {
 
 const defaultConnsPerTorrent = 50
 
+var defaultSettings = Settings{SeedDays: 2, SeedEndAction: SeedEndPause, SequentialByDefault: true}
+
 var (
-	settings = Settings{SeedDays: 2, SeedEndAction: "pause", SequentialByDefault: true}
+	settings = defaultSettings
 
 	// Our own limiters (anacrolix's default upload limiter is a shared
 	// global). The 1 MiB burst must exceed the largest single read/chunk.
@@ -62,20 +68,23 @@ func SaveSettings(s Settings) error {
 	}
 	s.SeedDays = max(s.SeedDays, 0)
 	s.RatioLimit = max(s.RatioLimit, 0)
-	if s.SeedEndAction != "remove" {
-		s.SeedEndAction = "pause"
+	if s.SeedEndAction != SeedEndRemove {
+		s.SeedEndAction = SeedEndPause
 	}
 	s.MaxDownloadKiB = max(s.MaxDownloadKiB, 0)
 	s.MaxUploadKiB = max(s.MaxUploadKiB, 0)
 	s.MaxActiveDownloads = max(s.MaxActiveDownloads, 0)
 	s.MaxConnsPerTorrent = max(s.MaxConnsPerTorrent, 0)
+
+	applyLimits(s)
 	mu.Lock()
 	settings = s
-	mu.Unlock()
-	applyLimits(s)
-	for _, t := range client.Torrents() {
-		t.SetMaxEstablishedConns(maxConns(s))
+	for _, e := range sessions {
+		e.live.t.SetMaxEstablishedConns(maxConns(s))
 	}
+	reconcileAllLocked()
+	mu.Unlock()
+
 	b, _ := json.MarshalIndent(s, "", "  ")
 	return os.WriteFile(filepath.Join(dataDir, settingsFile), b, 0644)
 }
@@ -110,77 +119,31 @@ func maxConns(s Settings) int {
 	return defaultConnsPerTorrent
 }
 
-// seedingDone reports whether a finished torrent has reached its seeding
-// time or ratio limit. completed is the bytes it has on disk. Call with mu
-// held.
-func seedingDone(e *sessionEntry, completed int64, now time.Time) bool {
+// seedingDone reports whether a finished torrent reached its seeding time or
+// ratio limit. completed is the bytes it has on disk.
+func seedingDone(s Settings, e *sessionEntry, completed int64, now time.Time) bool {
 	if e.CompletedAt == 0 {
 		return false
 	}
-	if settings.SeedDays > 0 {
+	if s.SeedDays > 0 {
 		since := time.Unix(max(e.CompletedAt, e.ResumedAt), 0)
-		if now.Sub(since) >= time.Duration(settings.SeedDays*float64(24*time.Hour)) {
+		if now.Sub(since) >= time.Duration(s.SeedDays*float64(24*time.Hour)) {
 			return true
 		}
 	}
-	if settings.RatioLimit > 0 {
-		if base := ratioBase(e.Downloaded, completed); base > 0 {
-			return float64(e.Uploaded-e.ResumeUploaded)/float64(base) >= settings.RatioLimit
-		}
-	}
-	return false
+	return s.RatioLimit > 0 && shareRatio(e.Uploaded-e.ResumeUploaded, e.Downloaded, completed) >= s.RatioLimit
 }
 
-// ratioBase is what the share ratio divides by: the bytes downloaded from
-// peers, or the size on disk when the data mostly came from disk
-// (qBittorrent does the same).
-func ratioBase(downloaded, completed int64) int64 {
+// shareRatio is uploaded / downloaded, dividing by the size on disk instead
+// when the data mostly came from disk rather than peers (as qBittorrent
+// does).
+func shareRatio(uploaded, downloaded, completed int64) float64 {
+	base := downloaded
 	if downloaded < completed/100 {
-		return completed
+		base = completed
 	}
-	return downloaded
-}
-
-// applyQueue lets only the oldest MaxActiveDownloads unfinished, unpaused
-// torrents download and holds the rest as queued.
-func applyQueue(unfinished []*torrent.Torrent) {
-	var start, stop []*torrent.Torrent
-	mu.Lock()
-	sort.SliceStable(unfinished, func(i, j int) bool {
-		return addedAt(unfinished[i]) < addedAt(unfinished[j])
-	})
-	active := 0
-	for _, t := range unfinished {
-		e, ok := sessions[t.InfoHash().HexString()]
-		if !ok || e.Paused {
-			continue
-		}
-		queue := settings.MaxActiveDownloads > 0 && active >= settings.MaxActiveDownloads
-		if !queue {
-			active++
-		}
-		if queue != e.queued {
-			e.queued = queue
-			if queue {
-				stop = append(stop, t)
-			} else {
-				start = append(start, t)
-			}
-		}
+	if base <= 0 {
+		return 0
 	}
-	mu.Unlock()
-	for _, t := range stop {
-		t.DisallowDataDownload()
-	}
-	for _, t := range start {
-		t.AllowDataDownload()
-	}
-}
-
-// addedAt is for sorting; call with mu held.
-func addedAt(t *torrent.Torrent) int64 {
-	if e, ok := sessions[t.InfoHash().HexString()]; ok {
-		return e.AddedAt
-	}
-	return 0
+	return float64(uploaded) / float64(base)
 }

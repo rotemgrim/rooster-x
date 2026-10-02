@@ -62,7 +62,7 @@
   }
 }
 
-.dl-dialog.dl-settings {
+.modal.torrent-settings {
   width: min(540px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow-y: auto;
@@ -111,12 +111,6 @@
   & .dl-error {
     color: #f87171;
     margin: 0.6em 0 0;
-  }
-  & .dl-dialog-buttons .primary {
-    background: #2f6d32;
-    border-color: #3d8a40;
-    color: white;
-    &:hover { background: #378039; }
   }
 }
 
@@ -310,44 +304,5 @@
     &.disabled { opacity: 0.4; cursor: default; background: none; }
     &.separator { padding: 0; margin: 0.3em 0; border-top: 1px solid #333; cursor: default; }
     & i { font-size: 1.3em; }
-  }
-}
-
-.dl-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1001;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-}
-
-.dl-dialog {
-  width: min(480px, calc(100vw - 32px));
-  padding: 1.4em;
-  background: #1e1e1e;
-  border: 1px solid #3a3a3a;
-  color: #ddd;
-  font-size: 1.15em;
-  & h3 { font-weight: normal; margin-bottom: 0.8em; color: white; }
-  & p { margin-bottom: 1em; overflow-wrap: anywhere; }
-  & label { display: flex; align-items: center; gap: 0.5em; cursor: pointer; }
-  & .dl-dialog-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.6em;
-    margin-top: 1.4em;
-    & button {
-      padding: 0.4em 1.2em;
-      background: #2c2c2c;
-      color: #ddd;
-      border: 1px solid #444;
-      font: inherit;
-      cursor: pointer;
-      &:hover { background: #383838; }
-      &.danger { background: #8b1a1a; border-color: #a52a2a; color: white; }
-      &.danger:hover { background: #a52020; }
-    }
   }
 }

@@ -93,3 +93,41 @@ export function fromNow(date, nowDate = Date.now(), rft = new Intl.RelativeTimeF
         }
     }
 }
+
+const BYTE_UNITS = ["B", "KiB", "MiB", "GiB", "TiB"];
+
+// 1536 -> "1.5 KiB" (binary units, like torrent clients).
+export function formatBytes(bytes: number): string {
+    let i = 0;
+    while (bytes >= 1024 && i < BYTE_UNITS.length - 1) {
+        bytes /= 1024;
+        i++;
+    }
+    return `${i === 0 ? bytes : bytes.toFixed(1)} ${BYTE_UNITS[i]}`;
+}
+
+export const formatSpeed = (bytesPerSecond: number) => `${formatBytes(bytesPerSecond)}/s`;
+
+// 3900 -> "1h 5m"; negative (unknown) -> "∞".
+export function formatDuration(seconds: number): string {
+    if (seconds < 0) {
+        return "∞";
+    }
+    if (seconds < 60) {
+        return "< 1m";
+    }
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+}
+
+// Unix seconds -> local date and 24h time; 0 (unknown) -> "".
+export function formatUnixDate(unix: number): string {
+    if (!unix) {
+        return "";
+    }
+    return new Date(unix * 1000).toLocaleString(undefined, {
+        day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+}
