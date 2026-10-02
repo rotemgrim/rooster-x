@@ -5,7 +5,6 @@ db.sqlite
 /renderer/dist/
 /renderer/pnpm-lock.yaml
 /renderer/node_modules/
-/renderer/public/libmedia/
 /tmp/
 /.idea/
 /imdb_ratings.tsv.gz*

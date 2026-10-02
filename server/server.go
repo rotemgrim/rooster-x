@@ -28,6 +28,10 @@ type Server struct {
 	torrentsFetcher Sweeper
 }
 
+// httpsPort is the self-signed HTTPS listener, which remote devices need for
+// secure-context features (clipboard, share, multithreaded playback).
+const httpsPort = "8443"
+
 //go:embed static
 var static embed.FS
 
@@ -121,7 +125,7 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 	//	}
 	//}()
 
-	// Start HTTPS on 8443 alongside HTTP on 8080. The phone needs HTTPS
+	// Start HTTPS on httpsPort alongside HTTP on 8080. The phone needs HTTPS
 	// to unlock navigator.share and navigator.clipboard (both are gated
 	// on a "secure context"). The cert is self-signed so browsers show a
 	// one-time "Not secure" warning - proceed through it once per device.
@@ -131,8 +135,8 @@ func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
 			log.Println("HTTPS disabled -", err)
 			return
 		}
-		log.Println("HTTPS listening on :8443 (self-signed cert at", certPath, ")")
-		if err := http.ListenAndServeTLS(":8443", certPath, keyPath, nil); err != nil {
+		log.Println("HTTPS listening on :"+httpsPort+" (self-signed cert at", certPath, ")")
+		if err := http.ListenAndServeTLS(":"+httpsPort, certPath, keyPath, nil); err != nil {
 			log.Println("HTTPS server stopped:", err)
 		}
 	}()

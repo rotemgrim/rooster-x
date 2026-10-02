@@ -1,20 +1,15 @@
 import {html, LitElement, css} from "lit";
 import {customElement, property, query, state} from "lit/decorators.js";
-import type AVPlayer from "@libmedia/avplayer";
+import {live} from "lit/directives/live.js";
+import {openPlaybackSession, type PlaybackSession} from "../services/playback-session";
+import {formatClock} from "../common/commonUtils";
 
-interface AudioTrack {
-    id: number;
-    label: string;
-}
+const SUBTITLES_OFF = "off";
 
 /**
- * Full-screen overlay that plays a /file/<id> URL with libmedia's AVPlayer
- * (WebAssembly demux + decode). Unlike the browser's native <video>, it can
- * decode AC3 / E-AC3 / DTS audio inside MKV, so remote clients get sound.
- *
- * The player bundle and its decoder .wasm files are served from /libmedia/
- * (copied there by the Vite plugin in vite.config.ts and embedded in the Go
- * binary), so playback needs no internet access.
+ * Full-screen player UI for a /file/<id> URL, backed by libmedia (see
+ * services/playback-session.ts). Unlike the browser's native <video>, it
+ * decodes AC3 / E-AC3 / DTS audio inside MKV, so remote clients get sound.
  *
  * Dispatches a "close" event when dismissed.
  */
@@ -24,19 +19,22 @@ export class LibmediaPlayer extends LitElement {
     @property() public src: string = "";
     @property() public name: string = "";
 
+    /** Loading progress or a fatal error; empty while playing. */
     @state() private status: string = "Loading player…";
+    /** Short-lived message, see notify(). */
+    @state() private notice: string = "";
     @state() private playing: boolean = false;
     @state() private currentMs: number = 0;
-    @state() private durationMs: number = 0;
     @state() private volume: number = 1;
     @state() private needsAudioUnlock: boolean = false;
-    @state() private audioTracks: AudioTrack[] = [];
-    @state() private selectedAudio: number = -1;
+    @state() private orientationLocked: boolean = false;
+    @state() private session: PlaybackSession | null = null;
 
     @query("#screen") private screen!: HTMLDivElement;
 
-    private player: AVPlayer | null = null;
+    private readonly touchDevice = matchMedia("(pointer: coarse)").matches;
     private seeking: boolean = false;
+    private noticeTimer: number | undefined;
 
     static styles = css`
         :host {
@@ -50,8 +48,10 @@ export class LibmediaPlayer extends LitElement {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
         }
         #surface { flex: 1; min-height: 0; position: relative; }
-        #screen { position: absolute; inset: 0; }
-        #screen > * { width: 100% !important; height: 100% !important; object-fit: contain; }
+        #screen { position: absolute; inset: 0; overflow: hidden; }
+        #screen > canvas, #screen > video { width: 100% !important; height: 100% !important; object-fit: contain; }
+        /* AVPlayer adds an ASS subtitle overlay (svg + .ASS-box) here; it must not eat clicks. */
+        #screen * { pointer-events: none; }
 
         .top {
             position: absolute;
@@ -111,6 +111,9 @@ export class LibmediaPlayer extends LitElement {
     `;
 
     public render() {
+        const session = this.session;
+        const durationMs = session?.durationMs ?? 0;
+        const message = this.status || this.notice;
         return html`
             <div id="surface">
                 <div id="screen"></div>
@@ -119,27 +122,33 @@ export class LibmediaPlayer extends LitElement {
                     ${this.renderMode()}
                     <button @click=${this.close}>✕ Close</button>
                 </div>
-                ${this.status ? html`<div class="status">${this.status}</div>` : null}
+                ${message ? html`<div class="status">${message}</div>` : null}
                 ${this.needsAudioUnlock
                     ? html`<button class="big unlock" @click=${this.unlockAudio}>🔊 Tap to enable sound</button>`
                     : null}
             </div>
             <div class="bar">
                 <button @click=${this.togglePlay}>${this.playing ? "❚❚" : "▶"}</button>
-                <span class="time">${fmt(this.currentMs)} / ${fmt(this.durationMs)}</span>
+                <span class="time">${formatClock(this.currentMs / 1000)} / ${formatClock(durationMs / 1000)}</span>
                 <input class="seek" type="range" min="0" step="1000"
-                       .max=${String(this.durationMs || 0)}
+                       .max=${String(durationMs)}
                        .value=${String(this.currentMs)}
                        @input=${this.onSeekInput}
                        @change=${this.onSeekCommit}/>
                 <input class="vol" type="range" min="0" max="1" step="0.05"
                        .value=${String(this.volume)}
                        @input=${this.onVolume}/>
-                ${this.audioTracks.length > 1
-                    ? html`<select @change=${this.onAudioTrack}>
-                          ${this.audioTracks.map(t => html`
-                              <option value=${t.id} ?selected=${t.id === this.selectedAudio}>${t.label}</option>`)}
-                      </select>`
+                ${session && session.audioTracks.length > 1
+                    ? renderTrackSelect("Audio track", "🔊", session.audioTracks,
+                        String(session.selectedAudio), this.onAudioTrack)
+                    : null}
+                ${session?.subtitleTracks.length
+                    ? renderTrackSelect("Subtitles", "💬", [{id: SUBTITLES_OFF, label: "Off"}, ...session.subtitleTracks],
+                        String(session.selectedSubtitle ?? SUBTITLES_OFF), this.onSubtitleTrack)
+                    : null}
+                ${this.touchDevice
+                    ? html`<button title=${this.orientationLocked ? "Unlock rotation" : "Lock rotation"}
+                                   @click=${this.toggleOrientationLock}>${this.orientationLocked ? "🔒" : "🔓"}</button>`
                     : null}
                 <button @click=${this.toggleFullscreen}>⛶</button>
             </div>
@@ -161,79 +170,67 @@ export class LibmediaPlayer extends LitElement {
 
     protected async firstUpdated() {
         try {
-            // Runtime import from the copied dist; must not be bundled by Vite.
-            // A full URL (not "/libmedia/...") keeps the Vite dev server from
-            // rewriting it to "?import", which it refuses for public/ files.
-            const url = new URL("/libmedia/avplayer.js", location.origin).href;
-            const mod = await import(/* @vite-ignore */ url);
-            const AVPlayerCtor = mod.default as typeof AVPlayer;
-
-            const player = new AVPlayerCtor({
-                container: this.screen,
-                // Absolute: decoders are fetched from workers.
-                wasmBaseUrl: new URL("/libmedia/wasm", location.origin).href,
-            });
-            this.player = player;
-            this.bindEvents(player);
-
             this.status = "Opening file…";
-            // Decoding runs in workers, which can't resolve relative URLs.
-            await player.load(new URL(this.src, location.href).href);
-            this.durationMs = Number(player.getDuration());
-            this.loadAudioTracks(player);
-
-            await player.play();
+            const session = await openPlaybackSession(this.screen, this.src, {
+                time: ms => {
+                    if (!this.seeking) this.currentMs = ms;
+                },
+                playing: () => { this.playing = true; },
+                paused: () => { this.playing = false; },
+                audioLocked: () => { this.needsAudioUnlock = true; },
+                audioUnlocked: () => { this.needsAudioUnlock = false; },
+                error: err => {
+                    console.error("libmedia error:", err);
+                    this.status = `Error: ${err.message}`;
+                },
+            });
+            // Closed while loading: disconnectedCallback had nothing to destroy.
+            if (!this.isConnected) {
+                await session.destroy();
+                return;
+            }
+            this.session = session;
+            await session.play();
+            // Re-renders the selects too: AVPlayer picks the default tracks
+            // while starting playback.
             this.status = "";
         } catch (e) {
             console.error("libmedia player failed:", e);
-            this.status = `Playback failed: ${(e as Error)?.message || e}`;
+            this.status = `Playback failed: ${e instanceof Error ? e.message : String(e)}`;
         }
+    }
+
+    public connectedCallback() {
+        super.connectedCallback();
+        document.addEventListener("fullscreenchange", this.onFullscreenChange);
     }
 
     public disconnectedCallback() {
         super.disconnectedCallback();
-        this.player?.destroy().catch(e => console.warn("libmedia destroy failed:", e));
-        this.player = null;
+        document.removeEventListener("fullscreenchange", this.onFullscreenChange);
+        this.session?.destroy().catch(e => console.warn("libmedia destroy failed:", e));
+        this.session = null;
     }
 
-    private bindEvents(player: AVPlayer) {
-        player.on("time", (pts: bigint) => {
-            if (!this.seeking) this.currentMs = Number(pts);
-        });
-        player.on("played", () => { this.playing = true; });
-        player.on("paused", () => { this.playing = false; });
-        player.on("ended", () => { this.playing = false; });
-        player.on("resume", () => { this.needsAudioUnlock = true; });
-        player.on("audioContextRunning", () => { this.needsAudioUnlock = false; });
-        player.on("error", (err: Error) => {
-            console.error("libmedia error:", err);
-            this.status = `Error: ${err?.message || err}`;
-        });
+    /**
+     * Run a session operation, then re-render from the session's actual
+     * state, so on failure the selects snap back to what's really playing.
+     */
+    private act(op: Promise<void>): Promise<void> {
+        return op
+            .catch(e => console.warn("libmedia operation failed:", e))
+            .finally(() => this.requestUpdate());
     }
 
-    private loadAudioTracks(player: AVPlayer) {
-        const streams = player.getStreams().filter(s => s.mediaType.toLowerCase() === "audio");
-        this.audioTracks = streams.map((s, i) => {
-            const lang = s.metadata?.language || s.metadata?.LANGUAGE;
-            const title = s.metadata?.title || s.metadata?.TITLE;
-            const label = [title, lang].filter(Boolean).join(" · ") || `Track ${i + 1}`;
-            return {id: s.id, label};
-        });
-        this.selectedAudio = player.getSelectedAudioStreamId();
-    }
-
-    private togglePlay = async () => {
-        if (!this.player) return;
-        if (this.playing) {
-            await this.player.pause();
-        } else {
-            await this.player.play();
-        }
+    private togglePlay = () => {
+        if (!this.session) return;
+        return this.act(this.playing ? this.session.pause() : this.session.play());
     };
 
     private unlockAudio = async () => {
-        await this.player?.resume();
-        this.needsAudioUnlock = this.player?.isSuspended() ?? false;
+        if (!this.session) return;
+        await this.session.resumeAudio();
+        this.needsAudioUnlock = this.session.audioLocked;
     };
 
     private onSeekInput = (e: Event) => {
@@ -241,46 +238,93 @@ export class LibmediaPlayer extends LitElement {
         this.currentMs = Number((e.target as HTMLInputElement).value);
     };
 
-    private onSeekCommit = async (e: Event) => {
+    private onSeekCommit = (e: Event) => {
+        if (!this.session) return;
         const ms = Number((e.target as HTMLInputElement).value);
-        try {
-            await this.player?.seek(BigInt(ms));
-        } finally {
-            this.seeking = false;
-        }
+        return this.act(this.session.seek(ms)).finally(() => { this.seeking = false; });
     };
 
     private onVolume = (e: Event) => {
         this.volume = Number((e.target as HTMLInputElement).value);
-        this.player?.setVolume(this.volume);
+        this.session?.setVolume(this.volume);
     };
 
-    private onAudioTrack = async (e: Event) => {
-        const id = Number((e.target as HTMLSelectElement).value);
-        await this.player?.selectAudio(id);
-        this.selectedAudio = id;
+    private onAudioTrack = (e: Event) => {
+        if (!this.session) return;
+        return this.act(this.session.selectAudio(Number((e.target as HTMLSelectElement).value)));
     };
+
+    private onSubtitleTrack = (e: Event) => {
+        if (!this.session) return;
+        const value = (e.target as HTMLSelectElement).value;
+        return this.act(this.session.selectSubtitle(value === SUBTITLES_OFF ? null : Number(value)));
+    };
+
+    private async enterFullscreen() {
+        if (!document.fullscreenElement) await this.requestFullscreen();
+    }
+
+    private exitFullscreen() {
+        if (!document.fullscreenElement) return;
+        document.exitFullscreen().catch(e => console.warn("exit fullscreen failed:", e));
+    }
 
     private toggleFullscreen = () => {
         if (document.fullscreenElement) {
-            document.exitFullscreen();
+            this.exitFullscreen();
         } else {
-            this.requestFullscreen?.();
+            this.enterFullscreen().catch(e => console.warn("fullscreen failed:", e));
         }
     };
 
+    /**
+     * Lock the screen to its current orientation so the phone doesn't flip
+     * while watching in bed / on the side. Browsers only allow the lock in
+     * fullscreen (and leaving fullscreen releases it); iOS Safari doesn't
+     * support it at all.
+     */
+    private toggleOrientationLock = async () => {
+        // lock() is missing from TypeScript's DOM types.
+        const orientation = screen.orientation as ScreenOrientation & {lock(type: OrientationType): Promise<void>};
+        if (this.orientationLocked) {
+            orientation.unlock();
+            this.orientationLocked = false;
+            return;
+        }
+        try {
+            await this.enterFullscreen();
+            await orientation.lock(orientation.type);
+            this.orientationLocked = true;
+        } catch (e) {
+            console.warn("orientation lock failed:", e);
+            this.notify("Rotation lock isn't supported in this browser");
+        }
+    };
+
+    private onFullscreenChange = () => {
+        if (!document.fullscreenElement) this.orientationLocked = false;
+    };
+
+    private notify(message: string) {
+        this.notice = message;
+        clearTimeout(this.noticeTimer);
+        this.noticeTimer = window.setTimeout(() => { this.notice = ""; }, 3000);
+    }
+
     private close = () => {
-        if (document.fullscreenElement) document.exitFullscreen();
+        this.exitFullscreen();
         this.dispatchEvent(new CustomEvent("close", {bubbles: true, composed: true}));
     };
 }
 
-function fmt(ms: number): string {
-    const total = Math.max(0, Math.floor(ms / 1000));
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    const mm = String(m).padStart(h ? 2 : 1, "0");
-    const ss = String(s).padStart(2, "0");
-    return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+/**
+ * live(): the user's pick changes the DOM directly, so when an operation
+ * fails and the state stays the same, the selection must still be reset.
+ */
+function renderTrackSelect(title: string, icon: string, tracks: {id: number | string; label: string}[],
+                           selected: string, onChange: (e: Event) => void) {
+    return html`<select title=${title} @change=${onChange}>
+        ${tracks.map(t => html`
+            <option value=${t.id} .selected=${live(String(t.id) === selected)}>${icon} ${t.label}</option>`)}
+    </select>`;
 }

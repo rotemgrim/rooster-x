@@ -1,6 +1,7 @@
 import {LitElement, html} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
+import {formatClock} from "../common/commonUtils";
 import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
@@ -258,8 +259,8 @@ export class VideoDetails extends LitElement {
         if (!wp || !wp.percent || wp.percent <= 0) return html``;
         const pct = Math.min(100, Math.round(wp.percent));
         const finished = !!wp.finished;
-        const pos = VideoDetails.formatTime(wp.timePos);
-        const dur = VideoDetails.formatTime(wp.duration);
+        const pos = formatClock(wp.timePos);
+        const dur = formatClock(wp.duration);
         const label = finished ? "Watched" : `${pct}% · ${pos} / ${dur}`;
         return html`<div class="vd-progress" title="Playback progress">
             <div class="vd-progress-track">
@@ -267,16 +268,6 @@ export class VideoDetails extends LitElement {
             </div>
             <div class="vd-progress-text">${label}</div>
         </div>`;
-    }
-
-    private static formatTime(seconds: number): string {
-        if (!seconds || seconds <= 0) return "0:00";
-        const s = Math.floor(seconds);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const sec = s % 60;
-        const pad = (n: number) => n.toString().padStart(2, "0");
-        return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
     }
 
     private getYouTubeTrailer() {

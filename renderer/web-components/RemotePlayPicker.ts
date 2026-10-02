@@ -248,20 +248,14 @@ export class RemotePlayPicker extends LitElement {
     };
 
     /**
-     * Open the libmedia player page. Remote clients on plain HTTP are sent
-     * to the HTTPS listener (:8443): only a secure context gets the
-     * cross-origin isolation libmedia needs for multithreaded decoding.
-     * The file URL is passed as a path so it stays same-origin with the
-     * player page, which COEP requires.
+     * Open the libmedia player page. The file is passed as a path so it
+     * stays same-origin with the player page, which COEP requires; the
+     * server moves remote plain-HTTP clients to HTTPS (server/isolation.go).
      */
     private openInLibmedia = () => {
         const name = this.mediaFile.raw || this.mediaFile.path || "";
-        const src = new URL(this.httpUrl || this.buildFileUrl()).pathname;
-        const query = `?src=${encodeURIComponent(src)}&name=${encodeURIComponent(name)}`;
-        const {protocol, hostname} = window.location;
-        const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
-        const origin = protocol === "http:" && !isLocal ? `https://${hostname}:8443` : "";
-        window.location.href = `${origin}/player.html${query}`;
+        const query = `?src=${encodeURIComponent(this.filePath())}&name=${encodeURIComponent(name)}`;
+        window.location.href = `/player.html${query}`;
     };
 
     /**
@@ -472,9 +466,12 @@ export class RemotePlayPicker extends LitElement {
     };
 
     private buildFileUrl(): string {
-        const origin = window.location.origin;
+        return `${window.location.origin}${this.filePath()}`;
+    }
+
+    private filePath(): string {
         const raw = this.mediaFile.path || this.mediaFile.raw || "";
         const base = raw.split(/[\\/]/).pop() || `media-${this.mediaFile.id}`;
-        return `${origin}/file/${this.mediaFile.id}/${encodeURIComponent(base)}`;
+        return `/file/${this.mediaFile.id}/${encodeURIComponent(base)}`;
     }
 }

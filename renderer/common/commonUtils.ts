@@ -122,6 +122,15 @@ export function formatDuration(seconds: number): string {
     return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
 }
 
+// Playback position: 75 -> "1:15", 3900 -> "1:05:00"; 0 or less -> "0:00".
+export function formatClock(seconds: number): string {
+    const s = Math.max(0, Math.floor(seconds || 0));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return h > 0 ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
+}
+
 // Unix seconds -> local date and 24h time; 0 (unknown) -> "".
 export function formatUnixDate(unix: number): string {
     if (!unix) {
