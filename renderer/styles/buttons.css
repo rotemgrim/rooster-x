@@ -90,9 +90,11 @@
   & *:before,
   & + .tgl-btn {
     box-sizing: border-box;
-    &::selection {
-      background: none;
-    }
+  }
+  /* Spelled out rather than nested under the list above: that list holds
+     pseudo-elements, and nesting ::selection under it hangs Chrome. */
+  & + .tgl-btn::selection {
+    background: none;
   }
 
   & + .tgl-btn {
