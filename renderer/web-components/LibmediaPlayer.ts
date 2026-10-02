@@ -18,6 +18,13 @@ const FIT_STORAGE_KEY = "rooster.player.fit";
 
 const SKIP_MS = 10_000;
 const DOUBLE_TAP_MS = 350;
+const HUD_HIDE_MS = 2_000;
+/** A touch moving further than this is a swipe, not a tap. */
+const SWIPE_START_PX = 12;
+const BRIGHTNESS_MIN = 0.1;
+const BRIGHTNESS_MAX = 1.5;
+
+type Side = "left" | "right";
 
 /**
  * Full-screen player UI for a /file/<id> URL, backed by libmedia (see
@@ -40,6 +47,9 @@ export class LibmediaPlayer extends LitElement {
     @state() private currentMs: number = 0;
     @state() private fit: FitMode = loadFitMode();
     @state() private volume: number = 1;
+    /** CSS brightness() of the picture, set by swiping the left side. */
+    @state() private brightness: number = 1;
+    @state() private hudVisible: boolean = true;
     @state() private needsAudioUnlock: boolean = false;
     @state() private orientationLocked: boolean = false;
     @state() private session: PlaybackSession | null = null;
@@ -52,8 +62,21 @@ export class LibmediaPlayer extends LitElement {
      * bar or a seek is in flight; null otherwise.
      */
     private heldPositionMs: number | null = null;
-    private lastTap: {time: number; side: "left" | "right"} | null = null;
+    private lastTap: {time: number; side: Side} | null = null;
+    /**
+     * Touch on the screen: becomes a swipe (volume on the right, brightness
+     * on the left) once it moves, otherwise it's a tap.
+     */
+    private touch: {
+        id: number; x: number; y: number; side: Side; from: number;
+        gesture: "tap" | "swipe" | "none";
+    } | null = null;
     private noticeTimer: number | undefined;
+    private hudTimer: number | undefined;
+    /** The HUD stays up while the mouse is over it or a select's picker is open. */
+    private hoveringHud = false;
+    private selectOpen = false;
+    private lastMouse = {x: -1, y: -1};
 
     static styles = css`
         :host {
@@ -67,15 +90,19 @@ export class LibmediaPlayer extends LitElement {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
         }
         #surface { flex: 1; min-height: 0; position: relative; }
-        #screen { position: absolute; inset: 0; overflow: hidden; touch-action: manipulation; }
+        /* touch-action: none, swipes adjust volume / brightness instead of scrolling. */
+        #screen { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
         #screen > canvas, #screen > video {
             width: 100% !important; height: 100% !important; object-fit: var(--fit, contain);
+            filter: brightness(var(--brightness, 1));
         }
         /* AVPlayer adds an ASS subtitle overlay (svg + .ASS-box) here; it must not eat clicks. */
         #screen * { pointer-events: none; }
 
         /* Controls scale with the screen, see uiScale(). */
-        .top, .bar { zoom: var(--ui-scale, 1); }
+        .top, .bar { zoom: var(--ui-scale, 1); transition: opacity 0.25s; }
+        .hud-hidden { cursor: none; }
+        .hud-hidden .top, .hud-hidden .bar { opacity: 0; pointer-events: none; }
 
         .top {
             position: absolute;
@@ -109,12 +136,15 @@ export class LibmediaPlayer extends LitElement {
         }
 
         .bar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
             display: flex;
             align-items: center;
             gap: 0.6rem;
-            padding: 0.6rem 1rem;
-            background: #0f1216;
+            padding: 1.2rem 1rem 0.6rem;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
             flex-wrap: wrap;
+            z-index: 1;
         }
         .bar .time { font-variant-numeric: tabular-nums; font-size: 0.85rem; white-space: nowrap; }
         .bar input.seek { flex: 1; min-width: 120px; accent-color: #ff3344; }
@@ -135,13 +165,16 @@ export class LibmediaPlayer extends LitElement {
     `;
 
     public render() {
-        const session = this.session;
-        const durationMs = session?.durationMs ?? 0;
         const message = this.status || this.notice;
         return html`
-            <div id="surface">
-                <div id="screen" style="--fit: ${this.fit}" @pointerup=${this.onScreenTap}></div>
-                <div class="top">
+            <div id="surface" class=${this.hudVisible ? "" : "hud-hidden"} @pointermove=${this.onMouseMove}>
+                <div id="screen" style="--fit: ${this.fit}; --brightness: ${this.brightness}"
+                     @pointerdown=${this.onScreenDown}
+                     @pointermove=${this.onScreenMove}
+                     @pointerup=${this.onScreenUp}
+                     @pointercancel=${this.onScreenCancel}></div>
+                <div class="top" @pointerenter=${this.onHudEnter} @pointerleave=${this.onHudLeave}
+                     @pointerdown=${this.showHud}>
                     <span class="name">${this.name}</span>
                     ${this.renderMode()}
                     <button @click=${this.close}>✕ Close</button>
@@ -150,8 +183,18 @@ export class LibmediaPlayer extends LitElement {
                 ${this.needsAudioUnlock
                     ? html`<button class="big unlock" @click=${this.unlockAudio}>🔊 Tap to enable sound</button>`
                     : null}
+                ${this.renderBar()}
             </div>
-            <div class="bar">
+        `;
+    }
+
+    private renderBar() {
+        const session = this.session;
+        const durationMs = session?.durationMs ?? 0;
+        return html`
+            <div class="bar" @pointerenter=${this.onHudEnter} @pointerleave=${this.onHudLeave}
+                 @pointerdown=${this.showHud} @input=${this.showHud}
+                 @focusin=${this.onHudFocusIn} @focusout=${this.onHudFocusOut} @change=${this.onHudChange}>
                 <button @click=${this.togglePlay}>${this.playing ? "❚❚" : "▶"}</button>
                 <span class="time">${formatClock(this.currentMs / 1000)} / ${formatClock(durationMs / 1000)}</span>
                 <input class="seek" type="range" min="0" step="1000"
@@ -202,8 +245,14 @@ export class LibmediaPlayer extends LitElement {
                 time: ms => {
                     if (this.heldPositionMs === null) this.currentMs = ms;
                 },
-                playing: () => { this.playing = true; },
-                paused: () => { this.playing = false; },
+                playing: () => {
+                    this.playing = true;
+                    this.showHud();
+                },
+                paused: () => {
+                    this.playing = false;
+                    this.showHud();
+                },
                 audioLocked: () => { this.needsAudioUnlock = true; },
                 audioUnlocked: () => { this.needsAudioUnlock = false; },
                 error: err => {
@@ -238,6 +287,7 @@ export class LibmediaPlayer extends LitElement {
         super.disconnectedCallback();
         document.removeEventListener("fullscreenchange", this.onFullscreenChange);
         window.removeEventListener("resize", this.applyUiScale);
+        clearTimeout(this.hudTimer);
         this.session?.destroy().catch(e => console.warn("libmedia destroy failed:", e));
         this.session = null;
     }
@@ -280,18 +330,123 @@ export class LibmediaPlayer extends LitElement {
     }
 
     /**
-     * Double tap on the left / right half skips back / forward; every
-     * further quick tap on the same side skips again.
+     * Show the HUD, and hide it again after HUD_HIDE_MS without activity
+     * while playing.
      */
-    private onScreenTap = (e: PointerEvent) => {
+    private showHud = () => {
+        this.hudVisible = true;
+        clearTimeout(this.hudTimer);
+        this.hudTimer = window.setTimeout(() => {
+            if (this.playing && !this.hoveringHud && !this.selectOpen) this.hudVisible = false;
+        }, HUD_HIDE_MS);
+    };
+
+    /**
+     * Browsers send a pointermove without movement when the layout under
+     * the cursor changes (e.g. the HUD hiding), which must not wake it.
+     */
+    private onMouseMove = (e: PointerEvent) => {
+        if (e.pointerType !== "mouse" || (e.screenX === this.lastMouse.x && e.screenY === this.lastMouse.y)) return;
+        this.lastMouse = {x: e.screenX, y: e.screenY};
+        this.showHud();
+    };
+
+    private onHudEnter = (e: PointerEvent) => {
+        if (e.pointerType === "mouse") this.hoveringHud = true;
+    };
+
+    private onHudLeave = (e: PointerEvent) => {
+        if (e.pointerType !== "mouse") return;
+        this.hoveringHud = false;
+        this.showHud();
+    };
+
+    /**
+     * On touch screens a focused select has its native picker open. With a
+     * mouse, hovering keeps the HUD up instead: a select closed with Escape
+     * stays focused.
+     */
+    private onHudFocusIn = (e: FocusEvent) => {
+        if (this.touchDevice && e.target instanceof HTMLSelectElement) this.selectOpen = true;
+    };
+
+    private onHudFocusOut = () => {
+        if (!this.selectOpen) return;
+        this.selectOpen = false;
+        this.showHud();
+    };
+
+    /** Drop focus once a pick is made, so the HUD can hide again. */
+    private onHudChange = (e: Event) => {
+        if (e.target instanceof HTMLSelectElement) e.target.blur();
+    };
+
+    private onScreenDown = (e: PointerEvent) => {
+        if (e.pointerType !== "touch" || this.touch) return;
+        const side = this.sideOf(e);
+        this.touch = {
+            id: e.pointerId, x: e.clientX, y: e.clientY, side,
+            from: side === "right" ? this.volume : this.brightness,
+            gesture: "tap",
+        };
+    };
+
+    /** Swiping up / down: volume on the right side, brightness on the left. */
+    private onScreenMove = (e: PointerEvent) => {
+        const touch = this.touch;
+        if (!touch || e.pointerId !== touch.id || touch.gesture === "none") return;
+        const dx = e.clientX - touch.x;
+        const dy = touch.y - e.clientY;
+        if (touch.gesture === "tap") {
+            if (Math.hypot(dx, dy) < SWIPE_START_PX) return;
+            // Sideways: neither a tap nor a swipe.
+            touch.gesture = Math.abs(dx) > Math.abs(dy) ? "none" : "swipe";
+            if (touch.gesture === "none") return;
+        }
+        // A swipe across the full screen height covers the whole range.
+        const value = touch.from + dy / this.screen.clientHeight;
+        if (touch.side === "right") {
+            this.volume = clamp(value, 0, 1);
+            this.session?.setVolume(this.volume);
+            this.notify(`🔊 ${Math.round(this.volume * 100)}%`, 800);
+        } else {
+            this.brightness = clamp(value, BRIGHTNESS_MIN, BRIGHTNESS_MAX);
+            this.notify(`☀ ${Math.round(this.brightness * 100)}%`, 800);
+        }
+    };
+
+    private onScreenUp = (e: PointerEvent) => {
+        const touch = this.touch;
+        if (e.pointerType === "touch") {
+            if (!touch || e.pointerId !== touch.id) return;
+            this.touch = null;
+            if (touch.gesture !== "tap") return;
+        }
+        this.onScreenTap(e);
+    };
+
+    private onScreenCancel = (e: PointerEvent) => {
+        if (e.pointerId === this.touch?.id) this.touch = null;
+    };
+
+    private sideOf(e: PointerEvent): Side {
         const rect = this.screen.getBoundingClientRect();
-        const side = e.clientX < rect.left + rect.width / 2 ? "left" : "right";
+        return e.clientX < rect.left + rect.width / 2 ? "left" : "right";
+    }
+
+    /**
+     * A tap shows the HUD. Double tap on the left / right half skips back /
+     * forward; every further quick tap on the same side skips again.
+     */
+    private onScreenTap(e: PointerEvent) {
+        this.showHud();
+        const side = this.sideOf(e);
         const last = this.lastTap;
         this.lastTap = {time: e.timeStamp, side};
         if (!last || last.side !== side || e.timeStamp - last.time > DOUBLE_TAP_MS) return;
         this.notify(side === "left" ? "⏪ −10s" : "⏩ +10s", 700);
         return this.seekTo((this.heldPositionMs ?? this.currentMs) + (side === "left" ? -SKIP_MS : SKIP_MS));
-    };
+    }
 
     private onFit = (e: Event) => {
         this.fit = (e.target as HTMLSelectElement).value as FitMode;
@@ -389,6 +544,10 @@ function renderSelect(title: string, icon: string, options: readonly {id: number
         ${options.map(t => html`
             <option value=${t.id} .selected=${live(String(t.id) === selected)}>${icon} ${t.label}</option>`)}
     </select>`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
 }
 
 function loadFitMode(): FitMode {
