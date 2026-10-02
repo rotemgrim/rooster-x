@@ -285,6 +285,8 @@ video-details {
     width: var(--poster-width);
     position: relative;
     overflow: hidden;
+    /* Keep the card's inner z-indexes from rising above dialogs and the aside. */
+    isolation: isolate;
     & .title {
       display: inline-block;
       white-space: nowrap;
