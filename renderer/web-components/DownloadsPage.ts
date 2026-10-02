@@ -4,6 +4,7 @@ import {repeat} from "lit/directives/repeat.js";
 import {EngineService, isVideo, largestVideo, type EngineState, type IEngineFile, type IEngineStatus} from "../services/engine.service";
 import {formatBytes, formatDuration, formatSpeed, formatUnixDate} from "../common/commonUtils";
 import {modal} from "./dialog";
+import {playTorrentFile} from "./RemotePlayPicker";
 import "./TorrentSettingsDialog";
 
 type Torrent = IEngineStatus;
@@ -296,7 +297,7 @@ export class DownloadsPage extends LitElement {
     private play(t: Torrent, file = largestVideo(t.files)) {
         this.menu = null;
         if (file) {
-            EngineService.play(t.infoHash, file);
+            playTorrentFile(t.infoHash, file);
         }
     }
 
@@ -344,7 +345,7 @@ export class DownloadsPage extends LitElement {
                 <i class="material-icons">${t.paused ? "play_arrow" : "pause"}</i>${t.paused ? "Resume" : "Pause"}
             </li>
             <li class="${video ? "" : "disabled"}" @click=${() => video && this.play(t, video)}>
-                <i class="material-icons">play_circle</i>Stream in mpv
+                <i class="material-icons">play_circle</i>Play
             </li>
             <li @click=${() => this.toggleSequential(t)}>
                 <i class="material-icons">${t.sequential ? "check_box" : "check_box_outline_blank"}</i>First &amp; last parts first, then in order
@@ -419,7 +420,7 @@ export class DownloadsPage extends LitElement {
                     <td class="num">${formatBytes(f.length)}</td>
                     <td class="num">${progressBar(f.length ? f.completed / f.length : 1)}</td>
                     <td>${isVideo(f)
-                        ? html`<i class="material-icons dl-play" title="Stream in mpv" @click=${() => this.play(t, f)}>play_circle</i>`
+                        ? html`<i class="material-icons dl-play" title="Play" @click=${() => this.play(t, f)}>play_circle</i>`
                         : nothing}</td>
                 </tr>`)}
             </tbody>

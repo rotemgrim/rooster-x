@@ -1,6 +1,61 @@
 import {html, LitElement, css} from "lit";
 import {customElement, property, state} from "lit/decorators.js";
 import {type MediaFile} from "../entity/MediaFile";
+import {EngineService, type IEngineFile} from "../services/engine.service";
+import {IpcService} from "../services/ipc.service";
+
+/** Something to play: a library file or a torrent's file while it downloads. */
+export interface PlaySource {
+    title: string;
+    /** Same-origin URL path the server streams it from, with Range support. */
+    path: string;
+    /**
+     * The file's path on the server, for the SMB hand-off. Unset for torrent
+     * streams: the file on disk is incomplete, and only the HTTP stream
+     * waits for missing pieces.
+     */
+    serverPath?: string;
+}
+
+/**
+ * A "remote" client is any session where the web UI wasn't loaded from the
+ * local machine, i.e. a phone, tablet or other desktop on the LAN hitting
+ * http://<pc-ip>:8080. It can't shell out to mpv (that would launch it on
+ * the server PC), so it gets the picker instead.
+ */
+function isRemoteClient(): boolean {
+    const host = window.location?.hostname;
+    // file:// (Electron packaged app) has hostname "": local.
+    return !!host && host !== "localhost" && host !== "127.0.0.1" && host !== "::1";
+}
+
+/** Plays on this device: the picker on a remote client, else playOnHost. */
+export function playOnDevice(source: PlaySource, playOnHost: () => void) {
+    if (!isRemoteClient()) {
+        playOnHost();
+        return;
+    }
+    const picker = document.createElement("remote-play-picker") as RemotePlayPicker;
+    picker.source = source;
+    picker.open = true;
+    picker.addEventListener("close", () => picker.remove());
+    document.body.appendChild(picker);
+}
+
+export function mediaFileSource(file: MediaFile): PlaySource {
+    const raw = file.path || file.raw || "";
+    const base = raw.split(/[\\/]/).pop() || `media-${file.id}`;
+    return {title: file.raw || file.path || "", path: `/file/${file.id}/${encodeURIComponent(base)}`, serverPath: raw};
+}
+
+/** Plays a torrent's file while it downloads. */
+export function playTorrentFile(infoHash: string, file: IEngineFile) {
+    const path = EngineService.streamPath(infoHash, file);
+    playOnDevice({title: file.path.split("/").pop() || file.path, path}, () =>
+        // plain http on the same host the UI was opened from; mpv rejects the
+        // self-signed cert used on :8443
+        IpcService.openInMPV(`http://${location.hostname}:8080${path}`));
+}
 
 /**
  * Remote playback sheet. Shown when a non-local client (phone or another
@@ -9,7 +64,7 @@ import {type MediaFile} from "../entity/MediaFile";
  * Options offered:
  *   1. Open in VLC - `vlc://<httpUrl>` deep-link. Primary, works reliably
  *      on Android + iOS when VLC is installed.
- *   2. Open in browser - navigate to the raw /file/<id> URL and let the
+ *   2. Open in browser - navigate to the raw stream URL and let the
  *      browser play it inline. Good for MP4/H.264+AAC sources.
  *   3. Copy URL fallback for VLC's "Open Network Stream" screen.
  *
@@ -17,12 +72,12 @@ import {type MediaFile} from "../entity/MediaFile";
  * mis-interprets the shared URL and plays a ~3-second placeholder instead
  * of streaming the file.
  *
- * Dispatches a "close" event when dismissed.
+ * Dispatches a "close" event when dismissed; playOnDevice() shows it.
  */
 @customElement("remote-play-picker")
 export class RemotePlayPicker extends LitElement {
 
-    @property({attribute: false}) public mediaFile!: MediaFile;
+    @property({attribute: false}) public source!: PlaySource;
     @property({type: Boolean, reflect: true}) public open: boolean = false;
 
     @state() private httpUrl: string = "";
@@ -170,13 +225,13 @@ export class RemotePlayPicker extends LitElement {
     `;
 
     public render() {
-        if (!this.open || !this.mediaFile) return html``;
+        if (!this.open || !this.source) return html``;
         if (!this.httpUrl) this.httpUrl = this.buildFileUrl();
 
         return html`
             <div class="sheet" @click=${(e: Event) => e.stopPropagation()}>
                 <h3>Play on this device</h3>
-                <div class="sub">${this.mediaFile.raw || this.mediaFile.path || ""}</div>
+                <div class="sub">${this.source.title}</div>
 
                 <button class="choice primary" @click=${this.openInVlc}>
                     <span>Open in VLC</span>
@@ -236,7 +291,7 @@ export class RemotePlayPicker extends LitElement {
     }
 
     /**
-     * Navigate the current tab to the raw /file/<id> URL. The browser's
+     * Navigate the current tab to the raw stream URL. The browser's
      * built-in handler takes over: modern Chrome/Safari will render an
      * inline <video> element. Works great for MP4/H.264+AAC sources;
      * audio may be missing for MKV containers with AC3/DTS tracks.
@@ -253,8 +308,7 @@ export class RemotePlayPicker extends LitElement {
      * server moves remote plain-HTTP clients to HTTPS (server/isolation.go).
      */
     private openInLibmedia = () => {
-        const name = this.mediaFile.raw || this.mediaFile.path || "";
-        const query = `?src=${encodeURIComponent(this.filePath())}&name=${encodeURIComponent(name)}`;
+        const query = `?src=${encodeURIComponent(this.source.path)}&name=${encodeURIComponent(this.source.title)}`;
         window.location.href = `/player.html${query}`;
     };
 
@@ -310,12 +364,12 @@ export class RemotePlayPicker extends LitElement {
     };
 
     private canUseSmb(): boolean {
-        return !!this.clientPrefix && !!(this.mediaFile?.path || this.mediaFile?.raw);
+        return !!this.clientPrefix && !!this.source?.serverPath;
     }
 
     private buildSmbPath(): string | null {
         if (!this.clientPrefix) return null;
-        const raw = this.mediaFile?.path || this.mediaFile?.raw || "";
+        const raw = this.source?.serverPath || "";
         if (!raw) return null;
 
         let rest = raw;
@@ -466,12 +520,6 @@ export class RemotePlayPicker extends LitElement {
     };
 
     private buildFileUrl(): string {
-        return `${window.location.origin}${this.filePath()}`;
-    }
-
-    private filePath(): string {
-        const raw = this.mediaFile.path || this.mediaFile.raw || "";
-        const base = raw.split(/[\\/]/).pop() || `media-${this.mediaFile.id}`;
-        return `/file/${this.mediaFile.id}/${encodeURIComponent(base)}`;
+        return `${window.location.origin}${this.source.path}`;
     }
 }

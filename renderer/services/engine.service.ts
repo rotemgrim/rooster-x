@@ -1,4 +1,4 @@
-import {IpcService, promiseIpc} from "./ipc.service";
+import {promiseIpc} from "./ipc.service";
 
 // Client for the embedded torrent engine: the engine-* messages and the HTTP
 // stream it serves files on.
@@ -103,11 +103,9 @@ export class EngineService {
         return promiseIpc.send("engine-save-settings", settings) as Promise<IEngineSettings>;
     }
 
-    /** Streams a torrent's file in mpv, while it downloads. */
-    public static play(infoHash: string, file: IEngineFile) {
+    /** The server path that streams a torrent's file while it downloads. */
+    public static streamPath(infoHash: string, file: IEngineFile): string {
         const name = encodeURIComponent(file.path.split("/").pop() ?? "");
-        // plain http on the same host the UI was opened from; mpv rejects the
-        // self-signed cert used on :8443
-        IpcService.openInMPV(`http://${location.hostname}:8080/engine/stream/${infoHash}/${file.index}/${name}`);
+        return `/engine/stream/${infoHash}/${file.index}/${name}`;
     }
 }

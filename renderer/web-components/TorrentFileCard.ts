@@ -5,6 +5,7 @@ import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";
 import {EngineService, largestVideo, type IEngineStatus} from "../services/engine.service";
 import {MediaFileCard} from "./MediaFileCard";
+import {playTorrentFile} from "./RemotePlayPicker";
 
 @customElement("torrent-file-card")
 export class TorrentFileCard extends LitElement {
@@ -80,7 +81,7 @@ export class TorrentFileCard extends LitElement {
         e.stopPropagation();
         const video = largestVideo(this.engine?.files);
         if (video) {
-            EngineService.play(this.infoHash, video);
+            playTorrentFile(this.infoHash, video);
         }
     }
 
@@ -159,7 +160,7 @@ export class TorrentFileCard extends LitElement {
         const canPlay = !!largestVideo(st.files);
         return html`<div class="engine-status" title="${st.seeders} seeders connected">
             ${label} · ${st.peers} peers
-            ${canPlay ? html`<i class="material-icons engine-play" title="Stream in mpv" @click=${this.play}>play_circle</i>` : ""}
+            ${canPlay ? html`<i class="material-icons engine-play" title="Play" @click=${this.play}>play_circle</i>` : ""}
         </div>
         <i class="material-icons engine-action" title="${st.paused ? "Resume download" : "Pause download"}"
             @click=${this.togglePause}>${st.paused ? "play_arrow" : "pause"}</i>
