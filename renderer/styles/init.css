@@ -275,6 +275,10 @@ img:after {
   background: #00000069;
   color: white;
 }
+/* video-details renders inside .videos, so the button would float over it. */
+.videos:has(video-details) .goTop {
+  display: none;
+}
 
 [hidden] {
   display: none !important;
