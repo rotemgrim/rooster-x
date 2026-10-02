@@ -99,6 +99,63 @@ export class LibmediaPlayer extends LitElement {
         /* AVPlayer adds an ASS subtitle overlay (svg + .ASS-box) here; it must not eat clicks. */
         #screen * { pointer-events: none; }
 
+        /*
+         * libmedia's subtitle CSS writes these as .ASS-dialogue[data-border-style=…],
+         * but the attribute sits on the text spans inside the dialogue, so
+         * outlines, shadows and opaque boxes never showed. Same rules, fixed.
+         */
+        #screen [data-border-style="1"] { position: relative; }
+        #screen [data-border-style="1"]::before, #screen [data-border-style="1"]::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0;
+            z-index: -1;
+            filter: blur(calc(var(--ass-scale-stroke) * var(--ass-tag-blur) * 1px));
+        }
+        #screen [data-border-style="1"]::before {
+            color: var(--ass-shadow-color);
+            -webkit-text-stroke: calc(var(--ass-scale-stroke) * var(--ass-border-width) * 1px) var(--ass-shadow-color);
+            transform: translate(calc(var(--ass-scale-stroke) * var(--ass-tag-xshad) * 1px),
+                                 calc(var(--ass-scale-stroke) * var(--ass-tag-yshad) * 1px));
+        }
+        #screen [data-border-style="1"]::after {
+            color: var(--ass-border-color);
+            -webkit-text-stroke: calc(var(--ass-scale-stroke) * var(--ass-border-width) * 1px) var(--ass-border-color);
+        }
+        /* Drawn by an SVG filter instead. */
+        #screen [data-stroke="svg"]::before, #screen [data-stroke="svg"]::after { display: none; }
+        #screen [data-border-style="3"] {
+            position: relative;
+            padding: calc(var(--ass-scale-stroke) * var(--ass-tag-ybord) * 1px)
+                     calc(var(--ass-scale-stroke) * var(--ass-tag-xbord) * 1px);
+        }
+        #screen [data-border-style="3"]::before, #screen [data-border-style="3"]::after {
+            content: "";
+            position: absolute;
+            width: 100%; height: 100%;
+            z-index: -1;
+        }
+        #screen [data-border-style="3"]::before {
+            background: var(--ass-shadow-color);
+            left: calc(var(--ass-scale-stroke) * var(--ass-tag-xshad) * 1px);
+            top: calc(var(--ass-scale-stroke) * var(--ass-tag-yshad) * 1px);
+        }
+        #screen [data-border-style="3"]::after { background: var(--ass-border-color); left: 0; top: 0; }
+
+        /*
+         * Plain-text subtitles (SRT, WebVTT, …) come in Arial with a hairline
+         * outline: use the system UI font and a heavy outline plus shadow, so
+         * they stay readable on white. ASS tracks keep their author's styling.
+         * !important beats the font-family libmedia sets inline.
+         */
+        #screen.plain-subs [data-text] {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial,
+                         sans-serif !important;
+            font-weight: 600;
+            text-shadow: 0 0.05em 0.15em rgba(0, 0, 0, 0.9);
+        }
+        #screen.plain-subs [data-border-style="1"]::after { -webkit-text-stroke: 0.2em #000; }
+
         /* Controls scale with the screen, see uiScale(). */
         .top, .bar { zoom: var(--ui-scale, 1); transition: opacity 0.25s; }
         .hud-hidden { cursor: none; }
@@ -168,7 +225,7 @@ export class LibmediaPlayer extends LitElement {
         const message = this.status || this.notice;
         return html`
             <div id="surface" class=${this.hudVisible ? "" : "hud-hidden"} @pointermove=${this.onMouseMove}>
-                <div id="screen" style="--fit: ${this.fit}; --brightness: ${this.brightness}"
+                <div id="screen" class=${this.session?.subtitlesStyled ? "" : "plain-subs"} style="--fit: ${this.fit}; --brightness: ${this.brightness}"
                      @pointerdown=${this.onScreenDown}
                      @pointermove=${this.onScreenMove}
                      @pointerup=${this.onScreenUp}

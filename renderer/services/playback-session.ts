@@ -95,6 +95,9 @@ function attachHandlers(player: AVPlayer, handlers: PlaybackHandlers) {
     on("error", handlers.error);
 }
 
+/** AVCodecID.AV_CODEC_ID_ASS; @libmedia/avutil's enum isn't loaded at runtime. */
+const ASS_CODEC_ID = 94230;
+
 class PlaybackSession {
     public readonly durationMs: number;
     public readonly audioTracks: Track[];
@@ -102,11 +105,24 @@ class PlaybackSession {
 
     private queue: Promise<unknown> = Promise.resolve();
     private subtitlesOn = true;
+    private readonly assSubtitleIds: Set<number>;
 
     public constructor(private readonly player: AVPlayer, private readonly disableExactSeek: () => void) {
         this.durationMs = Number(player.getDuration());
         this.audioTracks = listTracks(player, "audio");
         this.subtitleTracks = listTracks(player, "subtitle");
+        this.assSubtitleIds = new Set(player.getStreams()
+            .filter(s => s.codecparProxy.codecId === ASS_CODEC_ID)
+            .map(s => s.id));
+    }
+
+    /**
+     * Whether the shown subtitles bring their own styling (ASS). Other
+     * formats (SRT, WebVTT, …) get libmedia's bare default style.
+     */
+    public get subtitlesStyled(): boolean {
+        const id = this.selectedSubtitle;
+        return id !== null && this.assSubtitleIds.has(id);
     }
 
     public get selectedAudio(): number {
