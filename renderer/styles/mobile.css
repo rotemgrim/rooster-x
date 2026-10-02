@@ -185,7 +185,7 @@
     overflow: auto;
 
     & .page-body > div {
-      min-width: 0;
+      display: block;
     }
     & .sorting,
     & .filters-genres,
