@@ -3,6 +3,7 @@ import {customElement, property, query, state} from "lit/decorators.js";
 import {live} from "lit/directives/live.js";
 import {openPlaybackSession, type PlaybackSession} from "../services/playback-session";
 import {formatClock} from "../common/commonUtils";
+import {ScreenWake} from "../services/screen-wake";
 
 const SUBTITLES_OFF = "off";
 
@@ -57,6 +58,7 @@ export class LibmediaPlayer extends LitElement {
     @query("#screen") private screen!: HTMLDivElement;
 
     private readonly touchDevice = matchMedia("(pointer: coarse)").matches;
+    private screenWake: ScreenWake | null = null;
     /**
      * Position to show instead of the player's while the user drags the seek
      * bar or a seek is in flight; null otherwise.
@@ -304,10 +306,12 @@ export class LibmediaPlayer extends LitElement {
                 },
                 playing: () => {
                     this.playing = true;
+                    this.screenWake?.set(true);
                     this.showHud();
                 },
                 paused: () => {
                     this.playing = false;
+                    this.screenWake?.set(false);
                     this.showHud();
                 },
                 audioLocked: () => { this.needsAudioUnlock = true; },
@@ -338,6 +342,7 @@ export class LibmediaPlayer extends LitElement {
         document.addEventListener("fullscreenchange", this.onFullscreenChange);
         window.addEventListener("resize", this.applyUiScale);
         this.applyUiScale();
+        this.screenWake = new ScreenWake();
     }
 
     public disconnectedCallback() {
@@ -345,6 +350,8 @@ export class LibmediaPlayer extends LitElement {
         document.removeEventListener("fullscreenchange", this.onFullscreenChange);
         window.removeEventListener("resize", this.applyUiScale);
         clearTimeout(this.hudTimer);
+        this.screenWake?.dispose();
+        this.screenWake = null;
         this.session?.destroy().catch(e => console.warn("libmedia destroy failed:", e));
         this.session = null;
     }
