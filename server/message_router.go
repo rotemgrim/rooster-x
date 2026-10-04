@@ -27,6 +27,7 @@ func (s *Server) SetRoutes() {
 	s.on("open-external", s.OpenExternal)
 	s.on("open-in-mpv", s.OpenInMPV)
 	s.on("engine-add", s.EngineAdd)
+	s.on("engine-add-torrent-file", s.EngineAddTorrentFile)
 	s.on("engine-status", s.EngineStatus)
 	s.on("engine-remove", s.EngineRemove)
 	s.on("engine-pause", s.EnginePause)
@@ -63,7 +64,12 @@ func (s *Server) SetRoutes() {
 }
 
 func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.Conn) {
-	log.Printf("Received: %s", message)
+	// cut long messages (e.g. an uploaded .torrent) short in the log
+	if len(message) > 2000 {
+		log.Printf("Received: %s… (%d bytes)", message[:2000], len(message))
+	} else {
+		log.Printf("Received: %s", message)
+	}
 
 	// marshal the message to a struct
 	var payload PayloadRequest

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -18,6 +19,24 @@ func (s *Server) EngineAdd(c *websocket.Conn, req PayloadRequest) {
 		return
 	}
 	hash, err := engine.Add(magnet)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not add torrent: %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, hash)
+}
+
+// EngineAddTorrentFile starts downloading a .torrent file, sent base64
+// encoded.
+func (s *Server) EngineAddTorrentFile(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	encoded, _ := data["torrent"].(string)
+	b, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil || len(b) == 0 {
+		transmitPromiseReject(c, req, "torrent file is required")
+		return
+	}
+	hash, err := engine.AddTorrentFile(b)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not add torrent: %s", err))
 		return

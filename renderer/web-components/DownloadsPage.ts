@@ -6,11 +6,22 @@ import {formatBytes, formatDuration, formatSpeed, formatUnixDate} from "../commo
 import {modal} from "./dialog";
 import {playTorrentFile} from "./RemotePlayPicker";
 import "./TorrentSettingsDialog";
+import "./AddLinksDialog";
 import {PHONE_QUERY} from "../common/layout";
 
 type Torrent = IEngineStatus;
 
 const POLL_MS = 1500;
+
+/** The file's contents, base64 encoded. */
+function readBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ""));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+}
 
 const STATE_LABEL: Record<EngineState, string> = {
     metadata: "Downloading metadata",
@@ -140,12 +151,18 @@ export class DownloadsPage extends LitElement {
 
     @state() private torrents: Torrent[] = [];
     @state() private loaded = false;
+    // the torrent shown in the details, and the anchor for shift-click
     @state() private selected = "";
+    // the torrents the toolbar and menu act on (Ctrl/Shift-click for more)
+    @state() private selection: ReadonlySet<string> = new Set();
     @state() private prefs: Prefs = loadPrefs();
     @state() private tab: "general" | "content" = "general";
-    @state() private menu: {x: number; y: number; hash: string} | null = null;
-    @state() private deleting: {hash: string; name: string; deleteFiles: boolean} | null = null;
+    @state() private menu: {x: number; y: number; hashes: string[]} | null = null;
+    @state() private deleting: {hashes: string[]; label: string; deleteFiles: boolean} | null = null;
     @state() private showSettings = false;
+    @state() private showAddLinks = false;
+    // why adding a .torrent file failed
+    @state() private notice = "";
     // Phones get a card per torrent and a details sheet instead of the table.
     @state() private phone = false;
     private phoneQuery = window.matchMedia(PHONE_QUERY);
@@ -224,6 +241,43 @@ export class DownloadsPage extends LitElement {
         return this.torrents.find(t => t.infoHash === this.selected);
     }
 
+    /** The selected torrents the current filter shows, in list order. */
+    private get targets(): Torrent[] {
+        return this.sorted.filter(t => this.selection.has(t.infoHash));
+    }
+
+    private select(hashes: string[], focus = hashes[0] ?? "") {
+        this.selection = new Set(hashes);
+        this.selected = focus;
+    }
+
+    /** Click selects one row; Ctrl adds or removes one, Shift a range. */
+    private clickRow(e: MouseEvent, t: Torrent) {
+        const hash = t.infoHash;
+        const add = e.ctrlKey || e.metaKey;
+        if (e.shiftKey && this.selected) {
+            const rows = this.sorted.map(r => r.infoHash);
+            const from = rows.indexOf(this.selected);
+            const to = rows.indexOf(hash);
+            if (from >= 0) {
+                const range = rows.slice(Math.min(from, to), Math.max(from, to) + 1);
+                // the anchor stays put
+                this.selection = new Set(add ? [...this.selection, ...range] : range);
+                return;
+            }
+        }
+        if (add) {
+            const next = new Set(this.selection);
+            if (!next.delete(hash)) {
+                next.add(hash);
+            }
+            this.selection = next;
+            this.selected = hash;
+        } else {
+            this.select([hash]);
+        }
+    }
+
     private width(c: Column): number {
         return this.prefs.widths[c.key] ?? c.width;
     }
@@ -252,13 +306,21 @@ export class DownloadsPage extends LitElement {
             () => this.persistPrefs());
     }
 
-    private openMenu(e: MouseEvent, t: Torrent, select = true) {
+    /** The menu acts on the selection, or on just t when focus is off (a
+     * phone card's button, which shouldn't open the details sheet). */
+    private openMenu(e: MouseEvent, t: Torrent, focus = true) {
         e.preventDefault();
-        if (select) {
-            this.selected = t.infoHash;
+        let hashes = [t.infoHash];
+        if (focus) {
+            if (this.selection.has(t.infoHash)) {
+                this.selected = t.infoHash;
+            } else {
+                this.select(hashes);
+            }
+            hashes = this.targets.map(x => x.infoHash);
         }
         // keep the menu on screen
-        this.menu = {x: Math.min(e.clientX, window.innerWidth - 230), y: Math.min(e.clientY, window.innerHeight - 200), hash: t.infoHash};
+        this.menu = {x: Math.min(e.clientX, window.innerWidth - 230), y: Math.min(e.clientY, window.innerHeight - 200), hashes};
     }
 
     private closeMenuOutside = (e: PointerEvent) => {
@@ -271,40 +333,84 @@ export class DownloadsPage extends LitElement {
         if (e.key === "Escape") {
             this.menu = null;
             this.deleting = null;
-        } else if (e.key === "Delete" && this.current && !this.deleting
-            && !(e.target as HTMLElement).closest("input, select, textarea")) {
-            this.askDelete(this.current);
+            return;
+        }
+        const typing = e.target instanceof Element && e.target.closest("input, select, textarea");
+        if (this.deleting || this.showAddLinks || this.showSettings || typing) {
+            return;
+        }
+        if (e.key === "Delete" && this.targets.length) {
+            this.askDelete(this.targets);
+        } else if (e.key === "a" && (e.ctrlKey || e.metaKey) && !this.phone) {
+            e.preventDefault();
+            this.select(this.sorted.map(t => t.infoHash), this.selected);
         }
     };
 
-    private act(action: Promise<unknown>, what: string) {
+    /** Runs action on every torrent in list, then refreshes. */
+    private act(list: Torrent[], what: string, action: (t: Torrent) => Promise<unknown>) {
         this.menu = null;
-        action.catch(err => console.error(`could not ${what}`, err)).finally(() => this.refresh());
+        Promise.allSettled(list.map(action))
+            .then(results => results.forEach(r => r.status === "rejected" && console.error(`could not ${what}`, r.reason)))
+            .finally(() => this.refresh());
     }
 
-    private togglePause(t: Torrent) {
-        this.act(EngineService.setPaused(t.infoHash, !t.paused), t.paused ? "resume" : "pause");
+    private setPaused(list: Torrent[], paused: boolean) {
+        this.act(list.filter(t => t.paused !== paused), paused ? "pause" : "resume", t => EngineService.setPaused(t.infoHash, paused));
     }
 
-    private toggleSequential(t: Torrent) {
-        this.act(EngineService.setSequential(t.infoHash, !t.sequential), "change download order");
+    /** Turns sequential on for all of list, or off when all have it. */
+    private toggleSequential(list: Torrent[]) {
+        const on = !list.every(t => t.sequential);
+        this.act(list, "change download order", t => EngineService.setSequential(t.infoHash, on));
     }
 
-    private askDelete(t: Torrent) {
+    private askDelete(list: Torrent[]) {
         this.menu = null;
-        this.deleting = {hash: t.infoHash, name: t.name || t.infoHash, deleteFiles: false};
+        if (!list.length) {
+            return;
+        }
+        const label = list.length === 1 ? `"${list[0].name || list[0].infoHash}"` : `these ${list.length} torrents`;
+        this.deleting = {hashes: list.map(t => t.infoHash), label, deleteFiles: false};
     }
 
     private confirmDelete() {
         if (!this.deleting) {
             return;
         }
-        const {hash, deleteFiles} = this.deleting;
+        const {hashes, deleteFiles} = this.deleting;
         this.deleting = null;
-        if (this.selected === hash) {
+        this.selection = new Set([...this.selection].filter(h => !hashes.includes(h)));
+        if (hashes.includes(this.selected)) {
             this.selected = "";
         }
-        this.act(EngineService.remove(hash, deleteFiles), "delete torrent");
+        const list = this.torrents.filter(t => hashes.includes(t.infoHash));
+        this.act(list, "delete torrent", t => EngineService.remove(t.infoHash, deleteFiles));
+    }
+
+    /** Adds .torrent files (picked or dropped); other files are skipped. */
+    private async addFiles(files: FileList | null | undefined) {
+        const list = Array.from(files ?? []).filter(f => f.name.toLowerCase().endsWith(".torrent"));
+        const errors: string[] = [];
+        let first = "";
+        for (const file of list) {
+            try {
+                first ||= await EngineService.addTorrentFile(await readBase64(file));
+            } catch (err) {
+                errors.push(`${file.name}: ${err}`);
+            }
+        }
+        this.notice = errors.join("\n");
+        if (first) {
+            this.onAdded(first);
+        }
+    }
+
+    private onDrop(e: DragEvent) {
+        if (e.dataTransfer?.files.length) {
+            e.preventDefault();
+            this.addFiles(e.dataTransfer.files);
+        }
     }
 
     private play(t: Torrent, file = largestVideo(t.files)) {
@@ -314,14 +420,40 @@ export class DownloadsPage extends LitElement {
         }
     }
 
+    /** Add, remove, resume and pause buttons; the last three act on the
+     * selection, which phones don't have (their cards have a menu). */
+    private renderToolbar() {
+        const list = this.targets;
+        const button = (cls: string, icon: string, title: string, onClick: () => void, enabled = true) =>
+            html`<button class="${cls}" title=${title} ?disabled=${!enabled} @click=${onClick}><i class="material-icons">${icon}</i></button>`;
+        return html`<div class="dl-toolbar">
+            <input type="file" accept=".torrent,application/x-bittorrent" multiple hidden
+                @change=${(e: Event) => {
+                    const input = e.target as HTMLInputElement;
+                    this.addFiles(input.files).finally(() => (input.value = ""));
+                }} />
+            ${button("tb-add", "add_circle", "Add torrent files",
+                () => this.querySelector<HTMLInputElement>(".dl-toolbar input[type=file]")?.click())}
+            ${button("tb-add", "add_link", "Add magnet links", () => (this.showAddLinks = true))}
+            ${this.phone ? nothing : html`<span class="tb-separator"></span>
+                ${button("tb-remove", "delete_forever", "Remove", () => this.askDelete(list), list.length > 0)}
+                <span class="tb-separator"></span>
+                ${button("tb-resume", "play_arrow", "Resume", () => this.setPaused(list, false), list.some(t => t.paused))}
+                ${button("tb-pause", "stop", "Pause", () => this.setPaused(list, true), list.some(t => !t.paused))}`}
+            <span class="tb-separator"></span>
+            ${button("tb-settings", "settings", "BitTorrent settings", () => (this.showSettings = true))}
+        </div>
+        ${this.notice ? html`<div class="dl-notice">
+            <span>${this.notice}</span>
+            <button class="material-icons" title="Dismiss" @click=${() => (this.notice = "")}>close</button>
+        </div>` : nothing}`;
+    }
+
     private renderFilters() {
         return html`<div class="dl-filters">
             ${FILTERS.map(f => html`<button class="${this.prefs.filter === f.key ? "active" : ""}" @click=${() => this.savePrefs({filter: f.key})}>
                 <i class="material-icons">${f.icon}</i>${f.label} (${this.torrents.filter(f.test).length})
             </button>`)}
-            <button class="dl-settings-button" title="BitTorrent settings" @click=${() => (this.showSettings = true)}>
-                <i class="material-icons">settings</i>Settings
-            </button>
         </div>`;
     }
 
@@ -338,8 +470,8 @@ export class DownloadsPage extends LitElement {
     }
 
     private renderRow(t: Torrent) {
-        return html`<tr class="dl-row state-${t.state} ${t.infoHash === this.selected ? "selected" : ""}"
-            @click=${() => (this.selected = t.infoHash)}
+        return html`<tr class="dl-row state-${t.state} ${this.selection.has(t.infoHash) ? "selected" : ""}"
+            @click=${(e: MouseEvent) => this.clickRow(e, t)}
             @dblclick=${() => this.play(t)}
             @contextmenu=${(e: MouseEvent) => this.openMenu(e, t)}>
             ${COLUMNS.map(c => html`<td class="${c.numeric ? "num" : ""} col-${c.key}">${c.render(t)}</td>`)}
@@ -348,23 +480,29 @@ export class DownloadsPage extends LitElement {
 
     private renderMenu() {
         const menu = this.menu;
-        const t = menu && this.torrents.find(x => x.infoHash === menu.hash);
-        if (!menu || !t) {
+        const list = menu ? this.torrents.filter(x => menu.hashes.includes(x.infoHash)) : [];
+        if (!menu || !list.length) {
             return nothing;
         }
-        const video = largestVideo(t.files);
+        // only one torrent can play
+        const video = list.length === 1 ? largestVideo(list[0].files) : undefined;
         return html`<ul class="dl-menu" style="left: ${menu.x}px; top: ${menu.y}px">
-            <li @click=${() => this.togglePause(t)}>
-                <i class="material-icons">${t.paused ? "play_arrow" : "pause"}</i>${t.paused ? "Resume" : "Pause"}
-            </li>
-            <li class="${video ? "" : "disabled"}" @click=${() => video && this.play(t, video)}>
+            ${list.some(t => t.paused)
+                ? html`<li @click=${() => this.setPaused(list, false)}><i class="material-icons">play_arrow</i>Resume</li>`
+                : nothing}
+            ${list.some(t => !t.paused)
+                ? html`<li @click=${() => this.setPaused(list, true)}><i class="material-icons">pause</i>Pause</li>`
+                : nothing}
+            <li class="${video ? "" : "disabled"}" @click=${() => video && this.play(list[0], video)}>
                 <i class="material-icons">play_circle</i>Play
             </li>
-            <li @click=${() => this.toggleSequential(t)}>
-                <i class="material-icons">${t.sequential ? "check_box" : "check_box_outline_blank"}</i>First &amp; last parts first, then in order
+            <li @click=${() => this.toggleSequential(list)}>
+                <i class="material-icons">${list.every(t => t.sequential) ? "check_box" : "check_box_outline_blank"}</i>First &amp; last parts first, then in order
             </li>
             <li class="separator"></li>
-            <li class="danger" @click=${() => this.askDelete(t)}><i class="material-icons">delete</i>Delete…</li>
+            <li class="danger" @click=${() => this.askDelete(list)}>
+                <i class="material-icons">delete</i>Delete${list.length > 1 ? ` ${list.length} torrents` : ""}…
+            </li>
         </ul>`;
     }
 
@@ -374,8 +512,8 @@ export class DownloadsPage extends LitElement {
             return nothing;
         }
         return modal(() => (this.deleting = null), html`<div class="modal" role="dialog" aria-modal="true">
-            <h3>Remove torrent</h3>
-            <p>Are you sure you want to remove "${deleting.name}" from the transfer list?</p>
+            <h3>Remove ${deleting.hashes.length > 1 ? "torrents" : "torrent"}</h3>
+            <p>Are you sure you want to remove ${deleting.label} from the transfer list?</p>
             <label>
                 <input type="checkbox" .checked=${deleting.deleteFiles}
                     @change=${(e: Event) => (this.deleting = {...deleting, deleteFiles: (e.target as HTMLInputElement).checked})} />
@@ -386,6 +524,20 @@ export class DownloadsPage extends LitElement {
                 <button class="danger" @click=${this.confirmDelete}>Remove</button>
             </div>
         </div>`);
+    }
+
+    private onAdded(hash: string) {
+        // on phones selecting opens the details sheet; leave them on the list
+        if (!this.phone) {
+            this.select([hash]);
+        }
+        this.refresh();
+    }
+
+    private renderDialogs() {
+        return html`${this.showSettings ? html`<torrent-settings-dialog @close=${() => (this.showSettings = false)}></torrent-settings-dialog>` : nothing}
+            ${this.showAddLinks ? html`<add-links-dialog @close=${() => (this.showAddLinks = false)}
+                @added=${(e: CustomEvent<string>) => this.onAdded(e.detail)}></add-links-dialog>` : nothing}`;
     }
 
     private field(label: string, value: unknown) {
@@ -490,19 +642,20 @@ export class DownloadsPage extends LitElement {
 
     private renderPhone() {
         const rows = this.sorted;
-        return html`<div class="downloads-page phone">
+        return html`<div class="downloads-page phone" @dragover=${(e: DragEvent) => e.preventDefault()} @drop=${this.onDrop}>
+            ${this.renderToolbar()}
             ${this.renderFilters()}
             <div class="dl-cards">
                 ${repeat(rows, t => t.infoHash, t => this.renderCard(t))}
                 ${!this.loaded ? nothing
-                    : !this.torrents.length ? html`<div class="dl-empty">No torrents yet. Start one from a movie or episode's torrent list.</div>`
+                    : !this.torrents.length ? html`<div class="dl-empty">No torrents yet. Start one from a movie or episode's torrent list, add one with the buttons above, or drop .torrent files here.</div>`
                     : !rows.length ? html`<div class="dl-empty">No ${this.filter.label.toLowerCase()} torrents.</div>`
                     : nothing}
             </div>
             ${this.renderSheet()}
             ${this.renderMenu()}
             ${this.renderDeleteDialog()}
-            ${this.showSettings ? html`<torrent-settings-dialog @close=${() => (this.showSettings = false)}></torrent-settings-dialog>` : nothing}
+            ${this.renderDialogs()}
         </div>`;
     }
 
@@ -531,7 +684,8 @@ export class DownloadsPage extends LitElement {
         }
         const tableWidth = COLUMNS.reduce((sum, c) => sum + this.width(c), 0);
         const rows = this.sorted;
-        return html`<div class="downloads-page">
+        return html`<div class="downloads-page" @dragover=${(e: DragEvent) => e.preventDefault()} @drop=${this.onDrop}>
+            ${this.renderToolbar()}
             ${this.renderFilters()}
             <div class="dl-table-wrap">
                 <table class="dl-table" style="width: ${tableWidth}px">
@@ -540,14 +694,14 @@ export class DownloadsPage extends LitElement {
                     <tbody>${repeat(rows, t => t.infoHash, t => this.renderRow(t))}</tbody>
                 </table>
                 ${!this.loaded ? nothing
-                    : !this.torrents.length ? html`<div class="dl-empty">No torrents yet. Start one from a movie or episode's torrent list.</div>`
+                    : !this.torrents.length ? html`<div class="dl-empty">No torrents yet. Start one from a movie or episode's torrent list, add one with the buttons above, or drop .torrent files here.</div>`
                     : !rows.length ? html`<div class="dl-empty">No ${this.filter.label.toLowerCase()} torrents.</div>`
                     : nothing}
             </div>
             ${this.renderDetails()}
             ${this.renderMenu()}
             ${this.renderDeleteDialog()}
-            ${this.showSettings ? html`<torrent-settings-dialog @close=${() => (this.showSettings = false)}></torrent-settings-dialog>` : nothing}
+            ${this.renderDialogs()}
         </div>`;
     }
 }

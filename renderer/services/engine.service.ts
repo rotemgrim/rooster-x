@@ -74,6 +74,11 @@ export class EngineService {
         return promiseIpc.send("engine-add", {magnet}) as Promise<string>;
     }
 
+    /** Starts downloading a .torrent file (base64); resolves to its info hash. */
+    public static addTorrentFile(torrent: string): Promise<string> {
+        return promiseIpc.send("engine-add-torrent-file", {torrent}) as Promise<string>;
+    }
+
     public static setSequential(infoHash: string, sequential: boolean): Promise<boolean> {
         return promiseIpc.send("engine-set-sequential", {infoHash, sequential}) as Promise<boolean>;
     }

@@ -37,6 +37,51 @@
   }
 }
 
+/* qBittorrent-style buttons: add file, add link | remove | resume, pause | settings */
+.dl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  padding: 0.3em 0.5em;
+  background: #141414;
+  border-bottom: 1px solid #2a2a2a;
+  & button {
+    display: flex;
+    padding: 0.15em;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    &:hover:not(:disabled) { background: #2a2a2a; }
+    &:disabled { cursor: default; filter: grayscale(1); opacity: 0.35; }
+    & i { font-size: 2.5em; }
+  }
+  & .tb-add i, & .tb-settings i { color: #2f8cf0; }
+  & .tb-remove i { color: #e53935; }
+  & .tb-resume i { color: #2ecc40; }
+  & .tb-pause i { color: #ff8c00; }
+  & .tb-separator {
+    align-self: stretch;
+    width: 1px;
+    margin: 0.3em 0.4em;
+    background: #333;
+  }
+}
+
+.dl-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  padding: 0.4em 0.6em;
+  background: #3a1414;
+  color: #fca5a5;
+  border-bottom: 1px solid #5a1f1f;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  & span { flex: 1; min-width: 0; }
+  & button { background: none; border: none; color: inherit; cursor: pointer; }
+}
+
 .dl-filters {
   display: flex;
   gap: 0.4em;
@@ -56,9 +101,6 @@
     &:hover { background: #2c2c2c; }
     &.active { background: #3a3a3a; color: white; border-color: #555; }
     & i { font-size: 1.2em; }
-  }
-  & .dl-settings-button {
-    margin-left: auto;
   }
 }
 
@@ -111,6 +153,34 @@
   & .dl-error {
     color: #f87171;
     margin: 0.6em 0 0;
+  }
+}
+
+.modal.add-links {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  & textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    padding: 0.5em;
+    background: #111;
+    color: white;
+    border: 1px solid #444;
+    font: inherit;
+    font-size: 0.9em;
+    &:focus { outline: none; border-color: #888; }
+  }
+  & .dl-error {
+    color: #f87171;
+    margin: 0.6em 0 0;
+    overflow-wrap: anywhere;
+  }
+  & .modal-buttons button:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 }
 

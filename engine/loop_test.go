@@ -2,9 +2,12 @@ package engine
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
+
+	"go-poc/engine/internal/testtorrent"
 )
 
 func TestSeedingLimitEndsSeeding(t *testing.T) {
@@ -154,5 +157,48 @@ func TestSessionFileOnlyWrittenWhenChanged(t *testing.T) {
 	flushSession()
 	if fileExists(path) {
 		t.Error("an unchanged session was written again")
+	}
+}
+
+// A torrent added from a .torrent file has no magnet, so until libtorrent
+// saves resume data for it the next run adds it from the kept file.
+func TestRestoreFromTorrentFile(t *testing.T) {
+	startOffline(t)
+	tt := testtorrent.Write(t, dataDir, "movie.mkv", 2*testtorrent.PieceLength)
+	b, err := os.ReadFile(tt.TorrentPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := AddTorrentFile([]byte("not a torrent")); err == nil {
+		t.Error("adding junk succeeded")
+	}
+	hash, err := AddTorrentFile(b)
+	if err != nil || hash != tt.Hash {
+		t.Fatalf("hash = %s, err = %v, want %s", hash, err, tt.Hash)
+	}
+	flushSession()
+	entries := loadSession()
+
+	dir := dataDir
+	ses.Close()
+	startOffline(t)
+	dataDir = dir
+	for _, e := range entries {
+		if _, err := add(e, addOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	waitFor(t, "the restored torrent", func() bool {
+		s, err := Get(hash)
+		return err == nil && s.Done
+	})
+	if err := Remove(hash, false); err != nil {
+		t.Fatal(err)
+	}
+	if fileExists(torrentPath(hash)) {
+		t.Error("torrent file left behind")
+	}
+	if left, _ := filepath.Glob(filepath.Join(resumePath(""), "*")); len(left) != 0 {
+		t.Errorf("left in the resume folder: %v", left)
 	}
 }

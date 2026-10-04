@@ -123,9 +123,41 @@ func Add(magnet string) (string, error) {
 	return add(sessionEntry{Magnet: magnet, Sequential: s.SequentialByDefault}, addOptions{paused: s.AddPaused})
 }
 
+// AddTorrentFile starts downloading the torrent in a .torrent file's
+// contents and returns its info hash. The file is kept beside the resume
+// data, to add the torrent again after a restart that comes before
+// libtorrent has saved resume data for it.
+func AddTorrentFile(data []byte) (string, error) {
+	if ses == nil {
+		return "", errNotRunning
+	}
+	f, err := os.CreateTemp(resumePath(""), "add-*.torrent")
+	if err != nil {
+		return "", err
+	}
+	tmp := f.Name()
+	defer os.Remove(tmp) // gone already once renamed
+	_, err = f.Write(data)
+	if closeErr := f.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return "", err
+	}
+	s := GetSettings()
+	hash, err := add(sessionEntry{Sequential: s.SequentialByDefault}, addOptions{paused: s.AddPaused, torrentFile: tmp})
+	if err != nil {
+		return "", fmt.Errorf("invalid torrent file: %w", err)
+	}
+	if err := os.Rename(tmp, torrentPath(hash)); err != nil {
+		log.Println("Could not keep torrent file:", err)
+	}
+	return hash, nil
+}
+
 type addOptions struct {
 	paused bool
-	// torrentFile adds a .torrent instead of the magnet (tests).
+	// torrentFile adds a .torrent instead of the magnet.
 	torrentFile string
 }
 
@@ -140,6 +172,12 @@ func add(e sessionEntry, o addOptions) (string, error) {
 	_, statErr := os.Stat(resume)
 	hasResume := resume != "" && statErr == nil
 	preparing := !hasResume
+	if !hasResume && o.torrentFile == "" && e.Hash != "" {
+		// added from a .torrent file, which has no magnet
+		if _, err := os.Stat(torrentPath(e.Hash)); err == nil {
+			o.torrentFile = torrentPath(e.Hash)
+		}
+	}
 	hash, err := ses.Add(lt.AddParams{
 		Magnet:          e.Magnet,
 		TorrentFile:     o.torrentFile,
@@ -259,6 +297,7 @@ func Remove(hash string, deleteFiles bool) error {
 	dirty = true
 	mu.Unlock()
 	_ = os.Remove(resumePath(hash))
+	_ = os.Remove(torrentPath(hash))
 
 	if len(paths) > 0 {
 		go deleteWithRetry(paths)
@@ -272,6 +311,11 @@ func resumePath(hash string) string {
 		return filepath.Join(dataDir, resumeDir)
 	}
 	return filepath.Join(dataDir, resumeDir, hash+".fastresume")
+}
+
+// torrentPath is the .torrent file a torrent was added from, if it was.
+func torrentPath(hash string) string {
+	return filepath.Join(dataDir, resumeDir, hash+".torrent")
 }
 
 // deleteWithRetry deletes the files, retrying with backoff while Windows
