@@ -3,6 +3,7 @@ import {customElement, query, state} from 'lit/decorators.js';
 import {repeat} from 'lit/directives/repeat.js';
 import {IpcService} from "../services/ipc.service";
 import {LiveStream} from "../services/live-stream";
+import {playInMpv} from "./RemotePlayPicker";
 import Hls from 'hls.js';
 import {ChannelCategory, CategoryLabels, CategoryIcons, filterChannelsByCategory, getChannelCategories, extractCleanChannelName} from './channel-categories';
 
@@ -905,7 +906,7 @@ class RoosterChannels extends LitElement {
             const channel = this.channels.find(c => c.uri === this.lastChannelUri);
             const directTag = channel?.tags?.find((t: any) => t.key === 'directUrl');
             const url = directTag?.value || this.lastChannelUri;
-            IpcService.openInMPV(url);
+            playInMpv({title: channel?.name || url, path: this.lastChannelUri}, url);
         }
     }
 

@@ -4,10 +4,10 @@ import {type MediaFile} from "../entity/MediaFile";
 import {EngineService, type IEngineFile} from "../services/engine.service";
 import {IpcService} from "../services/ipc.service";
 
-/** Something to play: a library file or a torrent's file while it downloads. */
+/** Something to play: a library file, a torrent's file while it downloads, or a live channel. */
 export interface PlaySource {
     title: string;
-    /** Same-origin URL path the server streams it from, with Range support. */
+    /** Same-origin URL path the server streams it from: a file with Range support, or a channel's HLS playlist. */
     path: string;
     /**
      * The file's path on the server, for the SMB hand-off. Unset for torrent
@@ -21,7 +21,7 @@ export interface PlaySource {
  * A "remote" client is any session where the web UI wasn't loaded from the
  * local machine, i.e. a phone, tablet or other desktop on the LAN hitting
  * http://<pc-ip>:8080. It can't shell out to mpv (that would launch it on
- * the server PC), so it gets the picker instead.
+ * the server PC), so it gets the picker, or its own mpv:// handler, instead.
  */
 function isRemoteClient(): boolean {
     const host = window.location?.hostname;
@@ -35,11 +35,33 @@ export function playOnDevice(source: PlaySource, playOnHost: () => void) {
         playOnHost();
         return;
     }
+    showPicker(source);
+}
+
+function showPicker(source: PlaySource) {
     const picker = document.createElement("remote-play-picker") as RemotePlayPicker;
     picker.source = source;
     picker.open = true;
     picker.addEventListener("close", () => picker.remove());
     document.body.appendChild(picker);
+}
+
+/**
+ * Plays url in mpv on this device: the host's mpv locally, else this
+ * device's mpv:// handler, with the picker as fallback. A browser can't tell
+ * whether a scheme has a handler, but when one does the page loses focus to
+ * the browser's "open mpv?" prompt or to mpv itself; a page that still has
+ * it a moment later means nothing picked the link up.
+ */
+export function playInMpv(source: PlaySource, url: string) {
+    if (!isRemoteClient()) {
+        IpcService.openInMPV(url);
+        return;
+    }
+    window.location.href = `mpv://${new URL(url, location.origin).href}`;
+    setTimeout(() => {
+        if (document.hasFocus() && !document.hidden) showPicker(source);
+    }, 1500);
 }
 
 export function mediaFileSource(file: MediaFile): PlaySource {
@@ -72,7 +94,7 @@ export function playTorrentFile(infoHash: string, file: IEngineFile) {
  * mis-interprets the shared URL and plays a ~3-second placeholder instead
  * of streaming the file.
  *
- * Dispatches a "close" event when dismissed; playOnDevice() shows it.
+ * Dispatches a "close" event when dismissed; showPicker() shows it.
  */
 @customElement("remote-play-picker")
 export class RemotePlayPicker extends LitElement {
