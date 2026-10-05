@@ -299,7 +299,7 @@ export class RemotePlayPicker extends LitElement {
     private openInBrowser = () => {
         const httpUrl = this.httpUrl || this.buildFileUrl();
         console.log("Opening inline in browser:", httpUrl);
-        window.location.href = httpUrl;
+        this.handOff(httpUrl);
     };
 
     /**
@@ -309,7 +309,7 @@ export class RemotePlayPicker extends LitElement {
      */
     private openInLibmedia = () => {
         const query = `?src=${encodeURIComponent(this.source.path)}&name=${encodeURIComponent(this.source.title)}`;
-        window.location.href = `/player.html${query}`;
+        this.handOff(`/player.html${query}`);
     };
 
     /**
@@ -335,14 +335,14 @@ export class RemotePlayPicker extends LitElement {
             + `package=org.videolan.vlc;`
             + `end`;
         console.log("Opening via Android intent:", intentUrl);
-        window.location.href = intentUrl;
+        this.handOff(intentUrl);
     };
 
     private openInMpv = () => {
         const httpUrl = this.httpUrl || this.buildFileUrl();
         const mpvScheme = `mpv://${httpUrl}`;
         console.log("mpv hand-off:", mpvScheme);
-        window.location.href = mpvScheme;
+        this.handOff(mpvScheme);
     };
 
     /**
@@ -360,7 +360,7 @@ export class RemotePlayPicker extends LitElement {
         }
         const mpvScheme = `mpv://${local}`;
         console.log("mpv SMB hand-off:", mpvScheme);
-        window.location.href = mpvScheme;
+        this.handOff(mpvScheme);
     };
 
     private canUseSmb(): boolean {
@@ -453,7 +453,7 @@ export class RemotePlayPicker extends LitElement {
             : null;
 
         console.log("VLC hand-off. primary:", vlcScheme, "iosAlt:", iosAlt);
-        window.location.href = vlcScheme;
+        this.handOff(vlcScheme);
         if (iosAlt) {
             setTimeout(() => { window.location.href = iosAlt!; }, 600);
         }
@@ -510,6 +510,12 @@ export class RemotePlayPicker extends LitElement {
             console.warn("legacyCopy failed:", e);
             return false;
         }
+    }
+
+    /** Goes to url and dismisses the sheet: the user has picked how to play. */
+    private handOff(url: string) {
+        window.location.href = url;
+        this.close();
     }
 
     private close = () => {
