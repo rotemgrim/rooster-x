@@ -3,7 +3,7 @@
     "short_name": "RoosterX",
     "start_url": "/",
     "scope": "/",
-    "display": "standalone",
+    "display": "fullscreen",
     "background_color": "#000000",
     "theme_color": "#0d0d0d",
     "icons": [

@@ -24,6 +24,8 @@ const HUD_HIDE_MS = 2_000;
 const SWIPE_START_PX = 12;
 const BRIGHTNESS_MIN = 0.1;
 const BRIGHTNESS_MAX = 1.5;
+/** Android's Toast.LENGTH_LONG (3.5s) plus its fade in and out. */
+const FULLSCREEN_TOAST_MS = 4_500;
 
 type Side = "left" | "right";
 
@@ -53,11 +55,20 @@ export class LibmediaPlayer extends LitElement {
     @state() private hudVisible: boolean = true;
     @state() private needsAudioUnlock: boolean = false;
     @state() private orientationLocked: boolean = false;
+    /** The bar is raised above Android Chrome's fullscreen toast, see makeRoomForToast(). */
+    @state() private barLifted: boolean = false;
     @state() private session: PlaybackSession | null = null;
 
     @query("#screen") private screen!: HTMLDivElement;
 
     private readonly touchDevice = matchMedia("(pointer: coarse)").matches;
+    /**
+     * Launched as the installed app (manifest display: fullscreen), which
+     * already fills the screen: the Fullscreen API would only add Chrome's
+     * "swipe down to exit" toast. Checked before the player goes fullscreen,
+     * since element fullscreen matches this query too.
+     */
+    private readonly appFullscreen = matchMedia("(display-mode: fullscreen)").matches;
     private screenWake: ScreenWake | null = null;
     /**
      * Position to show instead of the player's while the user drags the seek
@@ -75,6 +86,7 @@ export class LibmediaPlayer extends LitElement {
     } | null = null;
     private noticeTimer: number | undefined;
     private hudTimer: number | undefined;
+    private liftTimer: number | undefined;
     /** The HUD stays up while the mouse is over it or a select's picker is open. */
     private hoveringHud = false;
     private selectOpen = false;
@@ -204,7 +216,10 @@ export class LibmediaPlayer extends LitElement {
             background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
             flex-wrap: wrap;
             z-index: 1;
+            transition: opacity 0.25s, padding-bottom 0.25s;
         }
+        /* Clears the toast: up to two lines, ~64dp tall; zoomed by --ui-scale (1.25 on touch). */
+        .bar.lifted { padding-bottom: calc(0.6rem + 64px); }
         .bar .time { font-variant-numeric: tabular-nums; font-size: 0.85rem; white-space: nowrap; }
         .bar input.seek { flex: 1; min-width: 120px; accent-color: #ff3344; }
         .bar input.vol { width: 80px; accent-color: #ff3344; }
@@ -251,7 +266,7 @@ export class LibmediaPlayer extends LitElement {
         const session = this.session;
         const durationMs = session?.durationMs ?? 0;
         return html`
-            <div class="bar" @pointerenter=${this.onHudEnter} @pointerleave=${this.onHudLeave}
+            <div class=${this.barLifted ? "bar lifted" : "bar"} @pointerenter=${this.onHudEnter} @pointerleave=${this.onHudLeave}
                  @pointerdown=${this.showHud} @input=${this.showHud}
                  @focusin=${this.onHudFocusIn} @focusout=${this.onHudFocusOut} @change=${this.onHudChange}>
                 <button @click=${this.togglePlay}>${this.playing ? "❚❚" : "▶"}</button>
@@ -279,7 +294,7 @@ export class LibmediaPlayer extends LitElement {
                     ? html`<button title=${this.orientationLocked ? "Unlock rotation" : "Lock rotation"}
                                    @click=${this.toggleOrientationLock}>${this.orientationLocked ? "🔒" : "🔓"}</button>`
                     : null}
-                <button @click=${this.toggleFullscreen}>⛶</button>
+                ${this.appFullscreen ? null : html`<button @click=${this.toggleFullscreen}>⛶</button>`}
             </div>
         `;
     }
@@ -341,6 +356,7 @@ export class LibmediaPlayer extends LitElement {
         super.connectedCallback();
         document.addEventListener("fullscreenchange", this.onFullscreenChange);
         window.addEventListener("resize", this.applyUiScale);
+        window.addEventListener("resize", this.makeRoomForToast);
         this.applyUiScale();
         this.screenWake = new ScreenWake();
     }
@@ -349,7 +365,11 @@ export class LibmediaPlayer extends LitElement {
         super.disconnectedCallback();
         document.removeEventListener("fullscreenchange", this.onFullscreenChange);
         window.removeEventListener("resize", this.applyUiScale);
+        window.removeEventListener("resize", this.makeRoomForToast);
         clearTimeout(this.hudTimer);
+        clearTimeout(this.liftTimer);
+        // Locked without fullscreen (installed app): leaving fullscreen won't release it.
+        if (this.orientationLocked) screen.orientation.unlock();
         this.screenWake?.dispose();
         this.screenWake = null;
         this.session?.destroy().catch(e => console.warn("libmedia destroy failed:", e));
@@ -437,6 +457,7 @@ export class LibmediaPlayer extends LitElement {
     private onHudFocusOut = () => {
         if (!this.selectOpen) return;
         this.selectOpen = false;
+        this.makeRoomForToast();
         this.showHud();
     };
 
@@ -560,9 +581,10 @@ export class LibmediaPlayer extends LitElement {
 
     /**
      * Lock the screen to its current orientation so the phone doesn't flip
-     * while watching in bed / on the side. Browsers only allow the lock in
-     * fullscreen (and leaving fullscreen releases it); iOS Safari doesn't
-     * support it at all.
+     * while watching in bed / on the side. Browsers mostly allow the lock
+     * only in fullscreen (and leaving fullscreen releases it), so that's the
+     * fallback when locking as is fails; an installed full-screen app may be
+     * allowed without it. iOS Safari doesn't support it at all.
      */
     private toggleOrientationLock = async () => {
         // lock() is missing from TypeScript's DOM types.
@@ -572,9 +594,12 @@ export class LibmediaPlayer extends LitElement {
             this.orientationLocked = false;
             return;
         }
+        const lock = () => orientation.lock(orientation.type);
         try {
-            await this.enterFullscreen();
-            await orientation.lock(orientation.type);
+            await lock().catch(async () => {
+                await this.enterFullscreen();
+                await lock();
+            });
             this.orientationLocked = true;
         } catch (e) {
             console.warn("orientation lock failed:", e);
@@ -583,7 +608,26 @@ export class LibmediaPlayer extends LitElement {
     };
 
     private onFullscreenChange = () => {
-        if (!document.fullscreenElement) this.orientationLocked = false;
+        if (document.fullscreenElement) {
+            this.makeRoomForToast();
+        } else {
+            this.orientationLocked = false;
+            clearTimeout(this.liftTimer);
+            this.barLifted = false;
+        }
+    };
+
+    /**
+     * Android Chrome covers the bottom center with a "swipe down to exit
+     * full screen" toast for a few seconds whenever fullscreen is entered,
+     * re-laid out (rotation) or gets focus back (a select's picker closed).
+     * Pages can't hide it, so raise the bar above it meanwhile.
+     */
+    private makeRoomForToast = () => {
+        if (!this.touchDevice || !document.fullscreenElement) return;
+        this.barLifted = true;
+        clearTimeout(this.liftTimer);
+        this.liftTimer = window.setTimeout(() => { this.barLifted = false; }, FULLSCREEN_TOAST_MS);
     };
 
     private notify(message: string, durationMs = 3000) {
