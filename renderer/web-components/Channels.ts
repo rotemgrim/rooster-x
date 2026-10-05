@@ -2,6 +2,7 @@ import {css, html, LitElement, PropertyValues} from 'lit';
 import {customElement, query, state} from 'lit/decorators.js';
 import {repeat} from 'lit/directives/repeat.js';
 import {IpcService} from "../services/ipc.service";
+import {LiveStream} from "../services/live-stream";
 import Hls from 'hls.js';
 import {ChannelCategory, CategoryLabels, CategoryIcons, filterChannelsByCategory, getChannelCategories, extractCleanChannelName} from './channel-categories';
 
@@ -470,7 +471,7 @@ class RoosterChannels extends LitElement {
     private static BROKEN_CHANNELS_KEY = 'rooster-broken-channels';
     private static SETTINGS_KEY = 'rooster-settings';
     private lastChannelUri: string | null = null;
-    private hls: Hls | null = null;
+    private stream: LiveStream | null = null;
     private filteredChannels: any[] = [];
     private osdTimer: number | null = null;
     private controlsTimer: number | null = null;
@@ -506,6 +507,7 @@ class RoosterChannels extends LitElement {
             clearTimeout(this.osdTimer);
             this.osdTimer = null;
         }
+        this.stream?.dispose();
     }
 
     private isFullscreen(): boolean {
@@ -744,18 +746,9 @@ class RoosterChannels extends LitElement {
 
         console.log("channelURI", channelURI);
 
-        // Destroy previous HLS instance to free connections
-        if (this.hls) {
-            this.hls.destroy();
-            this.hls = null;
-        }
-
-        this.hls = new Hls();
-        this.hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-            this.video.play();
-        });
-        this.hls.loadSource(channelURI);
-        this.hls.attachMedia(this.video);
+        // Destroy previous stream to free connections
+        this.stream?.dispose();
+        this.stream = new LiveStream(this.video, channelURI);
     }
 
     private async fetchIconForChannel(channelName: string, logoUrl: string, li: HTMLElement) {
@@ -907,10 +900,7 @@ class RoosterChannels extends LitElement {
     private openInMPV() {
         if (this.lastChannelUri) {
             // Destroy browser HLS instance to free the connection
-            if (this.hls) {
-                this.hls.destroy();
-                this.hls = null;
-            }
+            this.stream?.dispose();
             // Use the direct Xtream URL for MPV (no CORS in native apps)
             const channel = this.channels.find(c => c.uri === this.lastChannelUri);
             const directTag = channel?.tags?.find((t: any) => t.key === 'directUrl');

@@ -250,6 +250,19 @@ var streamNoRedirectClient = &http.Client{
 	},
 }
 
+// streamGet fetches url for the player's request r and gives up when the
+// player does. streamClient allows only two connections to the provider, so
+// a segment the player abandoned (timed out, or the stream restarted) would
+// otherwise hold one until the provider finished sending it, starving the
+// segments the player is now waiting for.
+func streamGet(client *http.Client, r *http.Request, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
 // streamProxyHandler proxies .m3u8 manifest requests to the Xtream server.
 // The Xtream server redirects to a different host; we follow the redirect,
 // then rewrite segment URLs to route through /stream-ts/.
@@ -263,7 +276,7 @@ func streamProxyHandler(w http.ResponseWriter, r *http.Request) {
 	targetURL := fmt.Sprintf("%s/%s", xtreamServer, remotePath)
 
 	// Get the initial response (may be a redirect)
-	resp, err := streamNoRedirectClient.Get(targetURL)
+	resp, err := streamGet(streamNoRedirectClient, r, targetURL)
 	if err != nil {
 		log.Println("Stream proxy error:", err)
 		http.Error(w, "failed to fetch stream", http.StatusBadGateway)
@@ -274,7 +287,7 @@ func streamProxyHandler(w http.ResponseWriter, r *http.Request) {
 	finalHost := ""
 	if location := resp.Header.Get("Location"); location != "" && (resp.StatusCode >= 300 && resp.StatusCode < 400) {
 		resp.Body.Close()
-		resp, err = streamClient.Get(location)
+		resp, err = streamGet(streamClient, r, location)
 		if err != nil {
 			log.Println("Stream proxy redirect error:", err)
 			http.Error(w, "failed to follow redirect", http.StatusBadGateway)
@@ -322,7 +335,7 @@ func streamSegmentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := streamClient.Get("http://" + remotePath)
+	resp, err := streamGet(streamClient, r, "http://"+remotePath)
 	if err != nil {
 		log.Println("Segment proxy error:", err)
 		http.Error(w, "failed to fetch segment", http.StatusBadGateway)
