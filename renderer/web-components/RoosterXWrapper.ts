@@ -4,8 +4,10 @@ import {IpcService} from "../services/ipc.service";
 import "./RoosterX";
 import "./SelectDataBase";
 import "./UserLogin";
+import "./SetupWizard";
 import {IConfig} from "../common/models/IConfig";
 import {type User} from "../entity/User";
+import {type ISetupState} from "../common/models/ISetup";
 
 @customElement("rooster-x-wrapper")
 export class RoosterXWrapper extends LitElement {
@@ -16,6 +18,7 @@ export class RoosterXWrapper extends LitElement {
         isAdmin: false,
     };
     @property() public user: User;
+    @property() public setup: ISetupState | null = null;
 
     public createRenderRoot() {
         return this;
@@ -36,6 +39,17 @@ export class RoosterXWrapper extends LitElement {
         }
 
         this.checkStatus();
+        IpcService.getSetup()
+            .then(setup => this.setup = setup)
+            .catch(e => {
+                console.log("could not get setup state", e);
+                this.setup = {needsSetup: false};
+            });
+    }
+
+    private setupDone() {
+        this.isLoggedIn = false;
+        this.setup = {needsSetup: false};
     }
 
     public checkStatus() {
@@ -78,6 +92,13 @@ export class RoosterXWrapper extends LitElement {
         // } else if (!this.isLoggedIn) {
         //     return html`<user-login .wrapper=${this}></user-login>`;
         // }
+        if (!this.setup) {
+            return html``;
+        }
+        if (this.setup.needsSetup) {
+            return html`<setup-wizard .config=${this.setup.config} .users=${this.setup.users}
+                .onDone=${() => this.setupDone()}></setup-wizard>`;
+        }
         if (!this.isLoggedIn) {
             return html`<user-login .wrapper=${this}></user-login>`;
         }

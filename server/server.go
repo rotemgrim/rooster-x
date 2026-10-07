@@ -86,9 +86,22 @@ func NewServer(staticDir string) *Server {
 	}
 }
 
-func (s *Server) Start(walker Sweeper, fetcher Sweeper) {
+// SetSweepers hands the server the library and torrent sweepers, which exist
+// only once the app is configured.
+func (s *Server) SetSweepers(walker Sweeper, fetcher Sweeper) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	s.walker = walker
 	s.torrentsFetcher = fetcher
+}
+
+func (s *Server) sweepers() (walker Sweeper, fetcher Sweeper) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return s.walker, s.torrentsFetcher
+}
+
+func (s *Server) Start() {
 	s.SetRoutes()
 	go func() {
 		// Use the file system to serve static files

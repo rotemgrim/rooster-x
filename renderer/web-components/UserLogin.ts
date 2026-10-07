@@ -109,7 +109,7 @@ export class UserLogin extends LitElement {
             form = html`${this._users.map((u) =>
                 html`<button class="user-btn" @click=${() => this.login(u)}
                         style="background-color: ${this.strToHslColor(u.firstName)}">
-                    <span class="initials">${u.firstName[0] + u.lastName[0]}</span>
+                    <span class="initials">${(u.firstName?.[0] || "") + (u.lastName?.[0] || "")}</span>
                     <span class="first-name">${u.firstName}</span>
                 </button>`)}`;
         }

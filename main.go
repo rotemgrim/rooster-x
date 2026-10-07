@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"go-poc/config"
 	"go-poc/db"
 	"go-poc/engine"
 	EventBus "go-poc/event-bus"
@@ -24,26 +24,7 @@ import (
 	"github.com/getlantern/systray/example/icon"
 	"github.com/skratchdot/open-golang/open"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"gopkg.in/yaml.v3"
 )
-
-type XtreamConfig struct {
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	Server   string `yaml:"server"`
-}
-
-type Config struct {
-	TmdbApiKey           string       `yaml:"tmdb_api_key"`
-	Lang                 string       `yaml:"lang"`
-	Directories          []string     `yaml:"directories"`
-	FullDirectoriesSweep []string     `yaml:"full_directories_sweep"`
-	TorrentsSweep        []string     `yaml:"torrents_sweep"`
-	ImdbRatingPoll       string       `yaml:"imdb_rating_poll"`
-	MetadataEnrichPoll   string       `yaml:"metadata_enrich_poll"`
-	DownloadDir          string       `yaml:"download_dir"`
-	Xtream               XtreamConfig `yaml:"xtream"`
-}
 
 type App struct {
 	Scheduler       *scheduler.Scheduler
@@ -149,13 +130,29 @@ func onReady() {
 		}
 	}()
 
-	// initialize the config file
-	config := initializeConfig()
+	cfg, needsSetup, err := config.Load()
+	if err != nil {
+		panic(err)
+	}
+
+	// the server comes up before the rest of the app so it can show the
+	// setup wizard on first run
+	var setupDone <-chan config.Config
+	if needsSetup {
+		setupDone = server.RequireSetup(cfg)
+	}
+	ServerInstance := server.NewServer("static")
+	go ServerInstance.Start()
+	if needsSetup {
+		log.Println("No configuration yet, waiting for the setup wizard")
+		openBrowserInKiosk(0)
+		cfg = <-setupDone
+		log.Println("Setup complete")
+	}
 
 	schedulerInstance := scheduler.NewScheduler()
-	ServerInstance := server.NewServer("static")
-	tmdbClient, err := tmdb.Init(config.TmdbApiKey)
-	gtmdb.SetLang(config.Lang)
+	tmdbClient, err := tmdb.Init(cfg.TmdbApiKey)
+	gtmdb.SetLang(cfg.Lang)
 	gtmdb.SetEnrichmentClient(tmdbClient)
 	gtmdb.SetEnrichmentBroadcaster(func(msg string) {
 		ServerInstance.BroadcastMessage(msg)
@@ -165,8 +162,8 @@ func onReady() {
 		func() { systray.SetIcon(RoosterIcon) },
 	)
 	server.EnrichMetadataFn = gtmdb.EnrichOne
-	server.SetTmdbApiKey(config.TmdbApiKey)
-	server.SetXtreamConfig(config.Xtream.Username, config.Xtream.Password, config.Xtream.Server)
+	server.SetTmdbApiKey(cfg.TmdbApiKey)
+	server.SetXtreamConfig(cfg.Xtream.Username, cfg.Xtream.Password, cfg.Xtream.Server)
 
 	if err != nil {
 		log.Println("Error initializing tmdb client: set tmdb_api_key in config.yaml:", err)
@@ -174,12 +171,12 @@ func onReady() {
 	}
 
 	// directories array to walk
-	dirs := config.Directories
+	dirs := cfg.Directories
 	WalkerInstance := walker.NewWalker(dirs, ServerInstance, tmdbClient)
 	TorrentsFetcher := torrents.NewTorrentFetcher(ServerInstance, tmdbClient)
 
 	// create a new app
-	xtreamClient := iptv.NewXtreamClient(config.Xtream.Username, config.Xtream.Password, config.Xtream.Server)
+	xtreamClient := iptv.NewXtreamClient(cfg.Xtream.Username, cfg.Xtream.Password, cfg.Xtream.Server)
 
 	app = &App{
 		Scheduler:       schedulerInstance,
@@ -191,7 +188,7 @@ func onReady() {
 
 	// embedded torrent engine; downloads land in a watched directory by
 	// default so the walker picks them up like any other media file
-	downloadDir := config.DownloadDir
+	downloadDir := cfg.DownloadDir
 	if downloadDir == "" && len(dirs) > 0 {
 		downloadDir = dirs[0]
 	}
@@ -203,10 +200,10 @@ func onReady() {
 	}
 
 	app.Walker.StartWatch()
-	go app.Server.Start(WalkerInstance, TorrentsFetcher)
+	app.Server.SetSweepers(WalkerInstance, TorrentsFetcher)
 	app.Scheduler.Init()
 
-	for _, schedule := range config.FullDirectoriesSweep {
+	for _, schedule := range cfg.FullDirectoriesSweep {
 		app.Scheduler.Schedule(schedule, func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -217,7 +214,7 @@ func onReady() {
 		})
 	}
 
-	for _, schedule := range config.TorrentsSweep {
+	for _, schedule := range cfg.TorrentsSweep {
 		app.Scheduler.Schedule(schedule, func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -229,8 +226,8 @@ func onReady() {
 	}
 
 	// schedule the imdb ratings fetcher
-	if config.ImdbRatingPoll != "" {
-		app.Scheduler.Schedule(config.ImdbRatingPoll, server.ImdbRatingPoll)
+	if cfg.ImdbRatingPoll != "" {
+		app.Scheduler.Schedule(cfg.ImdbRatingPoll, server.ImdbRatingPoll)
 	}
 
 	// refresh the IMDb ratings dataset daily; IMDb publishes it around 01:00 UTC
@@ -238,8 +235,8 @@ func onReady() {
 
 	// schedule periodic metadata enrichment from TMDB.
 	// By default this is a nightly window (2-4 AM); see config.yaml.
-	if config.MetadataEnrichPoll != "" {
-		app.Scheduler.Schedule(config.MetadataEnrichPoll, func() {
+	if cfg.MetadataEnrichPoll != "" {
+		app.Scheduler.Schedule(cfg.MetadataEnrichPoll, func() {
 			gtmdb.RunEnrichmentSweep(500)
 		})
 	}
@@ -256,72 +253,6 @@ func onReady() {
 	case _ = <-sigChan:
 		onExit()
 	}
-}
-
-func initializeConfig() Config {
-	// check if config file exists
-	if _, err := os.Stat("config.yaml"); os.IsNotExist(err) {
-		// create a new config file
-		file, err := os.Create("config.yaml")
-		if err != nil {
-			log.Println("Error creating config file")
-			panic(fmt.Errorf("Error creating config file: %w", err))
-		}
-		defer file.Close()
-
-		defaultConfig := []byte(
-			`
-tmdb_api_key: "" # get one at https://www.themoviedb.org/settings/api
-lang: "en-US"
-
-directories:
-    - "B:\\downloads\\complete"
-    - "B:\\dekel"
-
-full_directories_sweep:
-    - "0 9 * * *" # Every day at 09:00
-    - "0 19 * * *" # Every day at 19:00
-
-torrents_sweep:
-    - "0 10 * * *" # Every day at 10:00
-    - "30 19 * * *" # Every day at 19:30
-
-imdb_rating_poll: "* * * * *" # Every minute
-
-metadata_enrich_poll: "0 2-3 * * *" # Nightly at 02:00 and 03:00 (within the 2-4 AM window)
-
-# download_dir: "B:\\downloads\\complete" # where the built-in torrent engine saves files (defaults to the first directory above)
-
-xtream:
-    username: ""
-    password: ""
-    server: ""
-`)
-
-		// write the default config to the file
-		_, err = file.WriteString(string(defaultConfig))
-		if err != nil {
-			log.Println("Error writing to config file")
-			panic(fmt.Errorf("Error writing to config file: %w", err))
-		}
-	}
-
-	// read the config file
-	configData, err := os.ReadFile("config.yaml")
-	if err != nil {
-		log.Println("Error reading config file")
-		panic(fmt.Errorf("Error reading config file: %w", err))
-	}
-
-	// unmarshal the config file
-	var cfg Config
-	err = yaml.Unmarshal(configData, &cfg)
-	if err != nil {
-		panic(fmt.Errorf("Error unmarshalling config file: %w", err))
-	}
-
-	// spew.Dump(cfg)
-	return cfg
 }
 
 func trayInitialize() {
@@ -346,12 +277,21 @@ func trayInitialize() {
 			case <-mOpen.ClickedCh:
 				openBrowserInKiosk(0)
 			case <-mSweep.ClickedCh:
+				if app == nil { // still in first-run setup
+					continue
+				}
 				systray.SetIcon(icon.Data)
 				safeGo("FullSweep", app.Walker.FullSweep)
 			case <-mTorrentFetch.ClickedCh:
+				if app == nil {
+					continue
+				}
 				systray.SetIcon(icon.Data)
 				safeGo("GetTorrents", app.TorrentsFetcher.GetTorrents)
 			case <-mRefreshIPTV.ClickedCh:
+				if app == nil {
+					continue
+				}
 				systray.SetIcon(icon.Data)
 				safeGo("RefreshLiveStreams", func() {
 					err := app.XtreamClient.RefreshLiveStreams()

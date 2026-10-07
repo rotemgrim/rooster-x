@@ -4,6 +4,7 @@ import {IConfig} from "../common/models/IConfig";
 import {type User} from "../entity/User";
 import {type MetaData} from "../entity/MetaData";
 import {type Episode} from "../entity/Episode";
+import {type IDirListing, type ISetupConfig, type ISetupState, type ISetupUser} from "../common/models/ISetup";
 
 export const promiseIpc = new RendererPromiseIpc({ maxTimeoutMs: 120000 });
 const ipcRenderer = promiseIpc.IpcRenderer();
@@ -241,6 +242,30 @@ export class IpcService {
         return new Promise((resolve, reject) => {
             promiseIpc.send("create-user", payload).then(resolve).catch(reject);
         });
+    }
+
+    public static getSetup(): Promise<ISetupState> {
+        return promiseIpc.send("get-setup");
+    }
+
+    public static setupCheckTmdbKey(key: string): Promise<string> {
+        return promiseIpc.send("setup-check-tmdb-key", {key});
+    }
+
+    public static setupListDirs(path: string): Promise<IDirListing> {
+        return promiseIpc.send("setup-list-dirs", {path});
+    }
+
+    public static setupCreateUser(user: Omit<ISetupUser, "id">): Promise<ISetupUser[]> {
+        return promiseIpc.send("setup-create-user", user);
+    }
+
+    public static setupDeleteUser(id: number): Promise<ISetupUser[]> {
+        return promiseIpc.send("setup-delete-user", {id});
+    }
+
+    public static setupComplete(config: ISetupConfig): Promise<string> {
+        return promiseIpc.send("setup-complete", config);
     }
 
     public static setWatched(payload: {type: string, entityId: number, isWatched: boolean}): Promise<any> {

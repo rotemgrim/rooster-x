@@ -79,15 +79,15 @@ type MediaDataExtended struct {
 }
 
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
-	go func(s *Server) {
-		s.walker.FullSweep()
-	}(s)
+	if walker, _ := s.sweepers(); walker != nil {
+		go walker.FullSweep()
+	}
 }
 
 func (s *Server) SyncTorrents(c *websocket.Conn, data PayloadRequest) {
-	go func(s *Server) {
-		s.torrentsFetcher.FullSweep()
-	}(s)
+	if _, fetcher := s.sweepers(); fetcher != nil {
+		go fetcher.FullSweep()
+	}
 }
 
 func (s *Server) GetConfig(c *websocket.Conn, data PayloadRequest) {

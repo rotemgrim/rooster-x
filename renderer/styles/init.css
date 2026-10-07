@@ -12,6 +12,7 @@
 @import "lists.css";
 @import "modal.css";
 @import "downloads.css";
+@import "setup.css";
 
 * {
   padding: 0;
