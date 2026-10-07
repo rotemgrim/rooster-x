@@ -1,4 +1,4 @@
-db.sqlite
+db.sqlite*
 /config.yaml
 /rooster.log
 /roosterx.exe
@@ -7,5 +7,19 @@ db.sqlite
 /renderer/node_modules/
 /tmp/
 /.idea/
+/.claude/
 /imdb_ratings.tsv.gz*
 /third_party/
+
+# build output: build-script.sh copies renderer/dist here; the few files
+# already tracked stay so go:embed still compiles on a fresh clone
+/server/static/*
+
+# secrets
+/certs/
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*

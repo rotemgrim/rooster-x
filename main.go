@@ -169,7 +169,7 @@ func onReady() {
 	server.SetXtreamConfig(config.Xtream.Username, config.Xtream.Password, config.Xtream.Server)
 
 	if err != nil {
-		log.Println("Error initializing tmdb client")
+		log.Println("Error initializing tmdb client: set tmdb_api_key in config.yaml:", err)
 		return
 	}
 
@@ -271,7 +271,7 @@ func initializeConfig() Config {
 
 		defaultConfig := []byte(
 			`
-tmdb_api_key: "REMOVED_TMDB_API_KEY"
+tmdb_api_key: "" # get one at https://www.themoviedb.org/settings/api
 lang: "en-US"
 
 directories:
