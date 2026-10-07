@@ -3,7 +3,6 @@ db.sqlite*
 /rooster.log
 /roosterx.exe
 /renderer/dist/
-/renderer/pnpm-lock.yaml
 /renderer/node_modules/
 /tmp/
 /.idea/

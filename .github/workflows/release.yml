@@ -1,0 +1,61 @@
+name: release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      # the shell scripts must keep LF endings to run under bash
+      - run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          path-type: inherit
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            p7zip
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: renderer/pnpm-lock.yaml
+
+      - uses: actions/cache@v4
+        with:
+          path: third_party
+          key: libtorrent-${{ runner.os }}-${{ hashFiles('scripts/build-libtorrent.sh') }}
+
+      - working-directory: renderer
+        run: pnpm install --frozen-lockfile
+
+      - shell: msys2 {0}
+        run: bash build-script.sh
+
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v2.0.${{ github.run_number }}" roosterx.exe --target "${{ github.sha }}" --title "v2.0.${{ github.run_number }}" --generate-notes
