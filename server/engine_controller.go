@@ -1,0 +1,117 @@
+package server
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+
+	"github.com/gorilla/websocket"
+
+	"go-poc/engine"
+)
+
+// EngineAdd starts downloading a magnet in the embedded torrent engine.
+func (s *Server) EngineAdd(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	magnet, _ := data["magnet"].(string)
+	if magnet == "" {
+		transmitPromiseReject(c, req, "magnet is required")
+		return
+	}
+	hash, err := engine.Add(magnet)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not add torrent: %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, hash)
+}
+
+// EngineAddTorrentFile starts downloading a .torrent file, sent base64
+// encoded.
+func (s *Server) EngineAddTorrentFile(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	encoded, _ := data["torrent"].(string)
+	b, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil || len(b) == 0 {
+		transmitPromiseReject(c, req, "torrent file is required")
+		return
+	}
+	hash, err := engine.AddTorrentFile(b)
+	if err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not add torrent: %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, hash)
+}
+
+// EngineStatus returns one torrent when infoHash is given, otherwise all of them.
+func (s *Server) EngineStatus(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	if hash, _ := data["infoHash"].(string); hash != "" {
+		st, err := engine.Get(hash)
+		if err != nil {
+			transmitPromiseReject(c, req, err.Error())
+			return
+		}
+		transmitPromiseResponse(c, req, st)
+		return
+	}
+	transmitPromiseResponse(c, req, engine.List())
+}
+
+// EngineSetSequential toggles first/last-parts-first + in-order downloading.
+func (s *Server) EngineSetSequential(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	hash, _ := data["infoHash"].(string)
+	on, _ := data["sequential"].(bool)
+	if err := engine.SetSequential(hash, on); err != nil {
+		transmitPromiseReject(c, req, err.Error())
+		return
+	}
+	transmitPromiseResponse(c, req, on)
+}
+
+// EnginePause pauses or resumes a torrent.
+func (s *Server) EnginePause(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	hash, _ := data["infoHash"].(string)
+	paused, _ := data["paused"].(bool)
+	if err := engine.SetPaused(hash, paused); err != nil {
+		transmitPromiseReject(c, req, err.Error())
+		return
+	}
+	transmitPromiseResponse(c, req, paused)
+}
+
+// EngineGetSettings returns the torrent client settings.
+func (s *Server) EngineGetSettings(c *websocket.Conn, req PayloadRequest) {
+	transmitPromiseResponse(c, req, engine.GetSettings())
+}
+
+// EngineSaveSettings stores and applies the torrent client settings.
+func (s *Server) EngineSaveSettings(c *websocket.Conn, req PayloadRequest) {
+	var st engine.Settings
+	b, _ := json.Marshal(req.Data)
+	if err := json.Unmarshal(b, &st); err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("invalid settings: %s", err))
+		return
+	}
+	if err := engine.SaveSettings(st); err != nil {
+		transmitPromiseReject(c, req, fmt.Sprintf("could not save settings: %s", err))
+		return
+	}
+	transmitPromiseResponse(c, req, engine.GetSettings())
+}
+
+// EngineRemove stops a torrent; with deleteFiles its downloaded files are
+// deleted too.
+func (s *Server) EngineRemove(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	hash, _ := data["infoHash"].(string)
+	deleteFiles, _ := data["deleteFiles"].(bool)
+	if err := engine.Remove(hash, deleteFiles); err != nil {
+		transmitPromiseReject(c, req, err.Error())
+		return
+	}
+	transmitPromiseResponse(c, req, "removed")
+}

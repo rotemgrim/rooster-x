@@ -1,0 +1,176 @@
+.top-bar {
+  width: 100%;
+  position: relative;
+  background: var(--black-background);
+  height: var(--top-bar-height);
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  & > div {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    position: relative;
+    z-index: 1;
+  }
+  & > div:first-child {
+    overflow: hidden;
+  }
+
+  & .logo {
+    user-select: none;
+    -webkit-app-region: no-drag;
+    width: var(--top-bar-height);
+    height: 60px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    background-image: url("../images/angry-rooster.jpg");
+    background-position: center center;
+    background-size: 130px 130px;
+
+    &:hover {
+      animation: vibrate-1 .3s linear infinite both;
+    }
+    & img {
+      width: 130px;
+      height: 130px;
+    }
+  }
+
+  & .search {
+    -webkit-app-region: no-drag;
+    padding-left: 1em;
+
+    & input {
+      font-size: 3em;
+      background: transparent;
+      border: none;
+      color: white;
+      padding: 0 0.4em;
+      outline: none;
+      width: 6em;
+
+      &:focus, &:active {
+        border-bottom: 1px solid #cccccccf;
+      }
+    }
+    & i {
+      user-select: none;
+      color: white;
+      position: relative;
+      left: -1.7em;
+      cursor: pointer;
+
+      &:hover {
+        color: var(--accent-color);
+      }
+    }
+  }
+  & .filter {
+    display: block;
+    user-select: none;
+    -webkit-app-region: no-drag;
+    margin-left: 2em;
+    cursor: pointer;
+    color: white;
+
+    &.active {
+      color: var(--accent-color);
+    }
+
+    & i {
+      font-size: 3em;
+    }
+    &:hover i {
+      color: var(--accent-color);
+    }
+  }
+  /* phone-only search controls, see mobile.css */
+  & .search-toggle,
+  & .search .search-close {
+    display: none;
+  }
+  & .refresh {
+    user-select: none;
+    -webkit-app-region: no-drag;
+    float: left;
+  }
+  & .user {
+    user-select: none;
+    -webkit-app-region: no-drag;
+    float: left;
+    color: white;
+    position: relative;
+    font-size: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    right: calc(var(--top-bar-height) * 2);
+    height: var(--top-bar-height);
+    box-sizing: border-box;
+    width: 100%;
+    z-index: 2;
+    cursor: pointer;
+    & i {
+      font-size: 1.3em;
+      margin-right: 20px;
+      margin-left: 20px;
+    }
+    & ul {
+      list-style: none;
+      position: absolute;
+      top: 64px;
+      left: 0;
+      background: black;
+      border-top: 1px solid red;
+      width: 100px;
+      box-sizing: content-box;
+      animation: fade-in 1.2s cubic-bezier(.39,.575,.565,1.000) both;
+
+      & li {
+        padding: 0.5em;
+        &:hover {
+          background-color: var(--accent-color);
+        }
+      }
+    }
+  }
+  & .close,
+  & .maximize {
+    user-select: none;
+    -webkit-app-region: no-drag;
+    cursor: pointer;
+    color: var(--accent-color);
+    position: absolute;
+    right: 0;
+    top: 0;
+    font-weight: 900;
+    font-size: 3em;
+    font-family: var(--body-font-family);
+    width: var(--top-bar-height);
+    height: var(--top-bar-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    & i {
+      transition: all 500ms;
+    }
+    &:hover {
+      background-color: var(--accent-color);
+      color: black;
+      & i {
+        transform: scale(1.5);
+      }
+    }
+  }
+  & .maximize {
+    right: var(--top-bar-height);
+  }
+}

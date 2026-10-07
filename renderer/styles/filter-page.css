@@ -1,0 +1,104 @@
+.filters-page {
+  overflow: hidden;
+  position: relative;
+
+  /* fill the panel and scroll when the window is too short for everything */
+  & .page-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+  /* Sorting above Filters on the left, the genre list on the right. The
+     columns share the panel's width, so nothing gets cut off on smaller screens. */
+  & .page-body > div {
+    overflow: auto;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 25vw);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "sorting genres"
+      "filters genres";
+    align-items: start;
+    /* room for the Yes/No that sits to the right of each switch */
+    column-gap: 6em;
+  }
+  & .sorting {
+    grid-area: sorting;
+    margin-top: var(--top-bar-height);
+  }
+
+  & .filters-genres {
+    grid-area: genres;
+    margin-top: var(--top-bar-height);
+    height: 72vh;
+    overflow: hidden;
+  }
+
+  & .filters {
+    grid-area: filters;
+    margin-top: var(--top-bar-height);
+  }
+
+  /* too narrow for two columns: the genre list goes under the rest */
+  @media (max-width: 1100px) {
+    & .page-body > div {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto;
+      grid-template-areas: "sorting" "filters" "genres";
+    }
+  }
+
+  & ul {
+    & li {
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      min-height: 3em;
+      color: #f0f0f0;
+
+      & label {
+        flex: 0 0 auto;
+        margin-left: 1em;
+      }
+
+      &:hover {
+        color: white;
+      }
+    }
+  }
+  & input {
+    font-size: 1.5em;
+    margin-left: 1em;
+  }
+  & select {
+    margin-left: 1em;
+    font-size: 1.5em;
+    padding: 0.1em;
+    border-radius: 0.1em;
+  }
+  & #noMediaWithoutGenres {
+    border-radius: 0;
+    margin: 0;
+    font-size: 3em;
+    height: calc(72vh - (21px + var(--top-bar-height)));
+    background-color: transparent;
+    color: white;
+    border: none;
+    padding: 0;
+    width: 100%;
+    overflow: auto;
+
+    & option {
+      padding: 0.2em;
+
+      &:hover {
+        background-color: var(--accent-color);
+        color: black;
+      }
+      &[selected] {
+        background-color: #d80a0a;
+      }
+    }
+  }
+}

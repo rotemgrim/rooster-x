@@ -1,21 +1,25 @@
-.DS_Store
-dist/
-node_modules/
-thumbs.db
-.idea/
-combined.log
-error.log
-yarn-error.log
-test/electron/testBuild
-/coverage/
-/cov/
-/.nyc_output/
-/xunit.xml
+db.sqlite*
+/config.yaml
+/rooster.log
+/roosterx.exe
+/renderer/dist/
+/renderer/pnpm-lock.yaml
+/renderer/node_modules/
+/tmp/
+/.idea/
+/.claude/
+/imdb_ratings.tsv.gz*
+/third_party/
 
-.vscode/
-build/
-tmp/
-temp/
+# build output: build-script.sh copies renderer/dist here; the few files
+# already tracked stay so go:embed still compiles on a fresh clone
+/server/static/*
 
-database.sqlite
-package-lock.json
+# secrets
+/certs/
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*

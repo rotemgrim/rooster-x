@@ -1,0 +1,11 @@
+:root {
+  --top-bar-height: 64px;
+  --body-font-size: 12px;
+  --side-bar-width: 320px;
+  --poster-width: 300px;
+  --body-font-family: "SansSerif", sans-serif;
+  --title-font-family: fantasy;
+  --black-background: #0D0D0D;
+  --black-background-rgb: 13, 13, 13;
+  --accent-color: red;
+}
