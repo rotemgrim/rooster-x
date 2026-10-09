@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"runtime/debug"
 )
 
 type PayloadRequest struct {
@@ -78,6 +80,15 @@ func (s *Server) RouteMessage(messageType int, message []byte, conn *websocket.C
 		log.Println("Error unmarshalling message:", err)
 		return
 	}
+
+	// a handler runs on its own goroutine, where a panic would take the whole
+	// server down instead of just this connection
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("%s panicked: %v\n%s", payload.Route, r, debug.Stack())
+			transmitPromiseReject(conn, payload, fmt.Sprintf("%s failed", payload.Route))
+		}
+	}()
 
 	// route the message into different functions
 	if callback, ok := routes[payload.Route]; ok {

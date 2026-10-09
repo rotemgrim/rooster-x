@@ -168,6 +168,9 @@ func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 	defer wsWriteLocks.Delete(conn)
+	// requests still running write to conn, so the write lock goes after them
+	var inFlight sync.WaitGroup
+	defer inFlight.Wait()
 
 	// Add the new connection to the clients map
 	s.mutex.Lock()
@@ -188,7 +191,13 @@ func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error reading message:", err)
 			break
 		}
-		s.RouteMessage(messageType, message, conn)
+		// each request runs on its own, so a slow one (a tracker scrape, a
+		// trailer lookup) doesn't hold up the ones sent after it
+		inFlight.Add(1)
+		go func() {
+			defer inFlight.Done()
+			s.RouteMessage(messageType, message, conn)
+		}()
 	}
 
 	// Remove the connection from the clients map when done

@@ -417,27 +417,27 @@ func (s *Server) GetAllEpisodes(c *websocket.Conn, req PayloadRequest) {
 	for _, e := range episodes {
 		allTorrents = append(allTorrents, e.R.EpisodeIdTorrentFiles...)
 	}
-	withPeers := withPeerCounts(allTorrents)
-
-	var result = []Result{}
-	for _, e := range episodes {
-		n := len(e.R.EpisodeIdTorrentFiles)
-		episodeTorrents := withPeers[:n:n]
-		withPeers = withPeers[n:]
-		var userEpisode *models.UserEpisode
-		if e.R.EpisodeIdUserEpisodes != nil && len(e.R.EpisodeIdUserEpisodes) > 0 {
-			userEpisode = e.R.EpisodeIdUserEpisodes[0]
+	transmitWithPeerCounts(c, req, allTorrents, func(withPeers []TorrentWithPeers) interface{} {
+		var result = []Result{}
+		for _, e := range episodes {
+			n := len(e.R.EpisodeIdTorrentFiles)
+			episodeTorrents := withPeers[:n:n]
+			withPeers = withPeers[n:]
+			var userEpisode *models.UserEpisode
+			if e.R.EpisodeIdUserEpisodes != nil && len(e.R.EpisodeIdUserEpisodes) > 0 {
+				userEpisode = e.R.EpisodeIdUserEpisodes[0]
+			}
+			result = append(result, Result{
+				e,
+				e.R.MetaDataIdMetaDatum,
+				userEpisode,
+				e.R.EpisodeIdMediaFiles,
+				episodeTorrents,
+				userEpisode != nil && userEpisode.IsWatched.Bool,
+			})
 		}
-		result = append(result, Result{
-			e,
-			e.R.MetaDataIdMetaDatum,
-			userEpisode,
-			e.R.EpisodeIdMediaFiles,
-			episodeTorrents,
-			userEpisode != nil && userEpisode.IsWatched.Bool,
-		})
-	}
-	transmitPromiseResponse(c, req, result)
+		return result
+	})
 }
 
 func (s *Server) GetMediaFilesByMetaId(c *websocket.Conn, req PayloadRequest) {
@@ -457,11 +457,9 @@ func (s *Server) GetMediaFilesByMetaId(c *websocket.Conn, req PayloadRequest) {
 		MediaFiles   []*models.MediaFile `json:"mediaFiles,omitempty"`
 		TorrentFiles []TorrentWithPeers  `json:"torrentFiles,omitempty"`
 	}
-	var result = Result{
-		mediaFiles,
-		withPeerCounts(torrentFiles),
-	}
-	transmitPromiseResponse(c, req, result)
+	transmitWithPeerCounts(c, req, torrentFiles, func(withPeers []TorrentWithPeers) interface{} {
+		return Result{mediaFiles, withPeers}
+	})
 }
 
 func (s *Server) OpenExternal(c *websocket.Conn, req PayloadRequest) {

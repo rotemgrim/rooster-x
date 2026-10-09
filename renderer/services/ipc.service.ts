@@ -23,6 +23,11 @@ export interface IWatchProgress {
     updatedAt: number;
 }
 
+export interface IMediaFiles {
+    mediaFiles?: MediaFile[];
+    torrentFiles?: TorrentFile[];
+}
+
 /**
  * The server's routes (server/message_router.go, setup_controller.go), one
  * typed method each.
@@ -85,12 +90,20 @@ export class IpcService {
         return promiseIpc.send("get-meta-data", payload);
     }
 
-    public static getEpisodes(payload: {metaDataId: number}): Promise<IEpisodeExtended[]> {
-        return promiseIpc.send("get-episodes", payload);
+    /**
+     * When some torrents' peer counts are stale, onStored first gets the
+     * episodes with the stored counts; the promise resolves once the trackers
+     * have answered.
+     */
+    public static getEpisodes(payload: {metaDataId: number},
+                              onStored: (episodes: IEpisodeExtended[]) => void): Promise<IEpisodeExtended[]> {
+        return promiseIpc.send("get-episodes", payload, onStored);
     }
 
-    public static getMediaFilesByMetaDataId(payload: {metaDataId: number}): Promise<{mediaFiles?: MediaFile[], torrentFiles?: TorrentFile[]}> {
-        return promiseIpc.send("get-media-files", payload);
+    /** onStored as in getEpisodes. */
+    public static getMediaFilesByMetaDataId(payload: {metaDataId: number},
+                                            onStored: (files: IMediaFiles) => void): Promise<IMediaFiles> {
+        return promiseIpc.send("get-media-files", payload, onStored);
     }
 
     public static getMetaDataByFileId(payload: {id: number}): Promise<IFileMetaData> {

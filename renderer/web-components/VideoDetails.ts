@@ -1,6 +1,6 @@
 import {LitElement, html} from "lit";
 import {customElement, property} from "lit/decorators.js";
-import {IpcService} from "../services/ipc.service";
+import {type IMediaFiles, IpcService} from "../services/ipc.service";
 import {formatClock} from "../common/commonUtils";
 import {isPhone} from "../common/layout";
 import "./EpisodeCard";
@@ -317,22 +317,25 @@ export class VideoDetails extends LitElement {
     }
 
     public reloadVideo() {
+        // shown with the stored peer counts first, then again once stale ones are refreshed
         if (this.video.type === "movie") {
-            IpcService.getMediaFilesByMetaDataId({metaDataId: this.video.id})
-                .then(res => {
-                    this.video.torrentFiles = res.torrentFiles;
-                    this.video.mediaFiles = res.mediaFiles;
-                    this.requestUpdate();
-                })
+            const show = (res: IMediaFiles) => {
+                this.video.torrentFiles = res.torrentFiles;
+                this.video.mediaFiles = res.mediaFiles;
+                this.requestUpdate();
+            };
+            IpcService.getMediaFilesByMetaDataId({metaDataId: this.video.id}, show)
+                .then(show)
                 .catch(console.log);
         } else if (this.video.type === "series") {
             console.log("reloadVideo", this.video);
-            IpcService.getEpisodes({metaDataId: this.video.id})
-                .then(res => {
-                    this.video.episodes = res;
-                    this.episodes = res;
-                    this.requestUpdate();
-                })
+            const show = (res: IEpisodeExtended[]) => {
+                this.video.episodes = res;
+                this.episodes = res;
+                this.requestUpdate();
+            };
+            IpcService.getEpisodes({metaDataId: this.video.id}, show)
+                .then(show)
                 .catch(console.log);
         }
     }
@@ -351,11 +354,15 @@ export class VideoDetails extends LitElement {
         //     }
         // }
         newList = _.orderBy(newList, ["season", "episode"], ["desc", "desc"]);
+        const sameEpisodes = _.isEqual(_.map(this._episodes, "id"), _.map(newList, "id"));
         this._episodes = newList;
         console.log("episodes", this._episodes);
         this.requestUpdate();
-        // Kick off (or restart) the bulk watch-progress poll for these episodes.
-        this.startEpisodesWatchProgressPoll();
+        // The bulk watch-progress poll follows the episode ids, so the same
+        // episodes again (e.g. with refreshed peer counts) keep the running one.
+        if (!sameEpisodes) {
+            this.startEpisodesWatchProgressPoll();
+        }
     }
 
     private formatNumber(num) {
