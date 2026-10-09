@@ -3,7 +3,8 @@ import {LitElement, html} from "lit";
 import {customElement, property, state} from "lit/decorators.js";
 import {ifDefined} from "lit/directives/if-defined.js";
 import {type RoosterX} from "./RoosterX";
-import {type View} from "../common/routes";
+import {type View, viewAllowed} from "../common/routes";
+import {currentUser, logout} from "../common/session";
 
 // The top bar's view buttons.
 const VIEW_BUTTONS: {view: View, icon: string, title?: string}[] = [
@@ -102,17 +103,14 @@ export class TopBar extends LitElement {
         window.open('javascript:window.open("", "_self", "");window.close();', '_self');
     }
 
-    private logout() {
-        localStorage.removeItem("user");
-        location.reload();
-    }
-
     public render() {
+        // nobody on the login screen, where the bar is only decoration
+        const user = currentUser();
         return html`
         <div class="top-bar ${this.searchOpen ? "search-open" : ""}">
             <div>
                 <div class="logo" tabindex="0" @click=${() => this.rooster?.toggleMenu()}></div>
-                ${VIEW_BUTTONS.map(({view, icon, title}) =>
+                ${VIEW_BUTTONS.filter(({view}) => user && viewAllowed(view, user)).map(({view, icon, title}) =>
                     html`<div tabindex="0" class="filter ${this.view === view ? "active" : ""}" title=${ifDefined(title)}
                         @click=${() => this.rooster?.navigate({view})}>
                         <i class="material-icons">${icon}</i>
@@ -136,13 +134,13 @@ export class TopBar extends LitElement {
                 </div>
             </div>
             <div>
-                ${this.rooster && this.rooster.user ?
+                ${user ?
                     html`<div class="user" @click=${() => this.showProfileMenu = !this.showProfileMenu}>
-                        <span class="user-name">${this.rooster.user.firstName}</span>
+                        <span class="user-name">${user.firstName}</span>
                         <i class="material-icons">account_circle</i>
                         ${this.showProfileMenu ?
                             html`<ul>
-                                <li @click="${this.logout}">Logout</li>
+                                <li @click=${logout}>Switch user</li>
                             </ul>` : ""}
                     </div>` : ""}
                 <div class="maximize" @click=${this.toggleFullScreen}>

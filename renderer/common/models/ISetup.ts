@@ -11,17 +11,9 @@ export interface ISetupConfig {
     xtream: {username: string, password: string, server: string};
 }
 
-export interface ISetupUser {
-    id: number;
-    firstName: string;
-    lastName: string;
-    isAdmin: boolean;
-}
-
 export interface ISetupState {
     needsSetup: boolean;
     config?: ISetupConfig;
-    users?: ISetupUser[];
 }
 
 export interface IDirListing {

@@ -97,7 +97,7 @@ export class EngineService {
     }
 
     public static list(): Promise<IEngineStatus[] | null> {
-        return promiseIpc.send<IEngineStatus[] | null>("engine-status", {});
+        return promiseIpc.send<IEngineStatus[] | null>("engine-list");
     }
 
     public static getSettings(): Promise<IEngineSettings> {

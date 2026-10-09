@@ -94,16 +94,6 @@ func (s *Server) SyncTorrents(c *websocket.Conn, data PayloadRequest) {
 	transmitPromiseResponse(c, data, "started")
 }
 
-func (s *Server) GetAllUsers(c *websocket.Conn, data PayloadRequest) {
-	ctx := context.Background()
-	users, err := models.Users().All(ctx, db.DB)
-	if err != nil {
-		transmitPromiseReject(c, data, fmt.Sprintf("could not get users: %v", err))
-		return
-	}
-	transmitPromiseResponse(c, data, users)
-}
-
 func (s *Server) GetAllMedia(c *websocket.Conn, req PayloadRequest) {
 	isTorrents := req.Data.(map[string]interface{})["isTorrents"]
 	genres := req.Data.(map[string]interface{})["genres"]
@@ -226,6 +216,9 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 			strings.Join(placeholders, ","),
 		))
 	}
+	ageCond, ageArgs := data.User.ageFilter("(SELECT ageRating FROM metaData WHERE id = f.metaDataId)")
+	whereParts = append(whereParts, ageCond)
+	sqlArgs = append(sqlArgs, ageArgs...)
 	if len(whereParts) > 0 {
 		sb.WriteString("WHERE ")
 		sb.WriteString(strings.Join(whereParts, " AND "))
@@ -669,7 +662,7 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 	} else {
 		// create new
 		err = episode.AddEpisodeIdUserEpisodes(ctx, db.DB, true, &models.UserEpisode{
-			UserId:    null.Int64From(1),
+			UserId:    null.Int64From(int64(req.UserId)),
 			IsWatched: null.BoolFrom(isWatched),
 		})
 		if err != nil {
@@ -707,7 +700,7 @@ func (s *Server) setWatchedEpisode(c *websocket.Conn, req PayloadRequest, entity
 		_, _ = umd.Update(ctx, db.DB, boil.Infer())
 	} else {
 		newUmd := &models.UserMetaDatum{
-			UserId:     null.Int64From(1),
+			UserId:     null.Int64From(int64(req.UserId)),
 			MetaDataId: episode.MetaDataId,
 			IsWatched:  null.BoolFrom(isSeriesWatched),
 		}
@@ -747,7 +740,7 @@ func (s *Server) setWatchedMeta(c *websocket.Conn, req PayloadRequest, entityId 
 
 	// create new
 	err = meta.AddMetaDataIdUserMetaData(ctx, db.DB, true, &models.UserMetaDatum{
-		UserId:    null.Int64From(1),
+		UserId:    null.Int64From(int64(req.UserId)),
 		IsWatched: null.BoolFrom(isWatched),
 	})
 	if err != nil {

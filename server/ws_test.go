@@ -20,6 +20,18 @@ import (
 // dialWS serves a Server's websocket and connects to it.
 func dialWS(t *testing.T) *websocket.Conn {
 	t.Helper()
+	if db.DB == nil {
+		// every request looks up its user
+		mem, err := sql.Open("sqlite", ":memory:")
+		if err != nil {
+			t.Fatal(err)
+		}
+		db.DB = mem
+		t.Cleanup(func() {
+			db.DB = nil
+			mem.Close()
+		})
+	}
 	s := &Server{clients: map[*websocket.Conn]bool{}, mutex: &sync.Mutex{}}
 	srv := httptest.NewServer(http.HandlerFunc(s.wsHandler))
 	t.Cleanup(srv.Close)

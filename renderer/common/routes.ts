@@ -5,9 +5,14 @@
  *   /lists/<listId>[/<type>/<id>]        a list, optionally with a card opened
  */
 
+import {isLimited, type User} from "../entity/User";
+
 export const VIEWS = ["folders", "torrents", "channels", "lists", "downloads"] as const;
 export type View = typeof VIEWS[number];
 export const isView = (v: unknown): v is View => VIEWS.includes(v as View);
+
+/** Profiles with an age limit have no downloads. */
+export const viewAllowed = (view: View, user: User) => view !== "downloads" || !isLimited(user);
 
 /** Views that render their own page instead of the media grid, so they don't stream the media dataset. */
 export const PAGE_VIEWS: ReadonlySet<View> = new Set<View>(["channels", "lists", "downloads"]);

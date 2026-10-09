@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -16,13 +15,8 @@ import (
 
 	tmdb "github.com/cyruzin/golang-tmdb"
 	"github.com/gorilla/websocket"
-	"github.com/volatiletech/null/v8"
-	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
 	"go-poc/config"
-	"go-poc/db"
-	"go-poc/models"
 )
 
 // First-run setup. While it is pending the setup-* routes are open to the
@@ -52,25 +46,6 @@ func setupPending() bool {
 	return setup.pending
 }
 
-type setupUser struct {
-	ID        int64  `json:"id"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	IsAdmin   bool   `json:"isAdmin"`
-}
-
-func setupUsers() ([]setupUser, error) {
-	users, err := models.Users(qm.OrderBy("id")).All(context.Background(), db.DB)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]setupUser, 0, len(users))
-	for _, u := range users {
-		result = append(result, setupUser{u.ID.Int64, u.FirstName.String, u.LastName.String, u.IsAdmin.Bool})
-	}
-	return result, nil
-}
-
 // decodeData unmarshals a request's data into v.
 func decodeData(req PayloadRequest, v interface{}) error {
 	b, err := json.Marshal(req.Data)
@@ -95,8 +70,6 @@ func (s *Server) setSetupRoutes() {
 	s.on("get-setup", s.GetSetup)
 	s.onSetup("setup-check-tmdb-key", s.SetupCheckTmdbKey)
 	s.onSetup("setup-list-dirs", s.SetupListDirs)
-	s.onSetup("setup-create-user", s.SetupCreateUser)
-	s.onSetup("setup-delete-user", s.SetupDeleteUser)
 	s.onSetup("setup-complete", s.SetupComplete)
 }
 
@@ -106,18 +79,12 @@ func (s *Server) GetSetup(c *websocket.Conn, req PayloadRequest) {
 		transmitPromiseResponse(c, req, map[string]interface{}{"needsSetup": false})
 		return
 	}
-	users, err := setupUsers()
-	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not get users: %v", err))
-		return
-	}
 	setup.Lock()
 	cfg := setup.initial
 	setup.Unlock()
 	transmitPromiseResponse(c, req, map[string]interface{}{
 		"needsSetup": true,
 		"config":     cfg,
-		"users":      users,
 		"pathSep":    string(filepath.Separator),
 	})
 }
@@ -197,97 +164,6 @@ func (s *Server) SetupListDirs(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, map[string]interface{}{"path": path, "parent": parent, "dirs": dirs})
 }
 
-func (s *Server) SetupCreateUser(c *websocket.Conn, req PayloadRequest) {
-	var data setupUser
-	if err := decodeData(req, &data); err != nil {
-		transmitPromiseReject(c, req, "invalid user")
-		return
-	}
-	data.FirstName = strings.TrimSpace(data.FirstName)
-	data.LastName = strings.TrimSpace(data.LastName)
-	if data.FirstName == "" {
-		transmitPromiseReject(c, req, "Enter a name")
-		return
-	}
-	user := models.User{
-		FirstName: null.StringFrom(data.FirstName),
-		LastName:  null.StringFrom(data.LastName),
-		Password:  null.StringFrom(""),
-		IsAdmin:   null.BoolFrom(data.IsAdmin),
-	}
-	if err := user.Insert(context.Background(), db.DB, boil.Infer()); err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
-			transmitPromiseReject(c, req, fmt.Sprintf("There is already a user named %s", data.FirstName))
-		} else {
-			transmitPromiseReject(c, req, fmt.Sprintf("Could not create the user: %v", err))
-		}
-		return
-	}
-	s.replyUsers(c, req)
-}
-
-// SetupDeleteUser removes a user and everything that belongs to them,
-// keeping at least one admin.
-func (s *Server) SetupDeleteUser(c *websocket.Conn, req PayloadRequest) {
-	var data struct {
-		ID int64 `json:"id"`
-	}
-	if err := decodeData(req, &data); err != nil {
-		transmitPromiseReject(c, req, "invalid user")
-		return
-	}
-	users, err := setupUsers()
-	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not get users: %v", err))
-		return
-	}
-	admins := 0
-	isAdmin := false
-	for _, u := range users {
-		if u.IsAdmin {
-			admins++
-			isAdmin = isAdmin || u.ID == data.ID
-		}
-	}
-	if isAdmin && admins == 1 {
-		transmitPromiseReject(c, req, "Keep at least one admin")
-		return
-	}
-
-	tx, err := db.DB.Begin()
-	if err != nil {
-		transmitPromiseReject(c, req, err.Error())
-		return
-	}
-	for _, stmt := range []string{
-		`DELETE FROM listItem WHERE listId IN (SELECT id FROM list WHERE userId = ?)`,
-		`DELETE FROM list WHERE userId = ?`,
-		`DELETE FROM userEpisode WHERE userId = ?`,
-		`DELETE FROM userMetaData WHERE userId = ?`,
-		`DELETE FROM user WHERE id = ?`,
-	} {
-		if _, err := tx.Exec(stmt, data.ID); err != nil {
-			tx.Rollback()
-			transmitPromiseReject(c, req, fmt.Sprintf("could not delete user: %v", err))
-			return
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not delete user: %v", err))
-		return
-	}
-	s.replyUsers(c, req)
-}
-
-func (s *Server) replyUsers(c *websocket.Conn, req PayloadRequest) {
-	users, err := setupUsers()
-	if err != nil {
-		transmitPromiseReject(c, req, fmt.Sprintf("could not get users: %v", err))
-		return
-	}
-	transmitPromiseResponse(c, req, users)
-}
-
 // SetupComplete saves the wizard's config and lets the app start with it.
 func (s *Server) SetupComplete(c *websocket.Conn, req PayloadRequest) {
 	var cfg config.Config
@@ -300,7 +176,7 @@ func (s *Server) SetupComplete(c *websocket.Conn, req PayloadRequest) {
 		transmitPromiseReject(c, req, err.Error())
 		return
 	}
-	if users, err := setupUsers(); err != nil || len(users) == 0 {
+	if users, err := listUsers(); err != nil || len(users) == 0 {
 		transmitPromiseReject(c, req, "Add at least one user")
 		return
 	}

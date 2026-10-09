@@ -6,15 +6,14 @@ import "./UserLogin";
 import "./SetupWizard";
 import {type User} from "../entity/User";
 import {type ISetupState} from "../common/models/ISetup";
-
-const USER_KEY = "user";
+import {currentUser, savedUserId, setCurrentUser} from "../common/session";
 
 @customElement("rooster-x-wrapper")
 export class RoosterXWrapper extends LitElement {
 
-    // The logged-in user, remembered in localStorage across reloads.
-    @state() private user: User | null = null;
     @state() private setup: ISetupState | null = null;
+    // Every profile, for the login screen.
+    @state() private users: User[] | null = null;
 
     public createRenderRoot() {
         return this;
@@ -22,29 +21,43 @@ export class RoosterXWrapper extends LitElement {
 
     constructor() {
         super();
-
-        const saved = localStorage.getItem(USER_KEY);
-        if (saved) {
-            this.login(JSON.parse(saved));
-        }
-
         IpcService.getSetup()
-            .then(setup => this.setup = setup)
             .catch(e => {
                 console.log("could not get setup state", e);
-                this.setup = {needsSetup: false};
+                return {needsSetup: false};
+            })
+            .then(setup => {
+                this.setup = setup;
+                if (!setup.needsSetup) {
+                    this.loadUsers();
+                }
+            });
+    }
+
+    /** Logs back in as the profile picked last time, with its current settings, if it still exists. */
+    private loadUsers() {
+        IpcService.getAllUsers()
+            .then(users => {
+                this.users = users;
+                const saved = users.find(u => u.id === savedUserId());
+                if (saved) {
+                    this.login(saved);
+                }
+            })
+            .catch(e => {
+                console.log("could not get users", e);
+                this.users = [];
             });
     }
 
     public login(user: User) {
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
-        IpcService.setUserId(user.id);
-        this.user = user;
+        setCurrentUser(user);
+        this.requestUpdate();
     }
 
     private setupDone() {
-        this.user = null;
         this.setup = {needsSetup: false};
+        this.loadUsers();
     }
 
     public render() {
@@ -52,12 +65,11 @@ export class RoosterXWrapper extends LitElement {
             return html``;
         }
         if (this.setup.needsSetup) {
-            return html`<setup-wizard .config=${this.setup.config} .users=${this.setup.users}
-                .onDone=${() => this.setupDone()}></setup-wizard>`;
+            return html`<setup-wizard .config=${this.setup.config} .onDone=${() => this.setupDone()}></setup-wizard>`;
         }
-        if (!this.user) {
-            return html`<user-login .wrapper=${this}></user-login>`;
+        if (!currentUser()) {
+            return html`<user-login .users=${this.users} .onPick=${(u: User) => this.login(u)}></user-login>`;
         }
-        return html`<rooster-x .user=${this.user}></rooster-x>`;
+        return html`<rooster-x></rooster-x>`;
     }
 }

@@ -29,6 +29,7 @@ type User struct {
 	LastName  null.String `boil:"lastName" json:"lastName,omitempty" toml:"lastName" yaml:"lastName,omitempty"`
 	Password  null.String `boil:"password" json:"password,omitempty" toml:"password" yaml:"password,omitempty"`
 	IsAdmin   null.Bool   `boil:"isAdmin" json:"isAdmin,omitempty" toml:"isAdmin" yaml:"isAdmin,omitempty"`
+	MaxAge    null.Int64  `boil:"maxAge" json:"maxAge,omitempty" toml:"maxAge" yaml:"maxAge,omitempty"`
 
 	R *userR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L userL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -40,12 +41,14 @@ var UserColumns = struct {
 	LastName  string
 	Password  string
 	IsAdmin   string
+	MaxAge    string
 }{
 	ID:        "id",
 	FirstName: "firstName",
 	LastName:  "lastName",
 	Password:  "password",
 	IsAdmin:   "isAdmin",
+	MaxAge:    "maxAge",
 }
 
 var UserTableColumns = struct {
@@ -54,12 +57,14 @@ var UserTableColumns = struct {
 	LastName  string
 	Password  string
 	IsAdmin   string
+	MaxAge    string
 }{
 	ID:        "user.id",
 	FirstName: "user.firstName",
 	LastName:  "user.lastName",
 	Password:  "user.password",
 	IsAdmin:   "user.isAdmin",
+	MaxAge:    "user.maxAge",
 }
 
 // Generated where
@@ -70,12 +75,14 @@ var UserWhere = struct {
 	LastName  whereHelpernull_String
 	Password  whereHelpernull_String
 	IsAdmin   whereHelpernull_Bool
+	MaxAge    whereHelpernull_Int64
 }{
 	ID:        whereHelpernull_Int64{field: "\"user\".\"id\""},
 	FirstName: whereHelpernull_String{field: "\"user\".\"firstName\""},
 	LastName:  whereHelpernull_String{field: "\"user\".\"lastName\""},
 	Password:  whereHelpernull_String{field: "\"user\".\"password\""},
 	IsAdmin:   whereHelpernull_Bool{field: "\"user\".\"isAdmin\""},
+	MaxAge:    whereHelpernull_Int64{field: "\"user\".\"maxAge\""},
 }
 
 // UserRels is where relationship names are stored.
@@ -116,9 +123,9 @@ func (r *userR) GetUserIdUserMetaData() UserMetaDatumSlice {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "firstName", "lastName", "password", "isAdmin"}
+	userAllColumns            = []string{"id", "firstName", "lastName", "password", "isAdmin", "maxAge"}
 	userColumnsWithoutDefault = []string{}
-	userColumnsWithDefault    = []string{"id", "firstName", "lastName", "password", "isAdmin"}
+	userColumnsWithDefault    = []string{"id", "firstName", "lastName", "password", "isAdmin", "maxAge"}
 	userPrimaryKeyColumns     = []string{"id"}
 	userGeneratedColumns      = []string{"id"}
 )

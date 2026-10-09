@@ -1,5 +1,5 @@
 import {LitElement, html, PropertyValues} from "lit";
-import {customElement, property, query, state} from "lit/decorators.js";
+import {customElement, query, state} from "lit/decorators.js";
 import {keyed} from "lit/directives/keyed.js";
 import {IpcService, promiseIpc} from "../services/ipc.service";
 import "./TopBar";
@@ -11,7 +11,6 @@ import "./Lists";
 import "./ListDetail";
 import "./DownloadsPage";
 import "./VideoDetails";
-import {type User} from "../entity/User";
 import {type IFeedItem} from "../common/models/IFeedItem";
 import {type IMetaDataExtended} from "../common/models/IMetaDataExtended";
 import {type LibraryGrid} from "./LibraryGrid";
@@ -28,19 +27,25 @@ import {
     sameGenres,
     savePrefs,
 } from "../common/library";
-import {isView, PAGE_VIEWS, parseRoute, type Route, routePath, type View} from "../common/routes";
+import {PAGE_VIEWS, parseRoute, type Route, routePath, type View, viewAllowed} from "../common/routes";
+import {loggedInUser} from "../common/session";
 
 // The data view each server "reload" message refreshes. These are commands,
 // so they are not shown in the status bar.
 const RELOAD_MESSAGES: Record<string, View> = {"reload": "folders", "reload-torrents": "torrents"};
 const LAST_VIEW_KEY = "roosterx-last-view";
 
+/** The route of a URL path, when it is one of the app's routes this profile may open. */
+function allowedRoute(path: string): Route | null {
+    const route = parseRoute(path);
+    return route && viewAllowed(route.view, loggedInUser()) ? route : null;
+}
+
 /** What the side bar shows: its menu, or one of the panels next to it. */
 type SidePanel = "menu" | "filters" | "settings";
 
 @customElement("rooster-x")
 export class RoosterX extends LitElement {
-    @property({attribute: false}) public user: User;
     @query("library-grid") private grid?: LibraryGrid;
     // Where the app is: the view, the list shown, the card whose details are open.
     @state() private route: Route;
@@ -84,11 +89,9 @@ export class RoosterX extends LitElement {
     constructor() {
         super();
         // The URL is the source of truth; a bare "/" opens the last view.
-        const route = parseRoute(location.pathname);
-        if (route) {
-            this.route = route;
-        } else {
-            this.route = {view: RoosterX.lastView() || "folders"};
+        const route = allowedRoute(location.pathname);
+        this.route = route ?? allowedRoute(`/${RoosterX.lastView()}`) ?? {view: "folders"};
+        if (!route) {
             history.replaceState(this.route, "", routePath(this.route));
         }
         RoosterX.saveLastView(this.route.view);
@@ -150,7 +153,7 @@ export class RoosterX extends LitElement {
     }
 
     private onPopState = () => {
-        const route = parseRoute(location.pathname);
+        const route = allowedRoute(location.pathname);
         if (route) {
             this.applyRoute(route);
         }
@@ -255,12 +258,13 @@ export class RoosterX extends LitElement {
         }
     }
 
-    private static lastView(): View | null {
+    /** The view saved last time, unchecked; "" if none. */
+    private static lastView(): string {
         try {
-            const v = localStorage.getItem(LAST_VIEW_KEY);
-            if (isView(v)) return v;
-        } catch (_) {}
-        return null;
+            return localStorage.getItem(LAST_VIEW_KEY) || "";
+        } catch (_) {
+            return "";
+        }
     }
 
     private static saveLastView(view: View) {
@@ -280,7 +284,7 @@ export class RoosterX extends LitElement {
         const before = this.query;
         this.query = {...before, ...patch};
         if (patch.filters || patch.order) {
-            savePrefs(this.query, this.user.id);
+            savePrefs(this.query, loggedInUser().id);
         }
         if (!sameGenres(before.filters.noMediaWithoutGenres, this.query.filters.noMediaWithoutGenres)) {
             this.reloadInPlace();
@@ -300,7 +304,7 @@ export class RoosterX extends LitElement {
 
     /** Points the query at the folders or torrents library, with its saved prefs, and streams it. */
     private loadLibrary(isTorrents: boolean, onComplete: () => void) {
-        this.query = {...this.query, isTorrents, ...loadPrefs(isTorrents, this.user.id)};
+        this.query = {...this.query, isTorrents, ...loadPrefs(isTorrents, loggedInUser().id)};
         this.streamMedia(onComplete);
     }
 
@@ -389,7 +393,9 @@ export class RoosterX extends LitElement {
 
     // A click outside the side bar, top bar, pages and details closes the side bar.
     private onDocumentClick = (e: MouseEvent) => {
-        if (this.sidePanel && !(e.target as HTMLElement).closest(".side-bar, .top-bar, .page, .video-details")) {
+        // the path, not target.closest(): a click can re-render its target out of the page before this runs
+        const inside = e.composedPath().some(el => el instanceof Element && el.matches(".side-bar, .top-bar, .page, .video-details"));
+        if (this.sidePanel && !inside) {
             this.closeSidePanel();
         }
     };

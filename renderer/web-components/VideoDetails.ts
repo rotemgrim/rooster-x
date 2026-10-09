@@ -364,7 +364,6 @@ export class VideoDetails extends LitElement {
     }
 
     set episodes(episodes: Episode[]) {
-        const userId = this.rooster.user.id;
         let newList: IEpisodeExtended[] = [...episodes];
         // for (const e of newList) {
         //     // check if episode is watched

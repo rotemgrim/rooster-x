@@ -285,19 +285,6 @@
   }
 }
 
-.add-user {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6em;
-  & input[type=text] {
-    flex: 1;
-    min-width: 8em;
-    margin: 0;
-  }
-  & label.check { margin: 0; }
-}
-
 .review {
   width: 100%;
   border-collapse: collapse;

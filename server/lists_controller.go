@@ -233,6 +233,7 @@ func (s *Server) GetListItems(c *websocket.Conn, req PayloadRequest) {
 		return
 	}
 
+	ageCond, ageArgs := req.User.ageFilter("md.ageRating")
 	ctx := context.Background()
 	rows, err := db.DB.QueryContext(ctx, `
 		SELECT li.id, li.listId, li.metaDataId, li.position, li.addedAt,
@@ -247,9 +248,9 @@ func (s *Server) GetListItems(c *websocket.Conn, req PayloadRequest) {
 		INNER JOIN metaData md ON md.id = li.metaDataId
 		LEFT JOIN userMetaData umd ON umd.metaDataId = md.id AND umd.userId = ?
 		LEFT JOIN watchProgress wp ON wp.kind = 'movie' AND wp.ref_id = md.id
-		WHERE li.listId = ?
+		WHERE li.listId = ? AND `+ageCond+`
 		ORDER BY li.position ASC
-	`, req.UserId, req.UserId, listId)
+	`, append([]interface{}{req.UserId, req.UserId, listId}, ageArgs...)...)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not query list items: %s", err))
 		return

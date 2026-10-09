@@ -3,6 +3,8 @@ import {LitElement, html} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";
+import "./UserProfiles";
+import {loggedInUser} from "../common/session";
 
 @customElement("settings-page")
 export class SettingsPage extends LitElement {
@@ -45,6 +47,12 @@ export class SettingsPage extends LitElement {
                 </div>
                 <br>
                 <button @click=${this.reprocessGenres}>Reprocess all Genres</button>
+                ${loggedInUser().isAdmin ? html`<section class="settings-users">
+                    <h2>Users</h2>
+                    <p class="hint">Profiles with an age limit only see movies and series rated for their age (nothing
+                        unrated) and have no Downloads.</p>
+                    <user-profiles></user-profiles>
+                </section>` : ""}
             </div>
         </div>`;
     }

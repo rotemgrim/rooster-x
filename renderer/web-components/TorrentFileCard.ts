@@ -6,6 +6,8 @@ import {IpcService} from "../services/ipc.service";
 import {EngineService, largestVideo, type IEngineStatus} from "../services/engine.service";
 import {MediaFileCard} from "./MediaFileCard";
 import {playTorrentFile} from "./RemotePlayPicker";
+import {loggedInUser} from "../common/session";
+import {isLimited} from "../entity/User";
 
 @customElement("torrent-file-card")
 export class TorrentFileCard extends LitElement {
@@ -174,8 +176,8 @@ export class TorrentFileCard extends LitElement {
         </div>
         <i class="material-icons engine-action" title="${st.paused ? "Resume download" : "Pause download"}"
             @click=${this.togglePause}>${st.paused ? "play_arrow" : "pause"}</i>
-        <i class="material-icons engine-action engine-delete" title="Delete download and its files"
-            @click=${this.deleteDownload}>delete</i>
+        ${isLimited(loggedInUser()) ? "" : html`<i class="material-icons engine-action engine-delete" title="Delete download and its files"
+            @click=${this.deleteDownload}>delete</i>`}
         <label class="engine-seq" @click=${(e: Event) => e.stopPropagation()}
             title="Download the first and last parts of the video first, then the rest in order from start to end, so it can be played while downloading">
             <input type="checkbox" .checked=${st.sequential} @change=${this.toggleSequential} />

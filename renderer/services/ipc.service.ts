@@ -5,7 +5,7 @@ import {type Genre} from "../entity/Genre";
 import {type MediaFile} from "../entity/MediaFile";
 import {type TorrentFile} from "../entity/TorrentFile";
 import {type IEpisodeExtended} from "../common/models/IMetaDataExtended";
-import {type IDirListing, type ISetupConfig, type ISetupState, type ISetupUser} from "../common/models/ISetup";
+import {type IDirListing, type ISetupConfig, type ISetupState} from "../common/models/ISetup";
 import {type IFileMetaData} from "../common/models/IFileMetaData";
 import {type IFeedItem} from "../common/models/IFeedItem";
 import {type IListItemRow, type IListRow} from "../common/models/IList";
@@ -66,6 +66,19 @@ export class IpcService {
 
     public static getAllUsers(): Promise<User[]> {
         return promiseIpc.send("get-all-users");
+    }
+
+    /** Admins only (and the setup wizard); each resolves to the users after the change. */
+    public static createUser(user: Omit<User, "id">): Promise<User[]> {
+        return promiseIpc.send("create-user", user);
+    }
+
+    public static updateUser(user: User): Promise<User[]> {
+        return promiseIpc.send("update-user", user);
+    }
+
+    public static deleteUser(id: number): Promise<User[]> {
+        return promiseIpc.send("delete-user", {id});
     }
 
     /** The channel list as a JSON string. */
@@ -130,14 +143,6 @@ export class IpcService {
 
     public static setupListDirs(path: string): Promise<IDirListing> {
         return promiseIpc.send("setup-list-dirs", {path});
-    }
-
-    public static setupCreateUser(user: Omit<ISetupUser, "id">): Promise<ISetupUser[]> {
-        return promiseIpc.send("setup-create-user", user);
-    }
-
-    public static setupDeleteUser(id: number): Promise<ISetupUser[]> {
-        return promiseIpc.send("setup-delete-user", {id});
     }
 
     public static setupComplete(config: ISetupConfig): Promise<string> {

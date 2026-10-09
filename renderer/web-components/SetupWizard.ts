@@ -1,7 +1,9 @@
 import {LitElement, html, nothing} from "lit";
 import {customElement, property, state} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
-import {type IDirListing, type ISetupConfig, type ISetupUser} from "../common/models/ISetup";
+import {type IDirListing, type ISetupConfig} from "../common/models/ISetup";
+import {type User} from "../entity/User";
+import "./UserProfiles";
 
 /** Lets the user walk the server's disk and pick a folder. */
 @customElement("folder-picker")
@@ -115,7 +117,6 @@ function sortSchedules(specs: string[]) {
 export class SetupWizard extends LitElement {
 
     @property({attribute: false}) public config: ISetupConfig;
-    @property({attribute: false}) public users: ISetupUser[] = [];
     @property({attribute: false}) public onDone: () => void;
 
     @state() private step: number = 0;
@@ -123,7 +124,8 @@ export class SetupWizard extends LitElement {
     @state() private busy: boolean = false;
     @state() private checkedKey: string = "";
     @state() private customDownloadDir: boolean = false;
-    @state() private newUser = {firstName: "", lastName: "", isAdmin: false};
+    // The users, as of leaving the users step, for the review.
+    @state() private users: User[] = [];
     @state() private newTimes = {fullDirectoriesSweep: "", torrentsSweep: ""};
 
     public createRenderRoot() {
@@ -192,6 +194,7 @@ export class SetupWizard extends LitElement {
                 break;
             }
             case "users":
+                this.users = await IpcService.getAllUsers();
                 if (this.users.length === 0) throw new Error("Add at least one user");
                 break;
         }
@@ -200,24 +203,6 @@ export class SetupWizard extends LitElement {
     private addDirectory(path: string) {
         if (!this.config.directories.includes(path)) {
             this.setField("directories", [...this.config.directories, path]);
-        }
-    }
-
-    private async userAction(action: Promise<ISetupUser[]>) {
-        this.error = "";
-        try {
-            this.users = await action;
-            return true;
-        } catch (e) {
-            this.error = String(e);
-            return false;
-        }
-    }
-
-    private async addUser(e: Event) {
-        e.preventDefault();
-        if (await this.userAction(IpcService.setupCreateUser(this.newUser))) {
-            this.newUser = {firstName: "", lastName: "", isAdmin: false};
         }
     }
 
@@ -357,29 +342,12 @@ export class SetupWizard extends LitElement {
     }
 
     private renderUsers() {
-        const u = this.newUser;
-        const set = (field: "firstName" | "lastName") => (e: InputEvent) =>
-            this.newUser = {...u, [field]: (e.target as HTMLInputElement).value};
         return html`
             <h1>Users</h1>
             <p>Everyone in the house can have a profile with their own watched history and lists. You pick a
-                profile when you open RoosterX.</p>
-            <ul class="setup-list">
-                ${this.users.map(user => html`<li><i class="material-icons">person</i>
-                    <span>${user.firstName} ${user.lastName}</span>
-                    ${user.isAdmin ? html`<span class="badge">admin</span>` : nothing}
-                    <button class="icon-btn" title="Remove"
-                            @click=${() => this.userAction(IpcService.setupDeleteUser(user.id))}>
-                        <i class="material-icons">close</i></button></li>`)}
-            </ul>
-            <form class="add-user" @submit=${this.addUser}>
-                <input type="text" placeholder="First name" .value=${u.firstName} @input=${set("firstName")}>
-                <input type="text" placeholder="Last name" .value=${u.lastName} @input=${set("lastName")}>
-                <label class="check"><input type="checkbox" .checked=${u.isAdmin}
-                        @change=${(e: Event) => this.newUser = {...u, isAdmin: (e.target as HTMLInputElement).checked}}>
-                    Admin</label>
-                <button type="submit" class="secondary" ?disabled=${!u.firstName.trim()}>Add user</button>
-            </form>`;
+                profile when you open RoosterX. A profile with an age limit only sees movies and series rated for
+                that age, nothing unrated, and has no Downloads.</p>
+            <user-profiles></user-profiles>`;
     }
 
     private renderReview() {

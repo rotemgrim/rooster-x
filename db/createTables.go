@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 )
 
@@ -267,13 +268,33 @@ func createUserTable(db *sql.DB) {
 		firstName VARCHAR(255) UNIQUE COLLATE NOCASE,
 		lastName VARCHAR(255),
 		password TEXT,
-		isAdmin BOOLEAN
-	);
-	INSERT INTO user (firstName, lastName, password, isAdmin) VALUES ('admin', 'admin', 'admin', 1);
-	`)
+		isAdmin BOOLEAN,
+		maxAge INTEGER
+	)`)
 	if err != nil {
-		//log.Fatal(err)
+		log.Fatal(err)
 	}
+	if err := addColumnIfMissing(db, "user", "maxAge", "INTEGER"); err != nil {
+		log.Fatal(err)
+	}
+	// a fresh database starts with one admin; once there are users, a
+	// deleted admin stays deleted
+	_, err = db.Exec(`INSERT INTO user (firstName, lastName, password, isAdmin)
+		SELECT 'admin', '', '', 1 WHERE NOT EXISTS (SELECT 1 FROM user)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// addColumnIfMissing adds a column to a table created by an older version.
+func addColumnIfMissing(db *sql.DB, table, column, typ string) error {
+	var n int
+	err := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`, table, column).Scan(&n)
+	if err != nil || n > 0 {
+		return err
+	}
+	_, err = db.Exec(fmt.Sprintf(`ALTER TABLE "%s" ADD COLUMN %s %s`, table, column, typ))
+	return err
 }
 
 func createUserEpisodeTable(db *sql.DB) {
