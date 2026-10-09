@@ -652,3 +652,9 @@ function uiScale(touchDevice: boolean): number {
     const desktopSiteShrink = Math.min(innerWidth, innerHeight) / Math.min(screen.width, screen.height);
     return Math.max(1, desktopSiteShrink) * (touchDevice ? 1.25 : 1);
 }
+
+declare global {
+    interface HTMLElementTagNameMap {
+        "libmedia-player": LibmediaPlayer;
+    }
+}

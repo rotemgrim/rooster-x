@@ -103,11 +103,10 @@ export class EpisodeCard extends LitElement {
             isWatched = true;
         }
         IpcService.setWatched({type: "Episode", entityId: this.episode.id, isWatched})
-            .then((payload: {isSeriesWatched: boolean}) => {
+            .then(payload => {
                 console.log("got payload", payload);
                 this.episode.isWatched = isWatched;
-                this.videoDetails.video.isWatched = payload.isSeriesWatched;
-                this.videoDetails.requestUpdate();
+                this.videoDetails.showWatched(payload.isSeriesWatched);
                 this.requestUpdate();
             })
             .catch(console.log);

@@ -41,7 +41,7 @@ export class AddToList extends LitElement {
             IpcService.getListsContaining(this.metaDataId),
         ])
             .then(([lists, memberIds]) => {
-                this.lists = (lists || []).map((l: any) => ({
+                this.lists = (lists || []).map(l => ({
                     id: l.id,
                     name: l.name,
                     itemCount: l.itemCount || 0,
@@ -73,7 +73,7 @@ export class AddToList extends LitElement {
 
     private goToLists() {
         this.onClose && this.onClose();
-        this.rooster.showLists();
+        this.rooster.navigate({view: "lists"});
     }
 
     private close(e: Event) {

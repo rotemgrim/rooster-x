@@ -3,7 +3,8 @@ import {customElement, property, state} from "lit/decorators.js";
 import Sortable from "sortablejs";
 import {IpcService} from "../services/ipc.service";
 import {RoosterX} from "./RoosterX";
-import "./VideoDetails";
+import {type IListItemRow} from "../common/models/IList";
+import {posterUrl} from "../common/library";
 
 interface ListItemRow {
     id: number;
@@ -14,7 +15,7 @@ interface ListItemRow {
     title: string;
     year?: number;
     poster?: string;
-    type?: string;
+    type: "movie" | "series";
     series?: boolean;
     rating?: number;
     isWatched?: boolean;
@@ -26,13 +27,14 @@ interface ListItemRow {
 
 @customElement("list-detail")
 export class ListDetail extends LitElement {
-    @property() public rooster: RoosterX;
+    @property({attribute: false}) public rooster: RoosterX;
     @property({type: Number}) public listId: number;
+    // Whether an item's details are open over the list (RoosterX shows them).
+    @property({type: Boolean}) public detailsOpen = false;
 
     @state() private items: ListItemRow[] = [];
     @state() private listName: string = "";
     @state() private isLoading: boolean = false;
-    @state() private openItem: ListItemRow | null = null;
 
     // Sortable.js instance attached to the rows container. Recreated each
     // time the rows container appears in the DOM (it can disappear when
@@ -49,7 +51,9 @@ export class ListDetail extends LitElement {
     }
 
     public updated(changed: Map<string, unknown>) {
-        if (changed.has("listId")) {
+        // closing an item's details may have changed its watched state
+        const detailsClosed = changed.get("detailsOpen") === true && !this.detailsOpen;
+        if (changed.has("listId") || detailsClosed) {
             this.refresh();
         }
         this.ensureSortable();
@@ -131,9 +135,9 @@ export class ListDetail extends LitElement {
         // get-lists since there's no get-list-by-id route — cheap enough.
         Promise.all([IpcService.getLists(), IpcService.getListItems(this.listId)])
             .then(([lists, items]) => {
-                const meta = (lists || []).find((l: any) => l.id === this.listId);
+                const meta = (lists || []).find(l => l.id === this.listId);
                 this.listName = meta?.name || "List";
-                this.items = this.sortWatchedLast((items || []).map(this.normalize));
+                this.items = this.sortWatchedLast((items || []).map(this.toRow));
                 this.isLoading = false;
             })
             .catch(err => {
@@ -142,7 +146,7 @@ export class ListDetail extends LitElement {
             });
     }
 
-    private normalize = (r: any): ListItemRow => ({
+    private toRow = (r: IListItemRow): ListItemRow => ({
         id: r.id,
         listId: r.listId,
         metaDataId: r.metaDataId,
@@ -150,23 +154,19 @@ export class ListDetail extends LitElement {
         addedAt: r.addedAt,
         title: r.title || "",
         year: r.year || undefined,
-        poster: r.poster
-            ? r.poster.startsWith("http")
-                ? r.poster
-                : `https://image.tmdb.org/t/p/w300${r.poster}`
-            : undefined,
-        type: r.type,
+        poster: r.poster ? posterUrl(r.poster) : undefined,
+        type: r.type === "series" ? "series" : "movie",
         series: !!r.series,
-        rating: r.rating,
+        rating: r.rating ?? undefined,
         isWatched: !!r.isWatched,
         episodesTotal: r.episodesTotal || 0,
         episodesWatched: r.episodesWatched || 0,
-        moviePercent: r.moviePercent != null ? Number(r.moviePercent) : undefined,
+        moviePercent: r.moviePercent ?? undefined,
         movieFinished: !!r.movieFinished,
     });
 
     private back() {
-        this.rooster.showLists();
+        this.rooster.navigate({view: "lists"});
     }
 
     private async renameList() {
@@ -184,7 +184,7 @@ export class ListDetail extends LitElement {
         if (!window.confirm(`Delete list "${this.listName}"? This cannot be undone.`)) return;
         try {
             await IpcService.deleteList(this.listId);
-            this.rooster.showLists();
+            this.rooster.navigate({view: "lists"});
         } catch (err) {
             console.error("delete failed", err);
         }
@@ -239,20 +239,18 @@ export class ListDetail extends LitElement {
     }
 
     private openDetails(item: ListItemRow) {
-        this.openItem = item;
-        // Sync URL so back-button closes the panel.
-        history.pushState(
-            {view: "lists", listId: this.listId, id: item.metaDataId},
-            item.title,
-            `/lists/${this.listId}/${item.type || "movie"}/${item.metaDataId}`,
-        );
-    }
-
-    private closeDetails() {
-        this.openItem = null;
-        history.pushState({view: "lists", listId: this.listId}, "", `/lists/${this.listId}`);
-        // After the details panel may have changed watched state, refresh.
-        this.refresh();
+        // what the details panel shows until it has loaded the full record
+        this.rooster.openCard({
+            id: item.metaDataId,
+            title: item.title,
+            year: item.year,
+            poster: item.poster,
+            type: item.type,
+            isWatched: item.isWatched,
+            rating: item.rating,
+            mediaFileCount: 0,
+            resolution: "",
+        });
     }
 
     private renderProgress(item: ListItemRow) {
@@ -357,24 +355,6 @@ export class ListDetail extends LitElement {
                           </div>`,
                       )}
                   </div>`}
-
-            ${this.openItem
-                ? html`<video-details
-                      .rooster=${this.rooster}
-                      .card=${{closeDetails: () => this.closeDetails()}}
-                      .video=${{
-                          id: this.openItem.metaDataId,
-                          title: this.openItem.title,
-                          year: this.openItem.year,
-                          poster: this.openItem.poster,
-                          type: this.openItem.type || "movie",
-                          isWatched: this.openItem.isWatched,
-                          rating: this.openItem.rating,
-                          mediaFiles: 0,
-                          torrentFiles: 0,
-                          resolution: "",
-                      }}></video-details>`
-                : ""}
         </div>`;
     }
 }

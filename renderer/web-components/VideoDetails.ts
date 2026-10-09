@@ -3,7 +3,6 @@ import {customElement, property} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import {formatClock} from "../common/commonUtils";
 import {isPhone} from "../common/layout";
-import {VideoCard} from "./VideoCard";
 import "./EpisodeCard";
 import "./MediaFileCard";
 import "./TorrentFileCard";
@@ -15,16 +14,15 @@ import {RoosterX} from "./RoosterX";
 import {type MetaData} from "../entity/MetaData";
 import {type Episode} from "../entity/Episode";
 import {type MediaFile} from "../entity/MediaFile";
+import {type IFileMetaData} from "../common/models/IFileMetaData";
+import {posterUrl} from "../common/library";
 import * as _ from "lodash";
 
 @customElement("video-details")
 export class VideoDetails extends LitElement {
     @property() public rooster: RoosterX;
     @property() public video: IMetaDataExtended;
-    @property() public card: VideoCard;
     @property() public _episodes: IEpisodeExtended[];
-    @property() public _searchResults: any[] = [];
-    @property() public searchTitle: string;
     @property() public isLoading: boolean = false;
     @property() public isLoadingRating: boolean = false;
     @property() public isLoadingTrailer: boolean = false;
@@ -32,7 +30,7 @@ export class VideoDetails extends LitElement {
     @property() public showAddToList: boolean = false;
 
     public playTimer: any;
-    @property() public didYouWatched: null | MetaData | Episode = null;
+    @property() public didYouWatched: null | IFileMetaData = null;
 
     // MPV watch progress for the current movie (populated by a poll while
     // this panel is open). Null until the first fetch resolves.
@@ -61,12 +59,7 @@ export class VideoDetails extends LitElement {
         return this;
     }
 
-    set searchResults(results) {
-        this._searchResults = results;
-        this.requestUpdate();
-    }
-
-    public static getRuntime(vid: MetaData) {
+    public static getRuntime(vid: Pick<MetaData, "runtime">) {
         let min = vid.runtime; // in minutes
         if (min === 0 || !min) {
             return html``;
@@ -83,7 +76,7 @@ export class VideoDetails extends LitElement {
         return html``;
     }
 
-    public static getYear(vid: MetaData) {
+    public static getYear(vid: Pick<MetaData, "year" | "released">) {
         if (vid.year) {
             return html`<span class="year" title="Year">${vid.year}</span>`;
         } else if (vid.released) {
@@ -98,7 +91,7 @@ export class VideoDetails extends LitElement {
     public close() {
         clearTimeout(this.playTimer);
         this.playTimer = null;
-        this.card.closeDetails();
+        this.rooster.closeCard();
     }
 
     protected firstUpdated(): void {
@@ -108,19 +101,19 @@ export class VideoDetails extends LitElement {
         // full record now so detail-only fields like plot, actors, tagline,
         // backdrop, trailer, imdbId, runtime, etc. are available. The grid
         // payload only carries: id, title, votes, series, rating, year,
-        // poster, released_unix, type, isWatched, mediaFiles, quality,
+        // poster, released_unix, type, isWatched, mediaFileCount, quality,
         // resolution, uploadedAt/Date, downloadedAt/Date, trendingCount,
         // genres.
         IpcService.getMetaDataById({id: this.video.id})
-            .then((full: any) => {
+            .then(full => {
                 if (!full) return;
                 // Merge into the existing reactive video object so card-side
-                // state (e.g. mediaFiles count) is preserved.
+                // state (e.g. mediaFileCount) is preserved.
                 Object.assign(this.video, full);
-                // Re-apply poster URL prefix that prepareMedia adds for the
-                // grid view (the by-id endpoint returns the raw TMDB path).
-                if (this.video.poster && !this.video.poster.startsWith("http")) {
-                    this.video.poster = `https://image.tmdb.org/t/p/w300${this.video.poster}`;
+                // Re-apply the poster URL the grid uses (the by-id endpoint
+                // returns the raw TMDB path).
+                if (this.video.poster) {
+                    this.video.poster = posterUrl(this.video.poster);
                 }
                 if (!this.video.trailer) {
                     this.getYouTubeTrailer();
@@ -259,7 +252,7 @@ export class VideoDetails extends LitElement {
             .then(res => {
                 if (res) {
                     console.log("trailer", res);
-                    this.video.trailer = res as string;
+                    this.video.trailer = res;
                     this.isLoadingTrailer = false;
                     this.requestUpdate();
                 }
@@ -274,12 +267,11 @@ export class VideoDetails extends LitElement {
         if (this.isEnriching) return;
         this.isEnriching = true;
         IpcService.enrichMetadata(this.video.id, true)
-            .then((updated: any) => {
+            .then(updated => {
                 if (updated) {
-                    // Server returns raw TMDB paths (e.g. "/abc.jpg"); prefix them
-                    // to match the URL form used elsewhere in the renderer.
-                    if (updated.poster && !String(updated.poster).startsWith("http")) {
-                        updated.poster = `https://image.tmdb.org/t/p/w300${updated.poster}`;
+                    // Server returns raw TMDB paths (e.g. "/abc.jpg").
+                    if (updated.poster) {
+                        updated.poster = posterUrl(updated.poster);
                     }
                     Object.assign(this.video, updated);
                     this.requestUpdate();
@@ -298,8 +290,8 @@ export class VideoDetails extends LitElement {
         IpcService.getIMDBRating(this.video.id, this.video.imdbId)
             .then(res => {
                 if (res) {
-                    this.video.rating = (res as {Score: number}).Score;
-                    this.video.votes = (res as {Votes: number}).Votes;
+                    this.video.rating = res.Score;
+                    this.video.votes = res.Votes;
                     this.isLoadingRating = false;
                     this.requestUpdate();
                 }
@@ -325,7 +317,6 @@ export class VideoDetails extends LitElement {
     }
 
     public reloadVideo() {
-        this.searchTitle = this.video.title;
         if (this.video.type === "movie") {
             IpcService.getMediaFilesByMetaDataId({metaDataId: this.video.id})
                 .then(res => {
@@ -336,7 +327,6 @@ export class VideoDetails extends LitElement {
                 .catch(console.log);
         } else if (this.video.type === "series") {
             console.log("reloadVideo", this.video);
-            // @ts-ignore
             IpcService.getEpisodes({metaDataId: this.video.id})
                 .then(res => {
                     this.video.episodes = res;
@@ -386,11 +376,14 @@ export class VideoDetails extends LitElement {
             isWatched = true;
         }
         IpcService.setWatched({type: "MetaData", entityId: this.video.id, isWatched})
-            .then(() => {
-                this.video.isWatched = isWatched;
-                this.requestUpdate();
-            })
+            .then(() => this.showWatched(isWatched))
             .catch(console.log);
+    }
+
+    /** Shows the title's watched state as the server now has it, here and in the library. */
+    public showWatched(watched: boolean) {
+        this.rooster.setItemWatched(this.video, watched);
+        this.requestUpdate();
     }
 
     public playMedia(e: CustomEvent) {
@@ -419,7 +412,7 @@ export class VideoDetails extends LitElement {
                 console.log("did you watched? " + mediaFile.raw, mediaFile);
                 this.didYouWatched = null;
                 IpcService.getMetaDataByFileId({id: mediaFile.id})
-                    .then((metaData: MetaData | Episode) => {
+                    .then(metaData => {
                         if (metaData) {
                             console.log(`metaData from mediaFile`, metaData);
                             this.didYouWatched = metaData;
@@ -429,6 +422,30 @@ export class VideoDetails extends LitElement {
                     .catch(console.log);
             }, 3000);
         }
+    }
+
+    /** The "Mark as watched?" answer for what was just played. */
+    private answerDidYouWatched(watched: boolean) {
+        const played = this.didYouWatched;
+        this.didYouWatched = null;
+        if (!watched || !played) {
+            return;
+        }
+        const type = played.episode ? "Episode" : "MetaData";
+        IpcService.setWatched({type, entityId: played.id, isWatched: true})
+            .then(({isSeriesWatched}) => {
+                if (type === "Episode") {
+                    const episode = this._episodes?.find(e => e.id === played.id);
+                    if (episode) {
+                        episode.isWatched = true;
+                        this.reloadVideo();
+                    }
+                }
+                if (type === "MetaData" || isSeriesWatched) {
+                    this.showWatched(true);
+                }
+            })
+            .catch(err => console.log("could not set watched", err));
     }
 
     // Web links open in a browser tab directly from the client instead of
@@ -486,41 +503,6 @@ export class VideoDetails extends LitElement {
             sLink += `${title}/Movies/seeders/desc/1/`;
         }
         VideoDetails.openInNewTab(sLink);
-    }
-
-    private searchKeyPress(e) {
-        if (e.target.value && e.key === "Enter") {
-            this.reSearch();
-        }
-    }
-
-    public reSearch() {
-        this.isLoading = true;
-        IpcService.reSearch(this.searchTitle)
-            .then(res => {
-                this.searchResults = res;
-                console.log("reSearch results", res);
-                this.isLoading = false;
-            })
-            .catch(e => {
-                console.log("reSearch failed", e);
-                this.isLoading = false;
-            });
-    }
-
-    private onSelectSearchOption(m: any) {
-        this.isLoading = true;
-        IpcService.updateMetaDataById(m.imdbID, this.video.id)
-            .then(res => {
-                console.log(res);
-                this.video = Object.assign(this.video, res);
-                this.isLoading = false;
-                this.requestUpdate();
-            })
-            .catch(e => {
-                console.log(e);
-                this.isLoading = false;
-            });
     }
 
     private static parseNetworks(raw?: string | null): {name: string; logo?: string}[] {
@@ -615,10 +597,8 @@ export class VideoDetails extends LitElement {
     }
 
     public render() {
-        return html` <did-watched
-                .rooster=${this.rooster}
-                .videoDetails=${this}
-                .didYouWatched=${this.didYouWatched}></did-watched>
+        return html` <did-watched .prompt=${this.didYouWatched}
+                @answer=${(e: CustomEvent<boolean>) => this.answerDidYouWatched(e.detail)}></did-watched>
             <div class="video-details">
                 <div class="aside">
                     <div class="close" @click="${this.close}"> <i class="material-icons">arrow_back</i> BACK </div>
@@ -798,30 +778,6 @@ export class VideoDetails extends LitElement {
                               .rooster=${this.rooster}
                               .metaDataId=${this.video.id}
                               .onClose=${() => (this.showAddToList = false)}></add-to-list>`
-                        : ""}
-
-                    ${!this.rooster.user.isAdmin
-                        ? html`<br /><br />
-                              <input
-                                  type="text"
-                                  style="font-size: 26px;"
-                                  @input=${e => (this.searchTitle = e.target.value)}
-                                  @keypress=${this.searchKeyPress}
-                                  value="${this.video.title}" />
-                              <button @click="${this.reSearch}" style="font-size: 26px; cursor: pointer;">
-                                  Research video in internet database
-                              </button>`
-                        : ""}
-                    ${this.rooster.user.isAdmin
-                        ? this._searchResults.map(
-                              m =>
-                                  html` <div class="searchResultDiv" @click=${() => this.onSelectSearchOption(m)}>
-                                      <div class="title">${m.Title} | ${m.Year} | ${m.Type}</div>
-                                      <div class="poster">
-                                          <img src="${m.Poster}" alt="${m.Title}" />
-                                      </div>
-                                  </div>`,
-                          )
                         : ""}
                 </div>
             </div>`;

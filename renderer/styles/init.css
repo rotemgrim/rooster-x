@@ -67,6 +67,10 @@ body.no-scroll {
   }
 }
 
+library-grid {
+  display: block;
+}
+
 .videos-scroll {
   overflow-y: auto;
   overflow-x: hidden;
@@ -283,8 +287,8 @@ img:after {
   background: #00000069;
   color: white;
 }
-/* video-details renders inside .videos, so the button would float over it. */
-.videos:has(video-details) .goTop {
+/* the details overlay (body.no-scroll) covers the grid, so the button would float over it. */
+body.no-scroll .goTop {
   display: none;
 }
 

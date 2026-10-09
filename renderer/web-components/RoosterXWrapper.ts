@@ -1,24 +1,20 @@
-import {LitElement, html, PropertyValues} from "lit";
-import {customElement, property} from "lit/decorators.js";
+import {LitElement, html} from "lit";
+import {customElement, state} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import "./RoosterX";
-import "./SelectDataBase";
 import "./UserLogin";
 import "./SetupWizard";
-import {IConfig} from "../common/models/IConfig";
 import {type User} from "../entity/User";
 import {type ISetupState} from "../common/models/ISetup";
+
+const USER_KEY = "user";
 
 @customElement("rooster-x-wrapper")
 export class RoosterXWrapper extends LitElement {
 
-    @property() public isLoggedIn: boolean = false;
-    @property() public config: IConfig = {
-        userId: 0,
-        isAdmin: false,
-    };
-    @property() public user: User;
-    @property() public setup: ISetupState | null = null;
+    // The logged-in user, remembered in localStorage across reloads.
+    @state() private user: User | null = null;
+    @state() private setup: ISetupState | null = null;
 
     public createRenderRoot() {
         return this;
@@ -27,18 +23,11 @@ export class RoosterXWrapper extends LitElement {
     constructor() {
         super();
 
-        // check if user is already logged in localstorage
-        const tmpUser = localStorage.getItem("user");
-        if (tmpUser) {
-            const user = JSON.parse(tmpUser);
-            this.user = user;
-            this.isLoggedIn = true;
-            this.config.userId = user.id;
-            this.config.isAdmin = user.isAdmin;
-            IpcService.setUserId(user.id);
+        const saved = localStorage.getItem(USER_KEY);
+        if (saved) {
+            this.login(JSON.parse(saved));
         }
 
-        this.checkStatus();
         IpcService.getSetup()
             .then(setup => this.setup = setup)
             .catch(e => {
@@ -47,51 +36,18 @@ export class RoosterXWrapper extends LitElement {
             });
     }
 
+    public login(user: User) {
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        IpcService.setUserId(user.id);
+        this.user = user;
+    }
+
     private setupDone() {
-        this.isLoggedIn = false;
+        this.user = null;
         this.setup = {needsSetup: false};
     }
 
-    public checkStatus() {
-        console.log("checking status");
-        // if (this.isLoggedIn) {
-        //
-        // } else
-
-        // IpcService.getConfig().then(config => {
-        //     console.log("config", config);
-        //     this.config = config;
-        //
-        //     // check if user is logged in
-        //     if (config.userId) {
-        //         IpcService.getUser(config.userId)
-        //             .then(user => {
-        //                 if (user) {
-        //                     console.log("user", user);
-        //                     this.user = user;
-        //                     this.isLoggedIn = true;
-        //                     this.requestUpdate();
-        //                 } else {
-        //                     this.isLoggedIn = false;
-        //                 }
-        //             })
-        //             .catch(e => {
-        //                 console.log(e);
-        //                 this.isLoggedIn = false;
-        //             });
-        //     } else {
-        //         this.isLoggedIn = false;
-        //     }
-        //
-        // });
-    }
-
     public render() {
-        // if (!this.hasDbPath) {
-        //     return html`<select-database .wrapper=${this}></select-database>`;
-        // } else if (!this.isLoggedIn) {
-        //     return html`<user-login .wrapper=${this}></user-login>`;
-        // }
         if (!this.setup) {
             return html``;
         }
@@ -99,9 +55,9 @@ export class RoosterXWrapper extends LitElement {
             return html`<setup-wizard .config=${this.setup.config} .users=${this.setup.users}
                 .onDone=${() => this.setupDone()}></setup-wizard>`;
         }
-        if (!this.isLoggedIn) {
+        if (!this.user) {
             return html`<user-login .wrapper=${this}></user-login>`;
         }
-        return html`<rooster-x .user=${this.user} .config=${this.config} .wrapper=${this}></rooster-x>`;
+        return html`<rooster-x .user=${this.user}></rooster-x>`;
     }
 }

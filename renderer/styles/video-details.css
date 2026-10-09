@@ -190,17 +190,6 @@ video-details {
         }
       }
     }
-    & .searchResultDiv {
-      margin-bottom: 2em;
-      & img {
-        border: 2px solid var(--black-background);
-      }
-      &:hover {
-        & img {
-          border: 2px solid var(--accent-color);
-        }
-      }
-    }
   }
   & h1 {
     font-size: 6em;

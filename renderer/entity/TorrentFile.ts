@@ -1,74 +1,50 @@
-import "reflect-metadata";
-import {Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index} from "typeorm";
-import {MetaData} from "./MetaData";
-import {Episode} from "./Episode";
+import {type MetaData} from "./MetaData";
+import {type Episode} from "./Episode";
 
-@Entity("TorrentFile")
-export class TorrentFile {
+export interface TorrentFile {
 
-    @PrimaryGeneratedColumn()
-    public id: number;
+    id: number;
 
-    @Column("text")
-    public raw: string;
+    raw: string;
 
-    @Column("text")
-    public title: string;
+    title: string;
 
-    @Index({unique: true})
-    @Column({type: "text", collation: "NOCASE"})
-    public magnet: string;
+    magnet: string;
 
-    @ManyToOne(() => MetaData, metaData => metaData.mediaFiles, {cascade: true})
-    public metaData: MetaData;
+    metaData: MetaData;
 
-    @ManyToOne(() => Episode, episode => episode.mediaFiles, {cascade: true})
-    public episode: Episode;
+    episode: Episode;
 
-    @Column({type: "int", nullable: true})
-    public year?: number;
+    year?: number;
 
-    @Column({type: "varchar", length: 40, nullable: true})
-    public resolution?: string;
+    resolution?: string;
 
-    @Column({type: "varchar", length: 40, nullable: true})
-    public quality?: string;
+    quality?: string;
 
-    @Column({type: "varchar", length: 40, nullable: true})
-    public codec?: string;
+    codec?: string;
 
-    @Column({type: "varchar", length: 40, nullable: true})
-    public audio?: string;
+    audio?: string;
 
-    @Column({type: "varchar", length: 40, nullable: true})
-    public group?: string;
+    group?: string;
 
-    @Column({type: "varchar", length: 40, nullable: true})
-    public region?: string;
+    region?: string;
 
-    @Column({type: "varchar", length: 40, nullable: true})
-    public language?: string;
+    language?: string;
 
-    @Column({type: "boolean", default: false})
-    public extended: boolean;
+    extended: boolean;
 
-    @Column({type: "boolean", default: false})
-    public hardcoded: boolean;
+    hardcoded: boolean;
 
-    @Column({type: "boolean", default: false})
-    public proper: boolean;
+    proper: boolean;
 
-    @Column({type: "boolean", default: false})
-    public repack: boolean;
+    repack: boolean;
 
-    @Column({type: "boolean", default: false})
-    public wideScreen: boolean;
+    wideScreen: boolean;
 
-    @Column({type: "int"})
-    public uploadedAt: number;
+    uploadedAt: number;
 
     // Swarm size from apibay / tracker scrapes; refreshed when older than 2 days.
-    public seeders?: number | null;
-    public leechers?: number | null;
-    public peersUpdatedAt?: number | null; // unix seconds
+    seeders?: number | null;
+    leechers?: number | null;
+    peersUpdatedAt?: number | null; // unix seconds
 }

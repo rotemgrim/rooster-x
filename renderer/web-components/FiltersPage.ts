@@ -1,24 +1,54 @@
 
 import {LitElement, html} from "lit";
-import {customElement, property} from "lit/decorators.js";
+import {customElement, property, state} from "lit/decorators.js";
 import {RoosterX} from "./RoosterX";
-// import "./multiselect.html";
 import {IpcService} from "../services/ipc.service";
 import {type Genre} from "../entity/Genre";
+import {isPhone} from "../common/layout";
+import {type FilterConfig, type GroupBy, type LibraryQuery, type OrderConfig} from "../common/library";
+
+type Toggle<T> = {[K in keyof T]: T[K] extends boolean ? K : never}[keyof T];
+
+const ORDER_BY: [OrderConfig["orderBy"], string][] = [
+    ["trendingCount", "Trending"],
+    ["downloadedAt", "Download Date"],
+    ["uploadedAt", "Uploaded Date"],
+    ["rating", "IMDB Score"],
+    ["votes", "IMDB Votes"],
+    ["year", "Year"],
+    ["released_unix", "Release Date"],
+];
+
+const GROUP_BY: [GroupBy, string][] = [
+    ["none", "None"],
+    ["rating", "IMDB Score"],
+    ["resolution", "Resolution"],
+    ["year", "Year"],
+    ["genres", "Genres"],
+    ["uploadedDate", "Uploaded Date"],
+    ["downloadedDate", "Download Date"],
+];
+
+const ORDER_TOGGLES: [Toggle<OrderConfig>, string][] = [
+    ["directionDescending", "Order direction descending"],
+    ["showUnwatchedFirst", "Show unwatched first"],
+];
+
+const FILTER_TOGGLES: [Toggle<FilterConfig>, string][] = [
+    ["unwatchedMedia", "Show ONLY unwatched media"],
+    ["noMediaWithoutFiles", "Do not show media without files"],
+    ["showDebug", "Show debug info on posters"],
+];
 
 @customElement("filters-page")
 export class FiltersPage extends LitElement {
 
-    @property() public rooster: RoosterX;
-    @property() public _genres: Genre[] = [];
+    @property({attribute: false}) public rooster: RoosterX;
+    @property({attribute: false}) public query: LibraryQuery;
+    @state() private genres: Genre[] = [];
 
     public createRenderRoot() {
         return this;
-    }
-
-    set genres(data) {
-        this._genres = data;
-        this.requestUpdate();
     }
 
     constructor() {
@@ -27,53 +57,67 @@ export class FiltersPage extends LitElement {
     }
 
     private close() {
-        this.rooster.closeSideBar();
+        this.rooster.closeSidePanel();
     }
 
-    private filterChange(e) {
-        const addToFilterConfig = {};
-        addToFilterConfig[e.target.id] = e.target.checked;
-        this.rooster.filterConfig = {...this.rooster._filterConfig, ...addToFilterConfig};
+    private setOrder(patch: Partial<OrderConfig>) {
+        this.rooster.updateQuery({order: {...this.query.order, ...patch}});
     }
 
-    private filterGenreChange(e) {
-        const addToFilterConfig = {};
-        console.log(e);
-        console.log(e.target.options);
-        let selectedArr: string[] = [];
-        for (const o of e.target.options) {
-            if (o.selected && o.value && o.value === "All") {
-                selectedArr = [];
-                break;
-            }
-            if (o.selected && o.value) {
-                selectedArr.push(o.value.toLowerCase());
-            }
+    private setFilters(patch: Partial<FilterConfig>) {
+        this.rooster.updateQuery({filters: {...this.query.filters, ...patch}});
+    }
+
+    private setGenres(genres: string[]) {
+        this.setFilters({noMediaWithoutGenres: genres});
+    }
+
+    /** Chips: "all" clears the selection, any other chip toggles. */
+    private toggleGenre(genre: string) {
+        const selected = this.query.filters.noMediaWithoutGenres;
+        this.setGenres(genre === "all" ? []
+            : selected.includes(genre) ? selected.filter(g => g !== genre)
+            : [...selected, genre]);
+    }
+
+    /**
+     * Multi-select: picking "All" clears the selection, but while "All" is
+     * the current choice, adding genres to it (ctrl-click) picks those genres.
+     */
+    private selectGenres(values: string[]) {
+        const wasAll = this.query.filters.noMediaWithoutGenres.length === 0;
+        this.setGenres(values.includes("all") && !wasAll ? [] : values.filter(v => v !== "all"));
+    }
+
+    private renderGenres() {
+        const selected = this.query.filters.noMediaWithoutGenres;
+        const genres = [
+            {value: "all", label: "All", active: selected.length === 0},
+            ...this.genres.map(g => ({value: g.type.toLowerCase(), label: g.type, active: selected.includes(g.type.toLowerCase())})),
+        ];
+        if (isPhone()) {
+            return html`<div class="genre-chips">
+                ${genres.map(g => html`<button class="genre-chip ${g.active ? "active" : ""}"
+                    @click=${() => this.toggleGenre(g.value)}>${g.label}</button>`)}
+            </div>`;
         }
-        console.log("selectedArr", selectedArr);
-        addToFilterConfig[e.target.id] = selectedArr;
-        this.rooster.filterConfig = {...this.rooster._filterConfig, ...addToFilterConfig};
+        return html`<select id="noMediaWithoutGenres" multiple
+            @change=${(e: Event) => this.selectGenres([...(e.target as HTMLSelectElement).selectedOptions].map(o => o.value))}>
+            ${genres.map(g => html`<option value="${g.value}" ?selected=${g.active}>${g.label}</option>`)}
+        </select>`;
     }
 
-    private orderDirectrionChange(e) {
-        const addToOrderConfig = {};
-        addToOrderConfig[e.target.id] = e.target.checked;
-        this.rooster.orderConfig = {...this.rooster._orderConfig, ...addToOrderConfig};
-    }
-
-    private orderByChange(e) {
-        const addToOrderConfig = {};
-        addToOrderConfig[e.target.id] = e.target.value;
-        this.rooster.orderConfig = {...this.rooster._orderConfig, ...addToOrderConfig};
-    }
-
-    private groupByChange(e) {
-        const addToOrderConfig = {};
-        addToOrderConfig[e.target.id] = e.target.value;
-        this.rooster.orderConfig = {...this.rooster._orderConfig, ...addToOrderConfig};
+    private renderToggle(id: string, label: string, checked: boolean, onChange: (checked: boolean) => void) {
+        return html`<li>
+            <h3>${label}</h3>
+            <input @change=${(e: Event) => onChange((e.target as HTMLInputElement).checked)} id="${id}"
+                ?checked="${checked}" class="tgl tgl-light" type="checkbox"/>
+            <label class="tgl-btn" for="${id}"></label>
+        </li>`;
     }
 
     public render() {
+        const {order, filters} = this.query;
         return html`<div class="page filters-page">
             <div class="page-top">
                 <h1>Choose Filters & Sorting</h1>
@@ -86,102 +130,33 @@ export class FiltersPage extends LitElement {
                     <ul>
                         <li>
                             <h3>Order by</h3>
-                            <select @change=${this.orderByChange} id="orderBy">
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "trendingCount"}
-                                    value="trendingCount">Trending</option>
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "downloadedAt"}
-                                    value="downloadedAt">Download Date</option>
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "uploadedAt"}
-                                    value="uploadedAt">Uploaded Date</option>
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "rating"}
-                                    value="rating">IMDB Score</option>
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "votes"}
-                                    value="votes">IMDB Votes</option>
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "year"}
-                                    value="year">Year</option>
-                                <option ?selected=${this.rooster._orderConfig.orderBy === "released_unix"}
-                                    value="released_unix">Release Date</option>
+                            <select id="orderBy" @change=${(e: Event) =>
+                                this.setOrder({orderBy: (e.target as HTMLSelectElement).value as OrderConfig["orderBy"]})}>
+                                ${ORDER_BY.map(([value, label]) =>
+                                    html`<option ?selected=${order.orderBy === value} value="${value}">${label}</option>`)}
                             </select>
                         </li>
                         <li>
                             <h3>Group by</h3>
-                            <select @change=${this.groupByChange} id="groupBy">
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "none"}
-                                        value="none">None</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "rating"}
-                                        value="rating">IMDB Score</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "resolution"}
-                                        value="resolution">Resolution</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "year"}
-                                        value="year">Year</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "genres"}
-                                        value="genres">Genres</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "uploadedDate"}
-                                        value="uploadedDate">Uploaded Date</option>
-                                <option ?selected=${this.rooster._orderConfig.groupBy === "downloadedDate"} 
-                                        value="downloadedDate">Download Date</option>
+                            <select id="groupBy" @change=${(e: Event) =>
+                                this.setOrder({groupBy: (e.target as HTMLSelectElement).value as GroupBy})}>
+                                ${GROUP_BY.map(([value, label]) =>
+                                    html`<option ?selected=${order.groupBy === value} value="${value}">${label}</option>`)}
                             </select>
                         </li>
-                        <li>
-                            <h3>Order direction descending</h3>
-                            <input @change=${this.orderDirectrionChange} id="directionDescending"
-                                ?checked="${this.rooster._orderConfig.directionDescending}"
-                                class="tgl tgl-light" type="checkbox"/>
-                            <label class="tgl-btn" for="directionDescending"></label>
-                        </li>
-                        <li>
-                            <h3>Show unwatched first</h3>
-                            <input @change=${this.orderDirectrionChange} id="showUnwatchedFirst"
-                                ?checked="${this.rooster._orderConfig.showUnwatchedFirst}"
-                                class="tgl tgl-light" type="checkbox"/>
-                            <label class="tgl-btn" for="showUnwatchedFirst"></label>
-                        </li>
+                        ${ORDER_TOGGLES.map(([key, label]) =>
+                            this.renderToggle(key, label, order[key], checked => this.setOrder({[key]: checked})))}
                     </ul>
                 </div>
                 <div class="filters-genres">
                     <h2>Filter by genre</h2>
-                    <select id="noMediaWithoutGenres" multiple @change=${this.filterGenreChange}>
-                        <option value="All"
-                            ?selected=${this.rooster._filterConfig.noMediaWithoutGenres.includes("All")}>
-                            All</option>
-                        ${this._genres.map(g =>
-                            html`<option value="${g.type}"
-                                ?selected=${this.rooster._filterConfig.noMediaWithoutGenres
-                                    .includes(g.type.toLowerCase())}>
-                                ${g.type}</option>`)}
-                    </select>
+                    ${this.renderGenres()}
                 </div>
                 <div class="filters">
                     <h2>Filters</h2>
                     <ul>
-                        <li>
-                            <h3>Show ONLY unwatched media</h3>
-                            <input @change=${this.filterChange} id="unwatchedMedia"
-                                ?checked="${this.rooster._filterConfig.unwatchedMedia}"
-                                class="tgl tgl-light" type="checkbox"/>
-                            <label class="tgl-btn" for="unwatchedMedia"></label>
-                        </li>
-                        <li>
-                            <h3>Do not show media without files</h3>
-                            <input @change=${this.filterChange} id="noMediaWithoutFiles"
-                                ?checked="${this.rooster._filterConfig.noMediaWithoutFiles}"
-                                class="tgl tgl-light" type="checkbox"/>
-                            <label class="tgl-btn" for="noMediaWithoutFiles"></label>
-                        </li>
-                        <li>
-                            <h3>Do not show media without full description</h3>
-                            <input @change=${this.filterChange} id="noMediaWithoutMetaData"
-                                ?checked="${this.rooster._filterConfig.noMediaWithoutMetaData}"
-                                class="tgl tgl-light" type="checkbox"/>
-                            <label class="tgl-btn" for="noMediaWithoutMetaData"></label>
-                        </li>
-                        <li>
-                            <h3>Show debug info on posters</h3>
-                            <input @change=${this.filterChange} id="showDebug"
-                                ?checked="${this.rooster._filterConfig.showDebug}"
-                                class="tgl tgl-light" type="checkbox"/>
-                            <label class="tgl-btn" for="showDebug"></label>
-                        </li>
+                        ${FILTER_TOGGLES.map(([key, label]) =>
+                            this.renderToggle(key, label, filters[key], checked => this.setFilters({[key]: checked})))}
                     </ul>
                 </div>
                 </div>

@@ -1,25 +1,17 @@
-import {Entity, PrimaryGeneratedColumn, Column, OneToMany} from "typeorm";
-import {UserMetaData} from "./UserMetaData";
+import {type UserMetaData} from "./UserMetaData";
 
-@Entity()
-export class User {
+export interface User {
 
-    @PrimaryGeneratedColumn()
-    public id: number;
+    id: number;
 
-    @Column({type: "varchar", length: 255})
-    public firstName: string;
+    firstName: string;
 
-    @Column({type: "varchar", length: 255})
-    public lastName: string;
+    lastName: string;
 
-    @Column({type: "text"})
-    public password: string;
+    password: string;
 
-    @Column({type: "boolean"})
-    public isAdmin: boolean;
+    isAdmin: boolean;
 
-    @OneToMany(() => UserMetaData, x => x.user)
-    public metaDatas: UserMetaData[];
+    metaDatas: UserMetaData[];
 
 }

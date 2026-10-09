@@ -164,7 +164,9 @@
     }
   }
 
-  .panel {
+  /* only a panel showing a page covers the screen; the empty one rendered
+     with the side bar must stay beside it, or it swallows taps on the menu */
+  .panel:has(.page) {
     position: fixed;
     top: var(--top-bar-height);
     left: 0;
@@ -183,9 +185,35 @@
 
   .filters-page {
     overflow: auto;
+    color-scheme: dark;
 
+    & .page-top {
+      flex: 0 0 auto;
+      padding-bottom: 0.6em;
+      & h1 {
+        font-size: 1.7em;
+        line-height: 1.2;
+      }
+      & .close {
+        flex: 0 0 auto;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        color: white;
+        font-size: 1.5em;
+        cursor: pointer;
+      }
+    }
+    /* one column: sorting, then filters, then the long genre list */
     & .page-body > div {
-      display: block;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "sorting" "filters" "genres";
+      row-gap: 14px;
+      padding-bottom: 1em;
     }
     & .sorting,
     & .filters-genres,
@@ -195,35 +223,79 @@
       width: auto;
       min-width: 0;
       height: auto;
-      margin-top: 1.5em;
+      margin-top: 0;
+      padding: 0 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      & h2 {
+        padding: 12px 0 4px;
+        font-size: 1.05em;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9a9a9a;
+      }
+    }
+    & .filters-genres {
+      padding-bottom: 14px;
     }
     & ul li {
       font-size: 1.3em;
       height: auto;
-      min-height: 48px;
+      min-height: 52px;
       justify-content: space-between;
-      gap: 0.5em;
+      gap: 0.8em;
+      & + li {
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+      }
       & h3 {
+        flex: 1;
+        font-size: 1em;
         font-weight: normal;
+        line-height: 1.3;
       }
     }
     & select {
-      font-size: 1.2em;
-      max-width: 55%;
+      flex: 0 1 auto;
+      max-width: 50%;
+      margin-left: 0;
+      padding: 6px 8px;
+      font-size: 1em;
+      background: #1f1f1f;
+      color: white;
+      border: 1px solid #3a3a3a;
+      border-radius: 8px;
     }
-    & #noMediaWithoutGenres {
-      font-size: 1.6em;
-      height: 40vh;
-    }
-    /* the switches sit at the screen edge, so their Yes/No goes on the left */
+    /* the switch color shows the state; no room for Yes/No beside it */
     & .tgl-btn {
       flex: 0 0 auto;
-      margin-left: 3em;
+      margin-left: 0;
+      font-size: 0.85em;
     }
-    & .tgl-light + .tgl-btn:before,
-    & .tgl-light:checked + .tgl-btn:before {
-      right: auto;
-      left: -2.8em;
+    & .tgl-light + .tgl-btn:before {
+      display: none;
+    }
+    & .genre-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 6px;
+    }
+    & .genre-chip {
+      min-height: 36px;
+      margin: 0;
+      padding: 0 14px;
+      font-size: 1.2em;
+      text-transform: capitalize;
+      color: #ddd;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid transparent;
+      border-radius: 18px;
+      cursor: pointer;
+      &.active {
+        color: white;
+        background: var(--accent-color);
+      }
     }
     /* the settings page reuses this layout */
     & .section {
@@ -269,7 +341,7 @@
     }
   }
   /* the filters and settings panels cover the whole screen */
-  body:has(.panel) .goTop {
+  body:has(.panel .page) .goTop {
     display: none;
   }
   .goTop {

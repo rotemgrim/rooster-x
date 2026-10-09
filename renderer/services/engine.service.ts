@@ -71,20 +71,20 @@ export function largestVideo(files: IEngineFile[] | null | undefined): IEngineFi
 export class EngineService {
     /** Starts downloading a magnet; resolves to its info hash. */
     public static add(magnet: string): Promise<string> {
-        return promiseIpc.send("engine-add", {magnet}) as Promise<string>;
+        return promiseIpc.send<string>("engine-add", {magnet});
     }
 
     /** Starts downloading a .torrent file (base64); resolves to its info hash. */
     public static addTorrentFile(torrent: string): Promise<string> {
-        return promiseIpc.send("engine-add-torrent-file", {torrent}) as Promise<string>;
+        return promiseIpc.send<string>("engine-add-torrent-file", {torrent});
     }
 
     public static setSequential(infoHash: string, sequential: boolean): Promise<boolean> {
-        return promiseIpc.send("engine-set-sequential", {infoHash, sequential}) as Promise<boolean>;
+        return promiseIpc.send<boolean>("engine-set-sequential", {infoHash, sequential});
     }
 
     public static setPaused(infoHash: string, paused: boolean): Promise<boolean> {
-        return promiseIpc.send("engine-pause", {infoHash, paused}) as Promise<boolean>;
+        return promiseIpc.send<boolean>("engine-pause", {infoHash, paused});
     }
 
     public static remove(infoHash: string, deleteFiles: boolean) {
@@ -93,19 +93,19 @@ export class EngineService {
 
     /** One torrent, including the chunk map of its largest file. */
     public static status(infoHash: string): Promise<IEngineStatus> {
-        return promiseIpc.send("engine-status", {infoHash}) as Promise<IEngineStatus>;
+        return promiseIpc.send<IEngineStatus>("engine-status", {infoHash});
     }
 
     public static list(): Promise<IEngineStatus[] | null> {
-        return promiseIpc.send("engine-status", {}) as Promise<IEngineStatus[] | null>;
+        return promiseIpc.send<IEngineStatus[] | null>("engine-status", {});
     }
 
     public static getSettings(): Promise<IEngineSettings> {
-        return promiseIpc.send("engine-get-settings", {}) as Promise<IEngineSettings>;
+        return promiseIpc.send<IEngineSettings>("engine-get-settings", {});
     }
 
     public static saveSettings(settings: IEngineSettings): Promise<IEngineSettings> {
-        return promiseIpc.send("engine-save-settings", settings) as Promise<IEngineSettings>;
+        return promiseIpc.send<IEngineSettings>("engine-save-settings", settings);
     }
 
     /** The server path that streams a torrent's file while it downloads. */

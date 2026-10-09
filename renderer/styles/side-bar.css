@@ -39,6 +39,12 @@
       &:hover {
         background: rgba(65, 65, 65, 0.5);
       }
+
+      /* the chosen All Media / Movies / Series */
+      &.active {
+        background: rgba(65, 65, 65, 0.6);
+        box-shadow: inset 4px 0 0 var(--accent-color);
+      }
     }
   }
 }

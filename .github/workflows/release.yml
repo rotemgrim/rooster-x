@@ -52,6 +52,9 @@ jobs:
       - working-directory: renderer
         run: pnpm install --frozen-lockfile
 
+      - working-directory: renderer
+        run: pnpm run typecheck
+
       - shell: msys2 {0}
         run: bash build-script.sh
 

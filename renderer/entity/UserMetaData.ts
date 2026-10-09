@@ -1,24 +1,15 @@
-import {Entity, Column, PrimaryColumn, JoinColumn, ManyToOne} from "typeorm";
-import {User} from "./User";
-import {MetaData} from "./MetaData";
+import {type User} from "./User";
+import {type MetaData} from "./MetaData";
 
-@Entity("UserMetaData")
-export class UserMetaData {
+export interface UserMetaData {
 
-    @PrimaryColumn("int")
-    public userId: number;
+    userId: number;
 
-    @PrimaryColumn("int")
-    public metaDataId: number;
+    metaDataId: number;
 
-    @Column({type: "boolean"})
-    public isWatched: boolean;
+    isWatched: boolean;
 
-    @ManyToOne(() => User)
-    @JoinColumn({name: "userId"})
-    public user: User;
+    user: User;
 
-    @ManyToOne(() => MetaData)
-    @JoinColumn({name: "metaDataId"})
-    public metaData: MetaData;
+    metaData: MetaData;
 }

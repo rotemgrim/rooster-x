@@ -87,10 +87,13 @@ export class TorrentFileCard extends LitElement {
 
     private togglePause(e: Event) {
         e.stopPropagation();
+        if (!this.engine) {
+            return;
+        }
         const paused = !this.engine.paused;
         EngineService.setPaused(this.infoHash, paused)
             .then(() => {
-                this.engine = {...this.engine, paused};
+                this.patchEngine({paused});
                 this.poll();
             })
             .catch(err => console.error("could not pause/resume", err));
@@ -114,8 +117,15 @@ export class TorrentFileCard extends LitElement {
         e.stopPropagation();
         const on = (e.target as HTMLInputElement).checked;
         EngineService.setSequential(this.infoHash, on)
-            .then(() => (this.engine = {...this.engine, sequential: on}))
+            .then(() => this.patchEngine({sequential: on}))
             .catch(err => console.error("could not change download order", err));
+    }
+
+    /** Applies a confirmed change to the shown status, unless the download is gone meanwhile. */
+    private patchEngine(patch: Partial<IEngineStatus>) {
+        if (this.engine) {
+            this.engine = {...this.engine, ...patch};
+        }
     }
 
     private renderChunks() {

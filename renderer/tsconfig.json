@@ -19,8 +19,8 @@
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "useDefineForClassFields": false,
-        "suppressImplicitAnyIndexErrors": true,
-        "lib": ["es2022", "dom"],
+        "lib": ["es2022", "dom", "dom.iterable"],
+        "types": [],
         "module": "commonjs",
         "importHelpers": true,
         "noFallthroughCasesInSwitch": true,
@@ -35,6 +35,8 @@
     },
     "exclude": [
       "node_modules",
-      "src/main"
+      "dist",
+      "src/main",
+      "vite.config.ts"
     ]
 }

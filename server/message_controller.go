@@ -47,7 +47,7 @@ type MsgResponse struct {
 // MediaDataExtended is the slim row shape returned by GetMedia for the grid
 // view. It contains only fields needed for rendering cards, plus the columns
 // used by client-side sort/group/filter (year, rating, votes, released_unix,
-// genres, isWatched, mediaFiles count, resolution, quality, uploadedAt,
+// genres, isWatched, mediaFileCount, resolution, quality, uploadedAt,
 // downloadedAt, trendingCount, etc.).
 //
 // Heavy fields used only by the details panel (plot, actors, director,
@@ -70,7 +70,7 @@ type MediaDataExtended struct {
 	IsWatched      null.Bool    `boil:"isWatched" json:"isWatched,omitempty"`
 	DownloadedAt   null.String  `boil:"downloadedAt" json:"downloadedAt,omitempty"`
 	UploadedAt     null.String  `boil:"uploadedAt" json:"uploadedAt,omitempty"`
-	MediaFiles     null.Int     `boil:"mediaFiles" json:"mediaFiles,omitempty"`
+	MediaFileCount null.Int     `boil:"mediaFiles" json:"mediaFileCount,omitempty"`
 	Quality        null.String  `boil:"quality" json:"quality,omitempty"`
 	Resolution     null.String  `boil:"resolution" json:"resolution,omitempty"`
 	UploadedDate   null.String  `boil:"uploadedDate" json:"uploadedDate,omitempty"`
@@ -78,29 +78,20 @@ type MediaDataExtended struct {
 	TrendingCount  null.Int     `boil:"trendingCount" json:"trendingCount,omitempty"`
 }
 
+// FullSweep starts a sweep of the media folders; progress arrives as messages.
 func (s *Server) FullSweep(c *websocket.Conn, data PayloadRequest) {
 	if walker, _ := s.sweepers(); walker != nil {
 		go walker.FullSweep()
 	}
+	transmitPromiseResponse(c, data, "started")
 }
 
+// SyncTorrents starts a torrent sync; progress arrives as messages.
 func (s *Server) SyncTorrents(c *websocket.Conn, data PayloadRequest) {
 	if _, fetcher := s.sweepers(); fetcher != nil {
 		go fetcher.FullSweep()
 	}
-}
-
-func (s *Server) GetConfig(c *websocket.Conn, data PayloadRequest) {
-	var result = map[string]interface{}{
-		"serverUrl":        "http://localhost:8080",
-		"keepWindowsAlive": false,
-		"proxySettings":    false,
-		"dbPath":           "string",
-		"tmdbApiKey":       "string",
-		"userId":           "1",
-		"isAdmin":          true,
-	}
-	transmitPromiseResponse(c, data, result)
+	transmitPromiseResponse(c, data, "started")
 }
 
 func (s *Server) GetAllUsers(c *websocket.Conn, data PayloadRequest) {
@@ -113,13 +104,7 @@ func (s *Server) GetAllUsers(c *websocket.Conn, data PayloadRequest) {
 	transmitPromiseResponse(c, data, users)
 }
 
-func (s *Server) SaveConfig(c *websocket.Conn, request PayloadRequest) {
-	// do nothing for now
-	transmitPromiseResponse(c, request, "Config saved")
-}
-
 func (s *Server) GetAllMedia(c *websocket.Conn, req PayloadRequest) {
-	filter := req.Data.(map[string]interface{})["filter"]
 	isTorrents := req.Data.(map[string]interface{})["isTorrents"]
 	genres := req.Data.(map[string]interface{})["genres"]
 
@@ -134,7 +119,7 @@ func (s *Server) GetAllMedia(c *websocket.Conn, req PayloadRequest) {
 		}
 	}
 
-	s.GetMedia(c, req, isTorrents.(bool), filter.(string), genreList)
+	s.GetMedia(c, req, isTorrents.(bool), genreList)
 }
 
 // scanMediaRowPtrs returns a slice of pointers (one per column) used by
@@ -171,7 +156,7 @@ func scanMediaRowPtrs(cols []string, m *MediaDataExtended, discard *interface{})
 		case "uploadedAt":
 			ptrs[i] = &m.UploadedAt
 		case "mediaFiles":
-			ptrs[i] = &m.MediaFiles
+			ptrs[i] = &m.MediaFileCount
 		case "quality":
 			ptrs[i] = &m.Quality
 		case "resolution":
@@ -191,7 +176,7 @@ func scanMediaRowPtrs(cols []string, m *MediaDataExtended, discard *interface{})
 	return ptrs
 }
 
-func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, filter string, genres []string) {
+func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents bool, genres []string) {
 	var userId int = data.UserId
 
 	// Read from the materialised feed_torrents / feed_folders snapshot
@@ -200,8 +185,9 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	// the request is now a plain indexed scan + 1:1 userMetaData LEFT JOIN.
 	//
 	// Per-user state (isWatched) is NOT in the snapshot - it joins at
-	// request time. The genres EXISTS filter and the movies/series filter
-	// also stay at request time so a single snapshot serves all variants.
+	// request time. The genres EXISTS filter also stays at request time so
+	// a single snapshot serves all variants; movies/series is filtered on
+	// the client.
 
 	feedTable := "feed_folders"
 	viewSelect := "f.downloadedAt as downloadedAt, f.downloadedDate as downloadedDate, f.uploadedDate as uploadedDate"
@@ -227,11 +213,6 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 
 	// WHERE clauses
 	whereParts := []string{}
-	if filter == "movies" {
-		whereParts = append(whereParts, "f.series = 0")
-	} else if filter == "series" {
-		whereParts = append(whereParts, "f.series = 1")
-	}
 	if len(genres) > 0 {
 		log.Printf("Filtering by %d genre(s): %v", len(genres), genres)
 		placeholders := make([]string, len(genres))
@@ -265,7 +246,7 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	rows, err := db.DB.QueryContext(ctx, sqlStr, sqlArgs...)
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			log.Printf("⚠ Query timeout after 30s (filter: %s, torrents: %v, genres: %v)", filter, isTorrents, genres)
+			log.Printf("⚠ Query timeout after 30s (torrents: %v, genres: %v)", isTorrents, genres)
 			transmitPromiseReject(c, data, "Query timed out - too complex. Try fewer filters or wait for database optimization.")
 		} else {
 			log.Printf("Query error: %v", err)
@@ -322,24 +303,20 @@ func (s *Server) GetMedia(c *websocket.Conn, data PayloadRequest, isTorrents boo
 	}
 
 	if total == 0 {
-		log.Printf("✓ Returned 0 results in %v (filter: %s, torrents: %v, genres: %v)", time.Since(queryStart), filter, isTorrents, genres)
+		log.Printf("✓ Returned 0 results in %v (torrents: %v, genres: %v)", time.Since(queryStart), isTorrents, genres)
 		transmitPromiseResponse(c, data, []MediaDataExtended{})
 		return
 	}
 
 	ttfr := firstRowAt.Sub(queryStart)
 	totalElapsed := time.Since(streamStart)
-	log.Printf("✓ Streamed %d results (filter: %s, torrents: %v, genres: %v) | ttfr=%v total=%v",
-		total, filter, isTorrents, genres, ttfr, totalElapsed)
+	log.Printf("✓ Streamed %d results (torrents: %v, genres: %v) | ttfr=%v total=%v",
+		total, isTorrents, genres, ttfr, totalElapsed)
 	// Final success message signals end-of-stream to the client.
 	transmitPromiseResponse(c, data, map[string]interface{}{
 		"streamed": true,
 		"total":    total,
 	})
-}
-
-func (s *Server) GetAllTorrents(c *websocket.Conn, data PayloadRequest) {
-	s.GetMedia(c, data, true, "all", []string{})
 }
 
 // GetMetaDataById returns the full metadata record (including detail-only
@@ -493,6 +470,7 @@ func (s *Server) OpenExternal(c *websocket.Conn, req PayloadRequest) {
 	err := open.Run(path.(string))
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not open external %s", err))
+		return
 	}
 	transmitPromiseResponse(c, req, "Opening external")
 }

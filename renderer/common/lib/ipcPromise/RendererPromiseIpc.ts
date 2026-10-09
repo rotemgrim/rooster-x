@@ -1,8 +1,11 @@
 import {v4 as uuid} from "uuid";
-import {AbstractPromiseIpc} from "./AbstractPromiseIpc";
-// import * as Promise from "bluebird";
 
-export class RendererPromiseIpc extends AbstractPromiseIpc {
+/**
+ * Request/response over the server's WebSocket: every send() gets a reply
+ * (or streamed chunks, then a reply) on its own reply channel. The server
+ * also pushes status messages, delivered to onMessage() listeners.
+ */
+export class RendererPromiseIpc {
 
     private maxTimeoutMs: number = 1000;
     private socket: WebSocket;
@@ -10,9 +13,9 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
     private reconnectTimeout: number = 3000;
     private queue: Record<string, {success: CallableFunction, failure: CallableFunction, chunk?: CallableFunction}> = {};
     private userId: number = 0;
+    private messageListeners = new Set<(msg: string) => void>();
 
     constructor(opts: { maxTimeoutMs?: number, reconnectTimeout?: number }) {
-        super();
         if (opts) {
             this.maxTimeoutMs = opts.maxTimeoutMs || this.maxTimeoutMs;
             this.reconnectTimeout = opts.reconnectTimeout || this.reconnectTimeout;
@@ -24,18 +27,12 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
         this.userId = userId;
     }
 
-    IpcRenderer() {
-        // const send = (route: string, payload?: object) => {
-        //     const request = {
-        //         route: route,
-        //         payload: payload
-        //     }
-        //     this.socket.send(JSON.stringify(request));
-        // }
-        const send = this.send.bind(this);
-        return {
-            send,
-        }
+    /** Subscribes to the status messages the server pushes; returns the unsubscribe. */
+    public onMessage(listener: (msg: string) => void): () => void {
+        this.messageListeners.add(listener);
+        return () => {
+            this.messageListeners.delete(listener);
+        };
     }
 
     private connectToWs = () => {
@@ -99,21 +96,20 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
                         delete this.queue[response.replyChannel];
                 }
             } else if (response.status === "msg") {
-                // console.log("msg", response.data);
-                window["RoosterX"].showMsg = response.data;
+                this.messageListeners.forEach(listener => listener(response.data));
             } else {
                 console.error(`No callback found for ${JSON.stringify(response)}`);
             }
         });
     };
 
-    public send(route: string, payload?: object, onChunk?: (chunk: any) => void): Promise<any> {
+    public send<T = unknown>(route: string, payload?: object, onChunk?: (chunk: any) => void): Promise<T> {
 
         // If the socket is not connected, wait for it to connect
         if (!this.isSocketConnected) {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
-                    this.send(route, payload, onChunk).then(resolve).catch(reject);
+                    this.send<T>(route, payload, onChunk).then(resolve).catch(reject);
                 }, 300);
             });
         }
@@ -123,8 +119,8 @@ export class RendererPromiseIpc extends AbstractPromiseIpc {
             this.queue[replyChannel] = {success: resolve, failure: reject, chunk: onChunk};
 
             console.log(`Sending message to server: ${route}`, payload);
-            // ipcRenderer will send a message back to replyChannel when it finishes calculating
-            this.socket.send(RendererPromiseIpc.prepareDataForSend(this.userId, replyChannel, route, payload));
+            // the server answers on replyChannel when it is done
+            this.socket.send(JSON.stringify({replyChannel, route, userId: this.userId, data: payload}));
 
             setTimeout(() => {
                 // Only time out if the request is still pending. Long-running

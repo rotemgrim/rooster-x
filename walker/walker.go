@@ -105,6 +105,9 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 		callBack = func(e fsnotify.Event) {
 			log.Println(e.String())
 
+			// Only reload the UI when the library actually changed. A torrent
+			// starting creates its folder and *.part files, which fires these
+			// events without adding any media.
 			changed := false
 			switch {
 			case e.Op&fsnotify.Create == fsnotify.Create:
@@ -117,17 +120,13 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 				// the Write-on-dir branch below — the subfolder is a
 				// direct child of the watched root, so its Write
 				// events surface even though we don't Add() it.
-				w.Sweep([]string{e.Name})
-				changed = true
+				changed = w.Sweep([]string{e.Name})
 			case e.Op&fsnotify.Remove == fsnotify.Remove:
 				log.Printf("Remove event: %s", e.Name)
-				_ = w.removeAllDeletedMediaFiles()
-				changed = true
+				changed = w.removeAllDeletedMediaFiles() > 0
 			case e.Op&fsnotify.Rename == fsnotify.Rename:
 				log.Printf("Rename event: %s", e.Name)
-				w.Sweep([]string{e.Name})
-				_ = w.removeAllDeletedMediaFiles()
-				changed = true
+				changed = w.resync(e.Name)
 			case e.Op&fsnotify.Write == fsnotify.Write:
 				// On Windows, fsnotify often reports a file delete/move
 				// inside a watched directory as a Write on the *directory*
@@ -137,15 +136,12 @@ func (w *Walker) debounceWatch(watcher *fsnotify.Watcher) {
 				// rows. If it's a regular file Write, ignore as before.
 				if info, statErr := os.Stat(e.Name); statErr == nil && info.IsDir() {
 					log.Printf("Write event on directory (contents changed): %s", e.Name)
-					w.Sweep([]string{e.Name})
-					_ = w.removeAllDeletedMediaFiles()
-					changed = true
+					changed = w.resync(e.Name)
 				} else if os.IsNotExist(statErr) {
 					// The path itself vanished between the event and our
 					// Stat — treat as a removal.
 					log.Printf("Write event on missing path, treating as removal: %s", e.Name)
-					_ = w.removeAllDeletedMediaFiles()
-					changed = true
+					changed = w.removeAllDeletedMediaFiles() > 0
 				} else {
 					log.Printf("Write event (do nothing): %s", e.Name)
 				}
@@ -245,15 +241,25 @@ func (w *Walker) GetEntriesFromPaths(paths []string) []m.MediaFile {
 	return entries
 }
 
-func (w *Walker) removeAllDeletedMediaFiles() error {
+// resync re-sweeps path and drops rows whose file is gone, for events that
+// can both add and remove files. It reports whether the library changed.
+func (w *Walker) resync(path string) bool {
+	swept := w.Sweep([]string{path})
+	removed := w.removeAllDeletedMediaFiles() > 0
+	return swept || removed
+}
+
+// removeAllDeletedMediaFiles drops rows whose file is gone from disk and
+// returns how many it removed.
+func (w *Walker) removeAllDeletedMediaFiles() int {
 	ctx := context.Background()
 	// get all media files
 	mediaFiles, err := m.MediaFiles().All(ctx, db.DB)
 	if err != nil {
-		return fmt.Errorf("could not get media files: %w", err)
+		log.Println("could not get media files:", err)
+		return 0
 	}
-	w.removeDeletedMediaFiles(mediaFiles)
-	return nil
+	return w.removeDeletedMediaFiles(mediaFiles)
 }
 
 func (w *Walker) removeDeletedMediaFilesByMetaDataId(id float64) {
@@ -269,7 +275,7 @@ func (w *Walker) removeDeletedMediaFilesByMetaDataId(id float64) {
 	w.removeDeletedMediaFiles(mediaFiles)
 }
 
-func (w *Walker) removeDeletedMediaFiles(mediaFiles []*m.MediaFile) {
+func (w *Walker) removeDeletedMediaFiles(mediaFiles []*m.MediaFile) int {
 	// delete all media files that are not in the file system
 	count := 0
 	for _, mediaFile := range mediaFiles {
@@ -284,9 +290,13 @@ func (w *Walker) removeDeletedMediaFiles(mediaFiles []*m.MediaFile) {
 		}
 	}
 	log.Printf("Deleted [%d] files removed", count)
+	return count
 }
 
-func (w *Walker) Sweep(paths []string) {
+// Sweep adds the media files found under paths and fetches metadata for
+// files missing it. It reports whether the library changed: a file was
+// added, or a file without metadata got some.
+func (w *Walker) Sweep(paths []string) (changed bool) {
 	// Recover from any panic deep in the sweep pipeline (TMDB lookups,
 	// sqlite writes, ptn parser, etc). Without this a single bad file
 	// crashes the whole process because Sweep / FullSweep are launched
@@ -304,18 +314,18 @@ func (w *Walker) Sweep(paths []string) {
 	entries := w.GetEntriesFromPaths(paths)
 	if entries == nil || len(entries) == 0 {
 		w.releaseLock("No files found in sweep. " + endMsg)
-		return
+		return false
 	}
 
 	// insert into db (not duplicates)
-	w.insertMediaFilesToDB(entries)
+	changed = w.insertMediaFilesToDB(entries) > 0
 
 	ctx := context.Background()
 	// get all missing metadata for files and query TMDB
 	filesWithoutMetaData, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).All(ctx, db.DB)
 	if err != nil {
 		w.releaseLock("No files without metadata found, skipping net search")
-		return
+		return changed
 	}
 
 	tmdbClient := w.tmdbClient
@@ -323,10 +333,16 @@ func (w *Walker) Sweep(paths []string) {
 	for i, file := range filesWithoutMetaData {
 		gtmdb.GetMetaDataAndSaveToDB(file, tmdbClient, w.server, i, totalFiles)
 	}
+	if totalFiles > 0 {
+		if remaining, err := m.MediaFiles(qm.Where(`metaDataId IS NULL`)).Count(ctx, db.DB); err == nil && remaining < int64(totalFiles) {
+			changed = true
+		}
+	}
 	// NOTE: no "reload" broadcast here. Callers are responsible for
 	// rebuilding feed snapshots and broadcasting reload AFTER this returns
 	// (see fsnotify callback and FullSweep) so the UI re-fetches against
 	// fresh feed tables instead of the stale pre-sweep snapshot.
+	return changed
 }
 
 func (w *Walker) FullSweep() {
@@ -355,13 +371,10 @@ func (w *Walker) FullSweep() {
 	w.Sweep(w.walkDirArr)
 
 	// remove deleted files from db
-	err := w.removeAllDeletedMediaFiles()
-	if err != nil {
-		log.Println("Error removing deleted files", err)
-	}
+	w.removeAllDeletedMediaFiles()
 
 	// generate genres
-	_, err = w.server.ReprocessGenres()
+	_, err := w.server.ReprocessGenres()
 	if err != nil {
 		log.Println("Error reprocessing genres", err)
 	} else {
@@ -409,7 +422,7 @@ func fileExists(path string, files m.MediaFileSlice) bool {
 	return false
 }
 
-func (w *Walker) insertMediaFilesToDB(entries []m.MediaFile) {
+func (w *Walker) insertMediaFilesToDB(entries []m.MediaFile) int {
 	// get all movies from metadata
 	//movies := m.MetaData(m.MetaDatumWhere.Type.EQ(`movie`)).AllGP(db.CTX)
 	//
@@ -454,6 +467,7 @@ func (w *Walker) insertMediaFilesToDB(entries []m.MediaFile) {
 		log.Printf("\rskipped files: %d, added: %d", skippedFiles, addedFiles)
 	}
 	log.Printf("\ndone adding files to db %d \n", addedFiles)
+	return addedFiles
 }
 
 func (w *Walker) getMediaFilesFromDisk(dir string) ([]m.MediaFile, error) {

@@ -18,8 +18,12 @@ const PHONE_COLUMNS = 3;
 export function cardLayout(): CardLayout {
     if (isPhone()) {
         const gap = 8;
+        // clientWidth, not innerWidth: while the icon font loads, icon names
+        // render as wide text and phones grow innerWidth to fit them, then
+        // shrink it back without a resize event, leaving room for 2 posters.
+        const screenWidth = document.documentElement.clientWidth;
         // the gap also pads both edges of the row
-        const width = Math.floor((window.innerWidth - (PHONE_COLUMNS + 1) * gap) / PHONE_COLUMNS);
+        const width = Math.floor((screenWidth - (PHONE_COLUMNS + 1) * gap) / PHONE_COLUMNS);
         return {width, height: Math.round((width * POSTER_HEIGHT) / POSTER_WIDTH), gap, perRow: PHONE_COLUMNS};
     }
     const gap = 22.4;

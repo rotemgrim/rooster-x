@@ -2,6 +2,8 @@ import {LitElement, html} from "lit";
 import {customElement, property, state} from "lit/decorators.js";
 import {IpcService} from "../services/ipc.service";
 import {RoosterX} from "./RoosterX";
+import {type IListRow} from "../common/models/IList";
+import {posterUrl} from "../common/library";
 
 interface ListSummary {
     id: number;
@@ -33,7 +35,7 @@ export class Lists extends LitElement {
         this.isLoading = true;
         IpcService.getLists()
             .then(data => {
-                this.lists = (data || []).map(this.normalize);
+                this.lists = (data || []).map(this.toSummary);
                 this.isLoading = false;
             })
             .catch(err => {
@@ -42,16 +44,9 @@ export class Lists extends LitElement {
             });
     }
 
-    private normalize = (l: any): ListSummary => ({
-        id: l.id,
-        userId: l.userId,
-        name: l.name,
-        createdAt: l.createdAt,
-        updatedAt: l.updatedAt,
-        itemCount: l.itemCount || 0,
-        posters: (l.posters || []).map((p: string) =>
-            p && !p.startsWith("http") ? `https://image.tmdb.org/t/p/w300${p}` : p,
-        ),
+    private toSummary = (l: IListRow): ListSummary => ({
+        ...l,
+        posters: (l.posters || []).map(p => p && posterUrl(p)),
     });
 
     private async onCreate() {
@@ -92,7 +87,7 @@ export class Lists extends LitElement {
     }
 
     private openList(list: ListSummary) {
-        this.rooster.openList(list.id);
+        this.rooster.navigate({view: "lists", listId: list.id});
     }
 
     private renderStack(posters: string[], name: string) {
