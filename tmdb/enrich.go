@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
@@ -436,6 +437,76 @@ func EnrichOne(metaDataId int64, force bool) (*m.MetaDatum, error) {
 	}
 
 	return md, nil
+}
+
+// episodeRefreshes caps how many episodes RefreshEpisodes asks TMDB for at once.
+const episodeRefreshes = 6
+
+// hasDetails says whether an episode has the still and plot TMDB fills in once
+// it knows the episode.
+func hasDetails(ep *m.Episode) bool {
+	return ep.Poster.String != "" && ep.Plot.String != ""
+}
+
+// RefreshEpisodes re-fetches from TMDB the series' episodes without details
+// (see hasDetails), which they keep when they are scanned before TMDB has them.
+// It returns how many were without and how many have them now.
+func RefreshEpisodes(metaDataId int64) (missing, filled int, err error) {
+	if enrichmentClient == nil {
+		return 0, 0, fmt.Errorf("tmdb client not initialized")
+	}
+	ctx := context.Background()
+	md, err := m.FindMetaDatum(ctx, db.DB, null.Int64From(metaDataId))
+	if err != nil {
+		return 0, 0, fmt.Errorf("metadata %d not found: %w", metaDataId, err)
+	}
+	if !md.TMDBID.Valid || md.TMDBID.Int64 == 0 {
+		return 0, 0, fmt.Errorf("metadata %d has no tmdbId", metaDataId)
+	}
+	episodes, err := m.Episodes(qm.Where("metaDataId = ?", metaDataId)).All(ctx, db.DB)
+	if err != nil {
+		return 0, 0, fmt.Errorf("could not load episodes of %d: %w", metaDataId, err)
+	}
+
+	var (
+		wg        sync.WaitGroup
+		slots     = make(chan struct{}, episodeRefreshes)
+		filledNow atomic.Int64
+	)
+	for _, ep := range episodes {
+		if hasDetails(ep) {
+			continue
+		}
+		missing++
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			slots <- struct{}{}
+			defer func() { <-slots }()
+			if refreshEpisode(ctx, md, ep) {
+				filledNow.Add(1)
+			}
+		}()
+	}
+	wg.Wait()
+	return missing, int(filledNow.Load()), nil
+}
+
+// refreshEpisode fetches ep of the series md from TMDB and saves it, and says
+// whether it has its details now.
+func refreshEpisode(ctx context.Context, md *m.MetaDatum, ep *m.Episode) bool {
+	season, episode := int(ep.Season.Int64), int(ep.Episode.Int64)
+	d, err := enrichmentClient.GetTVEpisodeDetails(int(md.TMDBID.Int64), season, episode, map[string]string{"language": LANG})
+	if err != nil {
+		log.Printf("could not refresh %s S%02dE%02d: %v", md.Title.String, season, episode, err)
+		return false
+	}
+	applyEpisodeDetails(ep, d)
+	if _, err := ep.Update(ctx, db.DB, boil.Infer()); err != nil {
+		log.Printf("could not save %s S%02dE%02d: %v", md.Title.String, season, episode, err)
+		return false
+	}
+	return hasDetails(ep)
 }
 
 func markUnavailable(md *m.MetaDatum, cause error) (*m.MetaDatum, error) {

@@ -43,6 +43,7 @@ func (s *Server) SetRoutes() {
 	s.on("get-trailer", s.GetTrailer)
 	s.on("get-imdb-rating", s.GetImdbRating)
 	s.on("enrich-metadata", s.EnrichMetaData)
+	s.on("refresh-episodes", s.RefreshEpisodes)
 
 	s.on("get-channels", s.GetChannels)
 	s.on("fetch-channel-icon", s.FetchChannelIcon)

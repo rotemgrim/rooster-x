@@ -102,23 +102,26 @@ func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.Meta
 		return nil, err
 	}
 	epMd.MetaDataId = md.ID
-	epMd.Title = null.StringFrom(epDetail.Name)
-	epMd.Plot = null.StringFrom(epDetail.Overview)
-	epMd.TMDBID = null.Int64From(epDetail.ID)
 	epMd.ImdbSeriesId = md.ImdbId
 	epMd.TmdbSeriesId = md.TMDBID
-	epMd.Season = null.Int64From(int64(epDetail.SeasonNumber))
-	epMd.Episode = null.Int64From(int64(epDetail.EpisodeNumber))
-	epMd.Poster = null.StringFrom(epDetail.StillPath)
-	epMd.Runtime = null.Int64From(int64(epDetail.Runtime))
-	epMd.Released = null.StringFrom(epDetail.AirDate)
-	// convert date string like 2023-08-22 to unix timestamp
-	layout := "2006-01-02"
-	t, err := time.Parse(layout, epDetail.AirDate)
-	if err == nil {
-		epMd.ReleasedUnix = null.Int64From(t.Unix())
-	}
+	applyEpisodeDetails(epMd, epDetail)
 	return epMd, nil
+}
+
+// applyEpisodeDetails copies TMDB's details of an episode onto ep.
+func applyEpisodeDetails(ep *m.Episode, d *tmdb.TVEpisodeDetails) {
+	ep.Title = null.StringFrom(d.Name)
+	ep.Plot = null.StringFrom(d.Overview)
+	ep.TMDBID = null.Int64From(d.ID)
+	ep.Season = null.Int64From(int64(d.SeasonNumber))
+	ep.Episode = null.Int64From(int64(d.EpisodeNumber))
+	ep.Poster = null.StringFrom(d.StillPath)
+	ep.Runtime = null.Int64From(int64(d.Runtime))
+	ep.Released = null.StringFrom(d.AirDate)
+	// convert date string like 2023-08-22 to unix timestamp
+	if t, err := time.Parse("2006-01-02", d.AirDate); err == nil {
+		ep.ReleasedUnix = null.Int64From(t.Unix())
+	}
 }
 
 // getSeriesMetaData builds series metadata for tmdbID, searching TMDB by the

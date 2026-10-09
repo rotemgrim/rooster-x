@@ -12,12 +12,14 @@ import (
 	"go-poc/torrents"
 	"go-poc/walker"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime/debug"
 	"syscall"
+	"time"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
 	"github.com/getlantern/systray"
@@ -162,6 +164,7 @@ func onReady() {
 		func() { systray.SetIcon(RoosterIcon) },
 	)
 	server.EnrichMetadataFn = gtmdb.EnrichOne
+	server.RefreshEpisodesFn = gtmdb.RefreshEpisodes
 	server.SetTmdbApiKey(cfg.TmdbApiKey)
 	server.SetXtreamConfig(cfg.Xtream.Username, cfg.Xtream.Password, cfg.Xtream.Server)
 
@@ -169,6 +172,10 @@ func onReady() {
 		log.Println("Error initializing tmdb client: set tmdb_api_key in config.yaml:", err)
 		return
 	}
+	// the client sets its default timeout on every request when none is set,
+	// a data race once requests run at the same time (episode refreshes,
+	// websocket requests, sweeps), so set it once here
+	tmdbClient.SetClientConfig(http.Client{Timeout: 10 * time.Second})
 
 	// directories array to walk
 	dirs := cfg.Directories

@@ -27,6 +27,9 @@ export class VideoDetails extends LitElement {
     @property() public isLoadingRating: boolean = false;
     @property() public isLoadingTrailer: boolean = false;
     @property() public isEnriching: boolean = false;
+    @property() public isRefreshingEpisodes: boolean = false;
+    // the last episodes refresh's outcome, shown by its button
+    @property() public episodesRefreshNote: string = "";
     @property() public showAddToList: boolean = false;
 
     public playTimer: any;
@@ -282,6 +285,26 @@ export class VideoDetails extends LitElement {
             })
             .finally(() => {
                 this.isEnriching = false;
+            });
+    };
+
+    private refreshEpisodes = () => {
+        if (this.isRefreshingEpisodes) return;
+        this.isRefreshingEpisodes = true;
+        this.episodesRefreshNote = "";
+        IpcService.refreshEpisodes(this.video.id)
+            .then(({missing, filled}) => {
+                this.episodesRefreshNote = missing === 0
+                    ? "No episodes were missing details"
+                    : `${filled} of ${missing} episodes missing details have them now`;
+                this.reloadVideo();
+            })
+            .catch(err => {
+                console.log("refresh-episodes failed", err);
+                this.episodesRefreshNote = "Could not refresh the episodes";
+            })
+            .finally(() => {
+                this.isRefreshingEpisodes = false;
             });
     };
 
@@ -710,6 +733,14 @@ export class VideoDetails extends LitElement {
                                       .videoDetails=${this}>
                                   </episode-card>`;
                               })}
+                          </div>
+                          <div class="refresh-episodes">
+                              <div class="add-to-list-btn" @click=${this.refreshEpisodes}
+                                  title="Fetch the still and plot of episodes that have none from TMDB">
+                                  <i class="material-icons ${this.isRefreshingEpisodes ? "rotate-center" : ""}">sync</i>
+                                  Refresh missing episode details
+                              </div>
+                              <span>${this.episodesRefreshNote}</span>
                           </div>`
                         : ""}
                     ${this.video.type === "movie" && this.video.mediaFiles && this.video.mediaFiles.length > 0

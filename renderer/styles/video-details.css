@@ -263,6 +263,15 @@ video-details {
       opacity: 0.9;
     }
   }
+  & .refresh-episodes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 2rem;
+    & .add-to-list-btn { margin-left: 0; }
+    & span { opacity: 0.7; }
+  }
   & .episodes {
     clear: both;
     overflow: hidden;

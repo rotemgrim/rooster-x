@@ -197,6 +197,14 @@ export class IpcService {
         return promiseIpc.send("enrich-metadata", {metaDataId, force});
     }
 
+    /**
+     * Re-fetches from TMDB a series' episodes that have no still or plot:
+     * how many were missing either, and how many have both now.
+     */
+    public static refreshEpisodes(metaDataId: number): Promise<{missing: number, filled: number}> {
+        return promiseIpc.send("refresh-episodes", {metaDataId});
+    }
+
     /** The trailer's URL, or empty when none was found. */
     public static getYouTubeTrailer(metaDataId: number, title: string, year?: number): Promise<string> {
         return promiseIpc.send("get-trailer", {metaDataId, title, year});
