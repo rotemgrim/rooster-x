@@ -41,7 +41,7 @@
         padding: 0.5em;
         border-radius: 0.1em;
         margin-right: 30px;
-        font-family: fantasy;
+        font-family: var(--title-font-family);
         width: 3em;
         cursor: pointer;
       }
