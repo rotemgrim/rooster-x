@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gorilla/websocket"
 
@@ -14,6 +16,36 @@ import (
 // FinishedThreshold is the percent watched at which we mark a session as
 // finished (and won't offer to resume next time).
 const FinishedThreshold = 90.0
+
+// mpvTag is the rooster-id an mpv session is started with, which the
+// rooster-progress.lua script sends back with every ping: the user and what
+// they watch, e.g. "3:movie-1202".
+func mpvTag(userID int64, roosterID string) string {
+	return fmt.Sprintf("%d:%s", userID, roosterID)
+}
+
+// parseMpvTag splits an mpv session's rooster-id into the user and what they
+// watch. Sessions started by older versions have no user.
+func parseMpvTag(tag string) (userID int64, roosterID string, ok bool) {
+	user, roosterID, found := strings.Cut(tag, ":")
+	userID, err := strconv.ParseInt(user, 10, 64)
+	return userID, roosterID, found && err == nil && roosterID != ""
+}
+
+// mpvProgressArgs are the mpv arguments for the user to watch roosterID: the
+// tag its progress pings come back with, and where to resume when there is a
+// meaningful offset left from an unfinished session.
+func mpvProgressArgs(userID int64, roosterID string) []string {
+	args := []string{"--script-opts=rooster-id=" + mpvTag(userID, roosterID)}
+	wp, err := db.GetWatchProgress(db.DB, userID, roosterID)
+	if err != nil {
+		log.Println("watchProgress lookup error:", err)
+	} else if wp != nil && !wp.Finished && wp.TimePos >= 30 {
+		args = append(args, fmt.Sprintf("--start=%.0f", wp.TimePos))
+		log.Printf("Resuming MPV id=%s at %.0fs (%.1f%%)", roosterID, wp.TimePos, wp.Percent)
+	}
+	return args
+}
 
 // ProgressPing is the payload posted by the mpv rooster-progress.lua script.
 type ProgressPing struct {
@@ -54,10 +86,11 @@ func progressHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[mpv-progress] %s%s percent=%.1f%% pos=%.1fs/%.1fs paused=%v title=%q",
 		p.Reason, idPart, p.Percent, p.TimePos, p.Duration, p.Paused, titlePart)
 
-	if p.RoosterID != "" && db.DB != nil {
+	if userID, roosterID, ok := parseMpvTag(p.RoosterID); ok && db.DB != nil {
 		finished := p.EOF || p.Percent >= FinishedThreshold
 		err := db.UpsertWatchProgress(db.DB, db.WatchProgress{
-			RoosterID: p.RoosterID,
+			UserID:    userID,
+			RoosterID: roosterID,
 			Path:      p.Path,
 			Title:     p.Title,
 			Percent:   p.Percent,
@@ -94,25 +127,12 @@ func (s *Server) GetWatchProgress(c *websocket.Conn, req PayloadRequest) {
 		return
 	}
 	roosterID := fmt.Sprintf("%s-%d", kind, int64(idF))
-	wp, err := db.GetWatchProgress(db.DB, roosterID)
+	wp, err := db.GetWatchProgress(db.DB, req.User.ID, roosterID)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("lookup failed: %s", err))
 		return
 	}
-	if wp == nil {
-		transmitPromiseResponse(c, req, nil)
-		return
-	}
-	transmitPromiseResponse(c, req, map[string]interface{}{
-		"roosterId": wp.RoosterID,
-		"kind":      wp.Kind,
-		"refId":     wp.RefID,
-		"percent":   wp.Percent,
-		"timePos":   wp.TimePos,
-		"duration":  wp.Duration,
-		"finished":  wp.Finished,
-		"updatedAt": wp.UpdatedAt,
-	})
+	transmitPromiseResponse(c, req, wp)
 }
 
 // GetWatchProgressBulk returns watch progress rows for many ids in one call.
@@ -136,23 +156,10 @@ func (s *Server) GetWatchProgressBulk(c *websocket.Conn, req PayloadRequest) {
 			ids = append(ids, int64(f))
 		}
 	}
-	wps, err := db.GetWatchProgressBulk(db.DB, kind, ids)
+	wps, err := db.GetWatchProgressBulk(db.DB, req.User.ID, kind, ids)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("lookup failed: %s", err))
 		return
 	}
-	out := make(map[string]interface{}, len(wps))
-	for refID, wp := range wps {
-		out[fmt.Sprintf("%d", refID)] = map[string]interface{}{
-			"roosterId": wp.RoosterID,
-			"kind":      wp.Kind,
-			"refId":     wp.RefID,
-			"percent":   wp.Percent,
-			"timePos":   wp.TimePos,
-			"duration":  wp.Duration,
-			"finished":  wp.Finished,
-			"updatedAt": wp.UpdatedAt,
-		}
-	}
-	transmitPromiseResponse(c, req, out)
+	transmitPromiseResponse(c, req, wps)
 }

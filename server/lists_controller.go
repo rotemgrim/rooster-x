@@ -247,10 +247,10 @@ func (s *Server) GetListItems(c *websocket.Conn, req PayloadRequest) {
 		FROM listItem li
 		INNER JOIN metaData md ON md.id = li.metaDataId
 		LEFT JOIN userMetaData umd ON umd.metaDataId = md.id AND umd.userId = ?
-		LEFT JOIN watchProgress wp ON wp.kind = 'movie' AND wp.ref_id = md.id
+		LEFT JOIN watchProgress wp ON wp.user_id = ? AND wp.kind = 'movie' AND wp.ref_id = md.id
 		WHERE li.listId = ? AND `+ageCond+`
 		ORDER BY li.position ASC
-	`, append([]interface{}{req.UserId, req.UserId, listId}, ageArgs...)...)
+	`, append([]interface{}{req.UserId, req.UserId, req.UserId, listId}, ageArgs...)...)
 	if err != nil {
 		transmitPromiseReject(c, req, fmt.Sprintf("could not query list items: %s", err))
 		return

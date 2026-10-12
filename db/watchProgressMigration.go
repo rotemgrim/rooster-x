@@ -9,28 +9,26 @@ import (
 	"time"
 )
 
-// WatchProgress tracks how far through an MPV playback session the user got.
-// rooster_id is the canonical key sent by the rooster-progress.lua mpv script
-// (formatted as "movie-<metaDataId>" or "episode-<episodeId>").
+// WatchProgress tracks how far through a movie or episode a user got in mpv.
+// rooster_id is "movie-<metaDataId>" or "episode-<episodeId>"; each user has
+// their own row per rooster_id.
 type WatchProgress struct {
-	RoosterID string
-	Kind      string // "movie" | "episode" | "" (unknown)
-	RefID     int64  // numeric metaDataId / episodeId, 0 if unknown
-	Path      string
-	Title     string
-	Percent   float64
-	TimePos   float64
-	Duration  float64
-	Finished  bool
-	UpdatedAt int64
+	UserID    int64   `json:"-"`
+	RoosterID string  `json:"roosterId"`
+	Kind      string  `json:"kind"`  // "movie" | "episode" | "" (unknown)
+	RefID     int64   `json:"refId"` // numeric metaDataId / episodeId, 0 if unknown
+	Path      string  `json:"-"`
+	Title     string  `json:"-"`
+	Percent   float64 `json:"percent"`
+	TimePos   float64 `json:"timePos"`
+	Duration  float64 `json:"duration"`
+	Finished  bool    `json:"finished"`
+	UpdatedAt int64   `json:"updatedAt"`
 }
 
-// EnsureWatchProgressTable creates the watchProgress table on first run.
-// Safe to run multiple times.
-func EnsureWatchProgressTable(db *sql.DB) error {
-	stmts := []string{
-		`CREATE TABLE IF NOT EXISTS watchProgress (
-			rooster_id TEXT PRIMARY KEY,
+const createWatchProgress = `CREATE TABLE IF NOT EXISTS watchProgress (
+			user_id    INTEGER NOT NULL,
+			rooster_id TEXT NOT NULL,
 			kind       TEXT NOT NULL DEFAULT '',
 			ref_id     INTEGER NOT NULL DEFAULT 0,
 			path       TEXT,
@@ -39,9 +37,19 @@ func EnsureWatchProgressTable(db *sql.DB) error {
 			time_pos   REAL NOT NULL DEFAULT 0,
 			duration   REAL NOT NULL DEFAULT 0,
 			finished   BOOLEAN NOT NULL DEFAULT 0,
-			updated_at INTEGER NOT NULL
-		)`,
-		`CREATE INDEX IF NOT EXISTS idx_watchProgress_kind_ref ON watchProgress(kind, ref_id)`,
+			updated_at INTEGER NOT NULL,
+			PRIMARY KEY (user_id, rooster_id)
+		)`
+
+// EnsureWatchProgressTable creates the watchProgress table on first run, and
+// makes the shared one of older versions per user. Safe to run multiple times.
+func EnsureWatchProgressTable(db *sql.DB) error {
+	if err := splitWatchProgressPerUser(db); err != nil {
+		return fmt.Errorf("could not make watch progress per user: %w", err)
+	}
+	stmts := []string{
+		createWatchProgress,
+		`CREATE INDEX IF NOT EXISTS idx_watchProgress_user_kind_ref ON watchProgress(user_id, kind, ref_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_watchProgress_updated ON watchProgress(updated_at DESC)`,
 	}
 	for _, s := range stmts {
@@ -51,6 +59,37 @@ func EnsureWatchProgressTable(db *sql.DB) error {
 	}
 	log.Println("✓ watchProgress table ensured")
 	return nil
+}
+
+// splitWatchProgressPerUser turns the shared watchProgress table of older
+// versions into a per-user one, giving every user a copy of the progress so
+// far.
+func splitWatchProgressPerUser(db *sql.DB) error {
+	var columns, perUser int
+	err := db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(name = 'user_id'), 0) FROM pragma_table_info('watchProgress')`).
+		Scan(&columns, &perUser)
+	if err != nil || columns == 0 || perUser > 0 {
+		return err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, stmt := range []string{
+		`ALTER TABLE watchProgress RENAME TO watchProgress_shared`,
+		createWatchProgress,
+		`INSERT INTO watchProgress (user_id, rooster_id, kind, ref_id, path, title, percent, time_pos, duration, finished, updated_at)
+			SELECT u.id, w.rooster_id, w.kind, w.ref_id, w.path, w.title, w.percent, w.time_pos, w.duration, w.finished, w.updated_at
+			FROM watchProgress_shared w CROSS JOIN user u`,
+		`DROP TABLE watchProgress_shared`,
+	} {
+		if _, err := tx.Exec(stmt); err != nil {
+			return err
+		}
+	}
+	log.Println("✓ watch progress is now per user")
+	return tx.Commit()
 }
 
 // parseRoosterID splits "movie-1202" into ("movie", 1202). Returns ("", 0) if
@@ -86,10 +125,10 @@ func UpsertWatchProgress(db *sql.DB, p WatchProgress) error {
 	}
 	_, err := db.Exec(`
 		INSERT INTO watchProgress (
-			rooster_id, kind, ref_id, path, title,
+			user_id, rooster_id, kind, ref_id, path, title,
 			percent, time_pos, duration, finished, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(rooster_id) DO UPDATE SET
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(user_id, rooster_id) DO UPDATE SET
 			kind       = excluded.kind,
 			ref_id     = excluded.ref_id,
 			path       = excluded.path,
@@ -100,35 +139,26 @@ func UpsertWatchProgress(db *sql.DB, p WatchProgress) error {
 			finished   = excluded.finished OR watchProgress.finished,
 			updated_at = excluded.updated_at
 	`,
-		p.RoosterID, p.Kind, p.RefID, p.Path, p.Title,
+		p.UserID, p.RoosterID, p.Kind, p.RefID, p.Path, p.Title,
 		p.Percent, p.TimePos, p.Duration, boolToInt(p.Finished), p.UpdatedAt,
 	)
 	return err
 }
 
-// GetWatchProgress returns the latest progress row for the given id, or nil
-// if no row exists.
-func GetWatchProgress(db *sql.DB, roosterID string) (*WatchProgress, error) {
-	if roosterID == "" {
-		return nil, nil
-	}
-	row := db.QueryRow(`
-		SELECT rooster_id, kind, ref_id, path, title,
-		       percent, time_pos, duration, finished, updated_at
-		FROM watchProgress WHERE rooster_id = ?`, roosterID)
+const watchProgressColumns = `rooster_id, kind, ref_id, path, title,
+	percent, time_pos, duration, finished, updated_at`
+
+// scanWatchProgress reads one row of watchProgressColumns.
+func scanWatchProgress(scan func(dest ...interface{}) error) (*WatchProgress, error) {
 	var (
-		wp       WatchProgress
-		path     sql.NullString
-		title    sql.NullString
-		finished int
+		wp          WatchProgress
+		path, title sql.NullString
+		finished    int
 	)
-	err := row.Scan(
+	err := scan(
 		&wp.RoosterID, &wp.Kind, &wp.RefID, &path, &title,
 		&wp.Percent, &wp.TimePos, &wp.Duration, &finished, &wp.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
 	if err != nil {
 		return nil, err
 	}
@@ -138,47 +168,47 @@ func GetWatchProgress(db *sql.DB, roosterID string) (*WatchProgress, error) {
 	return &wp, nil
 }
 
-// GetWatchProgressBulk returns the progress rows for the given (kind, refIds).
-// Missing rows are simply absent from the returned map. The map key is the
-// numeric ref id so the caller can look up by metaDataId / episodeId.
-func GetWatchProgressBulk(db *sql.DB, kind string, ids []int64) (map[int64]*WatchProgress, error) {
+// GetWatchProgress returns the user's latest progress row for the given id,
+// or nil if no row exists.
+func GetWatchProgress(db *sql.DB, userID int64, roosterID string) (*WatchProgress, error) {
+	if roosterID == "" {
+		return nil, nil
+	}
+	wp, err := scanWatchProgress(db.QueryRow(`SELECT `+watchProgressColumns+`
+		FROM watchProgress WHERE user_id = ? AND rooster_id = ?`, userID, roosterID).Scan)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return wp, err
+}
+
+// GetWatchProgressBulk returns the user's progress rows for the given (kind,
+// refIds). Missing rows are simply absent from the returned map. The map key
+// is the numeric ref id so the caller can look up by metaDataId / episodeId.
+func GetWatchProgressBulk(db *sql.DB, userID int64, kind string, ids []int64) (map[int64]*WatchProgress, error) {
 	out := make(map[int64]*WatchProgress)
 	if len(ids) == 0 || (kind != "movie" && kind != "episode") {
 		return out, nil
 	}
 	placeholders := make([]string, len(ids))
-	args := make([]interface{}, 0, len(ids)+1)
-	args = append(args, kind)
+	args := make([]interface{}, 0, len(ids)+2)
+	args = append(args, userID, kind)
 	for i, id := range ids {
 		placeholders[i] = "?"
 		args = append(args, id)
 	}
-	q := `SELECT rooster_id, kind, ref_id, path, title,
-		       percent, time_pos, duration, finished, updated_at
-		FROM watchProgress
-		WHERE kind = ? AND ref_id IN (` + strings.Join(placeholders, ",") + `)`
-	rows, err := db.Query(q, args...)
+	rows, err := db.Query(`SELECT `+watchProgressColumns+` FROM watchProgress
+		WHERE user_id = ? AND kind = ? AND ref_id IN (`+strings.Join(placeholders, ",")+`)`, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var (
-			wp       WatchProgress
-			path     sql.NullString
-			title    sql.NullString
-			finished int
-		)
-		if err := rows.Scan(
-			&wp.RoosterID, &wp.Kind, &wp.RefID, &path, &title,
-			&wp.Percent, &wp.TimePos, &wp.Duration, &finished, &wp.UpdatedAt,
-		); err != nil {
+		wp, err := scanWatchProgress(rows.Scan)
+		if err != nil {
 			return nil, err
 		}
-		wp.Path = path.String
-		wp.Title = title.String
-		wp.Finished = finished != 0
-		out[wp.RefID] = &wp
+		out[wp.RefID] = wp
 	}
 	return out, rows.Err()
 }

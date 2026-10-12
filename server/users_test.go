@@ -26,6 +26,7 @@ func usersDB(t *testing.T) {
 		CREATE TABLE listItem (id INTEGER PRIMARY KEY, listId INTEGER);
 		CREATE TABLE userEpisode (userId INTEGER, episodeId INTEGER);
 		CREATE TABLE userMetaData (userId INTEGER, metaDataId INTEGER);
+		CREATE TABLE watchProgress (user_id INTEGER, rooster_id TEXT);
 		CREATE TABLE metaData (id INTEGER PRIMARY KEY, ageRating VARCHAR(20));
 		CREATE TABLE mediaFile (id INTEGER PRIMARY KEY, metaDataId INTEGER);
 		INSERT INTO mediaFile VALUES (10, 1), (20, 2);

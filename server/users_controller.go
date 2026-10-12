@@ -130,6 +130,7 @@ func deleteUser(id int64) error {
 			`DELETE FROM list WHERE userId = ?`,
 			`DELETE FROM userEpisode WHERE userId = ?`,
 			`DELETE FROM userMetaData WHERE userId = ?`,
+			`DELETE FROM watchProgress WHERE user_id = ?`,
 			`DELETE FROM user WHERE id = ?`,
 		} {
 			if _, err := tx.ExecContext(ctx, stmt, id); err != nil {

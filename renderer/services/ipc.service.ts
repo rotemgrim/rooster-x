@@ -46,7 +46,8 @@ export class IpcService {
         return promiseIpc.send("open-external", {url});
     }
 
-    public static openInMPV(url: string, id?: string | number): Promise<string> {
+    /** id is the movie or episode ("movie-1202") to track progress for and resume. */
+    public static openInMPV(url: string, id?: string): Promise<string> {
         return promiseIpc.send("open-in-mpv", {url, id});
     }
 

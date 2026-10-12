@@ -474,26 +474,9 @@ func (s *Server) OpenInMPV(c *websocket.Conn, req PayloadRequest) {
 	// background process (Windows blocks focus-stealing otherwise). User can
 	// toggle it off in-player with the T key.
 	args := []string{"--ontop"}
-	// Optional: caller can pass an id (e.g. metaDataId) to tag progress pings.
-	roosterID := ""
-	if rawID, ok := data["id"]; ok && rawID != nil {
-		roosterID = fmt.Sprintf("%v", rawID)
-		if roosterID != "" {
-			args = append(args, "--script-opts=rooster-id="+roosterID)
-		}
-	}
-
-	// Resume from last known position if we have a non-finished progress row
-	// for this id and there's a meaningful offset to seek to.
-	if roosterID != "" && db.DB != nil {
-		if wp, err := db.GetWatchProgress(db.DB, roosterID); err == nil && wp != nil {
-			if !wp.Finished && wp.TimePos >= 30 {
-				args = append(args, fmt.Sprintf("--start=%.0f", wp.TimePos))
-				log.Printf("Resuming MPV id=%s at %.0fs (%.1f%%)", roosterID, wp.TimePos, wp.Percent)
-			}
-		} else if err != nil {
-			log.Println("watchProgress lookup error:", err)
-		}
+	// Optional: a movie or episode ("movie-1202") to track progress for and resume.
+	if roosterID, _ := data["id"].(string); roosterID != "" {
+		args = append(args, mpvProgressArgs(req.User.ID, roosterID)...)
 	}
 
 	args = append(args, url)
