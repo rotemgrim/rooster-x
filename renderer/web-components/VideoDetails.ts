@@ -139,8 +139,12 @@ export class VideoDetails extends LitElement {
             });
     }
 
+    // a torrent card moved its torrent to another title, so this one may not have it any more
+    private onTorrentRematched = () => this.reloadVideo();
+
     public async connectedCallback() {
         super.connectedCallback();
+        this.addEventListener("torrent-rematched", this.onTorrentRematched);
         await this.updateComplete;
         this.mainDetailsEl = document.querySelector(".main-details") as HTMLElement;
         this.mainDetailsEl.focus();
@@ -152,6 +156,7 @@ export class VideoDetails extends LitElement {
     }
 
     public disconnectedCallback() {
+        this.removeEventListener("torrent-rematched", this.onTorrentRematched);
         this.mainDetailsEl.removeEventListener("blur", this.setMainDetailsFocus);
         this.stopWatchProgressPoll();
         this.stopEpisodesWatchProgressPoll();

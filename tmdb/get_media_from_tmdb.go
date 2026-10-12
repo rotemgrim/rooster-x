@@ -11,6 +11,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
@@ -22,8 +23,10 @@ import (
 )
 
 var (
+	// keyed by searchKey; guarded by searchCacheMu, as websocket requests search too
 	TMDB_TV_SEARCH_CACHE    = make(map[string]*tmdb.SearchTVShows)
 	TMDB_MOVIE_SEARCH_CACHE = make(map[string]*tmdb.SearchMovies)
+	searchCacheMu           sync.Mutex
 	LANG                    = "en-US"
 )
 
@@ -33,23 +36,34 @@ func SetLang(lang string) {
 }
 
 func GetMediaFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (*m.MetaDatum, []string, error) {
-	return GetMediaFromTMDBWithImdb(tmdbClient, tor, "")
+	return GetMediaFromTMDBWithImdb(tmdbClient, tor, "", 0)
 }
 
 // GetMediaFromTMDBWithImdb resolves the TMDB title through the IMDb id when one
 // is known, and falls back to searching TMDB by the parsed title otherwise.
-func GetMediaFromTMDBWithImdb(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, imdbId string) (*m.MetaDatum, []string, error) {
+// exclude is the TMDB id of a show that is known not to be the one (0 for none).
+func GetMediaFromTMDBWithImdb(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, imdbId string, exclude int64) (*m.MetaDatum, []string, error) {
+	tmdbID := findTMDBIDByImdb(tmdbClient, imdbId, isSeriesTorrent(tor))
+	return getMediaByTMDBID(tmdbClient, tor, tmdbID, exclude)
+}
+
+// isSeriesTorrent says whether a torrent is of an episode rather than a movie.
+func isSeriesTorrent(tor ptn.TorrentInfo) bool {
+	return tor.Episode > 0 && tor.Season > 0
+}
+
+// getMediaByTMDBID builds the metadata of the TMDB title tmdbID, or of the one
+// found by searching for the torrent's title when tmdbID is 0.
+func getMediaByTMDBID(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID, exclude int64) (*m.MetaDatum, []string, error) {
 	// get metadata from internet
 	var newMd *m.MetaDatum
 	var genres []string
 	err := error(nil)
 
-	isSeries := tor.Episode > 0 && tor.Season > 0
-	tmdbID := findTMDBIDByImdb(tmdbClient, imdbId, isSeries)
-	if isSeries {
-		newMd, genres, err = getSeriesMetaData(tmdbClient, tor, tmdbID)
+	if isSeriesTorrent(tor) {
+		newMd, genres, err = getSeriesMetaData(tmdbClient, tor, tmdbID, exclude)
 	} else {
-		newMd, genres, err = getMovieMetaData(tmdbClient, tor, tmdbID)
+		newMd, genres, err = getMovieMetaData(tmdbClient, tor, tmdbID, exclude)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -125,10 +139,10 @@ func applyEpisodeDetails(ep *m.Episode, d *tmdb.TVEpisodeDetails) {
 }
 
 // getSeriesMetaData builds series metadata for tmdbID, searching TMDB by the
-// parsed title first when tmdbID is 0.
-func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID int64) (*m.MetaDatum, []string, error) {
+// parsed title first when tmdbID is 0, without finding the show exclude.
+func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID, exclude int64) (*m.MetaDatum, []string, error) {
 	if tmdbID == 0 {
-		id, err := searchSeriesTMDBID(tmdbClient, tor)
+		id, err := searchSeriesTMDBID(tmdbClient, tor, exclude)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -154,34 +168,51 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID int6
 	return buildSeriesMetaData(tmdbDetails)
 }
 
-func searchSeriesTMDBID(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (int64, error) {
-	// check if metadata is already in cache
-	tmdbSearchResult := TMDB_TV_SEARCH_CACHE[tor.Title]
+// searchSeriesTMDBID finds the TMDB id of the series named like the torrent,
+// leaving out the show exclude (0 for none), which is a known wrong match.
+func searchSeriesTMDBID(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, exclude int64) (int64, error) {
+	id, err := searchSeries(tmdbClient, tor.Title, tor.Year, exclude)
+	if err == nil && id == 0 && exclude != 0 && tor.Year != 0 {
+		// the year may be what led to the wrong show, so look at the other years too
+		id, err = searchSeries(tmdbClient, tor.Title, 0, exclude)
+	}
+	if err != nil {
+		return 0, err
+	}
+	if id == 0 {
+		return 0, fmt.Errorf("no series found for %s", tor.Title)
+	}
+	return id, nil
+}
+
+func searchSeries(tmdbClient *tmdb.Client, title string, year int, exclude int64) (int64, error) {
+	key := searchKey(title, year)
+	searchCacheMu.Lock()
+	tmdbSearchResult := TMDB_TV_SEARCH_CACHE[key]
+	searchCacheMu.Unlock()
 	if tmdbSearchResult == nil {
-		log.Printf("searching TMDB TV for %s", tor.Title)
+		log.Printf("searching TMDB TV for %s", title)
 
 		options := map[string]string{}
 		options["language"] = LANG
 		// if year exists -> search with it
-		year := null.StringFrom(strconv.Itoa(tor.Year))
-		if year.Valid && year.String != "" {
-			options["year"] = year.String
+		if year != 0 {
+			options["year"] = strconv.Itoa(year)
 		}
 
-		tmpTmdbSearchResult, err := tmdbClient.GetSearchTVShow(tor.Title, options)
+		tmpTmdbSearchResult, err := tmdbClient.GetSearchTVShow(title, options)
 		if err != nil {
 			return 0, err
 		}
-		TMDB_TV_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
+		searchCacheMu.Lock()
+		TMDB_TV_SEARCH_CACHE[key] = tmpTmdbSearchResult
+		searchCacheMu.Unlock()
 		tmdbSearchResult = tmpTmdbSearchResult
 	} else {
-		log.Printf("using cached for TMDB TV search: %s", tor.Title)
+		log.Printf("using cached for TMDB TV search: %s", title)
 	}
 
-	if tmdbSearchResult.TotalResults == 0 || len(tmdbSearchResult.Results) == 0 {
-		return 0, fmt.Errorf("no series found for %s", tor.Title)
-	}
-	return tmdbSearchResult.Results[0].ID, nil
+	return pickCandidate(title, exclude, seriesCandidates(tmdbSearchResult)), nil
 }
 
 func buildSeriesMetaData(tmdbDetails *tmdb.TVDetails) (*m.MetaDatum, []string, error) {
@@ -277,8 +308,8 @@ func buildSeriesMetaData(tmdbDetails *tmdb.TVDetails) (*m.MetaDatum, []string, e
 }
 
 // getMovieMetaData builds movie metadata for tmdbID, searching TMDB by the
-// parsed title first when tmdbID is 0.
-func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID int64) (*m.MetaDatum, []string, error) {
+// parsed title first when tmdbID is 0, without finding the movie exclude.
+func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID, exclude int64) (*m.MetaDatum, []string, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("PANIC in getMovieMetaData for '%s': %v", tor.Title, r)
@@ -286,7 +317,7 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID int64
 	}()
 
 	if tmdbID == 0 {
-		id, err := searchMovieTMDBID(tmdbClient, tor)
+		id, err := searchMovieTMDBID(tmdbClient, tor, exclude)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -295,42 +326,52 @@ func getMovieMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID int64
 	return getMovieMetaDataByID(tmdbClient, tor, tmdbID)
 }
 
-func searchMovieTMDBID(tmdbClient *tmdb.Client, tor ptn.TorrentInfo) (int64, error) {
-	// check if metadata is already in cache
-	tmdbSearchResult := TMDB_MOVIE_SEARCH_CACHE[tor.Title]
+// searchMovieTMDBID finds the TMDB id of the movie named like the torrent,
+// leaving out the movie exclude (0 for none), which is a known wrong match.
+func searchMovieTMDBID(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, exclude int64) (int64, error) {
+	id, err := searchMovie(tmdbClient, tor.Title, tor.Year, exclude)
+	if err == nil && id == 0 && exclude != 0 && tor.Year != 0 {
+		// the year may be what led to the wrong movie, so look at the other years too
+		id, err = searchMovie(tmdbClient, tor.Title, 0, exclude)
+	}
+	if err != nil {
+		return 0, err
+	}
+	if id == 0 {
+		return 0, fmt.Errorf("no movie found for %s", tor.Title)
+	}
+	return id, nil
+}
+
+func searchMovie(tmdbClient *tmdb.Client, title string, year int, exclude int64) (int64, error) {
+	key := searchKey(title, year)
+	searchCacheMu.Lock()
+	tmdbSearchResult := TMDB_MOVIE_SEARCH_CACHE[key]
+	searchCacheMu.Unlock()
 	if tmdbSearchResult == nil {
-		log.Printf("searching TMDB MOVIE for %s", tor.Title)
+		log.Printf("searching TMDB MOVIE for %s", title)
 
 		options := map[string]string{}
 		options["language"] = LANG
 		// if year exists -> search with it
-		year := null.StringFrom(strconv.Itoa(tor.Year))
-		if year.Valid && year.String != "" {
-			options["year"] = year.String
+		if year != 0 {
+			options["year"] = strconv.Itoa(year)
 		}
 
-		log.Printf("About to call GetSearchMovies for: %s", tor.Title)
-		tmpTmdbSearchResult, err := tmdbClient.GetSearchMovies(tor.Title, options)
-		log.Printf("GetSearchMovies returned, err: %v", err)
+		tmpTmdbSearchResult, err := tmdbClient.GetSearchMovies(title, options)
 		if err != nil {
 			log.Printf("Error from GetSearchMovies: %v", err)
 			return 0, err
 		}
-		log.Printf("Caching search result for: %s", tor.Title)
-		TMDB_MOVIE_SEARCH_CACHE[tor.Title] = tmpTmdbSearchResult
+		searchCacheMu.Lock()
+		TMDB_MOVIE_SEARCH_CACHE[key] = tmpTmdbSearchResult
+		searchCacheMu.Unlock()
 		tmdbSearchResult = tmpTmdbSearchResult
-		log.Printf("Search result cached successfully")
 	} else {
-		log.Printf("using cached for TMDB MOVIE search: %s", tor.Title)
+		log.Printf("using cached for TMDB MOVIE search: %s", title)
 	}
 
-	log.Printf("Checking total results for: %s", tor.Title)
-	if tmdbSearchResult.TotalResults == 0 || len(tmdbSearchResult.Results) == 0 {
-		log.Printf("No movie found for: %s (TotalResults: %d, Results length: %d)", tor.Title, tmdbSearchResult.TotalResults, len(tmdbSearchResult.Results))
-		return 0, fmt.Errorf("no movie found for %s", tor.Title)
-	}
-	log.Printf("Found %d results, using first result ID: %d", tmdbSearchResult.TotalResults, tmdbSearchResult.Results[0].ID)
-	return tmdbSearchResult.Results[0].ID, nil
+	return pickCandidate(title, exclude, movieCandidates(tmdbSearchResult)), nil
 }
 
 func getMovieMetaDataByID(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID int64) (*m.MetaDatum, []string, error) {
@@ -606,66 +647,85 @@ func GetMetaDataAndSaveToDB(file *m.MediaFile, tmdbClient *tmdb.Client, s *serve
 }
 
 func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *server.Server, i int, totalFiles int) {
+	_ = matchTorrent(file, tmdbClient, s.BroadcastMessage, i, totalFiles, 0, false, 0)
+}
+
+// matchTorrent finds the TMDB title (and episode) of a torrent and links the
+// torrent to them. When it fails, it returns the error, which is also saved on
+// the torrent. A title that is known not to be the one (exclude, its TMDB id) is
+// not matched, and ignoreImdb leaves out the IMDb id the torrent came with, which
+// may be what led to the wrong title. A chosen title (chosen, its TMDB id) is
+// matched without searching.
+func matchTorrent(file *m.TorrentFile, tmdbClient *tmdb.Client, say func(string), i int, totalFiles int, exclude int64, ignoreImdb bool, chosen int64) error {
 	ctx := context.Background()
 	tor, err := ptnutil.SafeParse(file.Raw.String)
 	if HandleMetaDataGettingErr(*file, err) {
-		return
+		return err
 	}
 
 	// try getting metadata from DB
 	md := &m.MetaDatum{}
+	var genres []string
 	if file.MetaDataId.Valid && !file.MetaDataId.IsZero() {
 		md, err = m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).One(ctx, db.DB)
 		if HandleMetaDataGettingErr(*file, err) {
-			return
+			return err
 		}
 	} else {
-		s.BroadcastMessage(fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, tor.Title))
+		say(fmt.Sprintf("Getting TMDB data [%d/%d] for %s", i, totalFiles, tor.Title))
 		// imdbId comes from apibay; the sqlboiler model predates the column
 		var imdbId null.String
-		_ = db.DB.QueryRow(`SELECT imdbId FROM torrentFile WHERE id = ?`, file.ID).Scan(&imdbId)
-		newMd, genres, err := GetMediaFromTMDBWithImdb(tmdbClient, *tor, imdbId.String)
+		if !ignoreImdb {
+			_ = db.DB.QueryRow(`SELECT imdbId FROM torrentFile WHERE id = ?`, file.ID).Scan(&imdbId)
+		}
+		if chosen != 0 {
+			md, genres, err = getMediaByTMDBID(tmdbClient, *tor, chosen, 0)
+		} else {
+			md, genres, err = GetMediaFromTMDBWithImdb(tmdbClient, *tor, imdbId.String, exclude)
+		}
 		if HandleMetaDataGettingErr(*file, err) {
-			return
+			return err
 		}
-
-		// check if newMd is already saved
-		if !newMd.ID.Valid {
-			// save the metadata to the db
-			log.Printf("inserting metadata to DB: %s\n", newMd.Title.String)
-			err = newMd.Insert(ctx, db.DB, boil.Infer())
-			if HandleMetaDataGettingErr(*file, err) {
-				return
-			}
-
-			// Save genres in many-to-many table
-			if len(genres) > 0 {
-				if err := db.SaveGenresForMetaData(newMd.ID.Int64, genres); err != nil {
-					log.Printf("Warning: Could not save genres for metadata %d: %v", newMd.ID.Int64, err)
-				}
-			}
-		}
-		md = newMd
 	}
 
-	// if it's a series get the episode
+	// if it's a series get the episode, before saving a new series, so that an
+	// episode TMDB does not know leaves no series without episodes behind
+	var epMd *m.Episode
 	if md.Series.Valid && md.Series.Bool {
-
-		// try getting episode from DB
 		msg := fmt.Sprintf("Getting TMDB data [%d/%d] for %s S%dE%d", i, totalFiles, md.Title.String, tor.Season,
 			tor.Episode)
-		s.BroadcastMessage(msg)
-		epMd, err := GetEpisodeFromTMDB(tmdbClient, *tor, md)
+		say(msg)
+		epMd, err = GetEpisodeFromTMDB(tmdbClient, *tor, md)
 		if HandleMetaDataGettingErr(*file, err) {
-			return
+			return err
+		}
+	}
+
+	// check if md is already saved
+	if !md.ID.Valid {
+		// save the metadata to the db
+		log.Printf("inserting metadata to DB: %s\n", md.Title.String)
+		err = md.Insert(ctx, db.DB, boil.Infer())
+		if HandleMetaDataGettingErr(*file, err) {
+			return err
 		}
 
+		// Save genres in many-to-many table
+		if len(genres) > 0 {
+			if err := db.SaveGenresForMetaData(md.ID.Int64, genres); err != nil {
+				log.Printf("Warning: Could not save genres for metadata %d: %v", md.ID.Int64, err)
+			}
+		}
+	}
+
+	if epMd != nil {
 		if !epMd.ID.Valid {
 			// save the episode metadata to the db
 			log.Printf("inserting episode to DB: %s S%dE%d\n", md.Title.String, tor.Season, tor.Episode)
+			epMd.MetaDataId = md.ID
 			err = epMd.Insert(ctx, db.DB, boil.Infer())
 			if HandleMetaDataGettingErr(*file, err) {
-				return
+				return err
 			}
 
 			log.Printf("updating user metadata for %s\n", md.Title.String)
@@ -682,5 +742,6 @@ func GetMetaDataAndSaveToDB2(file *m.TorrentFile, tmdbClient *tmdb.Client, s *se
 	// update file foreignKey in db row
 	file.MetaDataId = md.ID
 	file.Status = null.StringFrom("scanned")
-	_, _ = file.Update(ctx, db.DB, boil.Infer())
+	_, err = file.Update(ctx, db.DB, boil.Infer())
+	return err
 }

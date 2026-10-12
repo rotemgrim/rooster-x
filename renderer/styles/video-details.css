@@ -507,11 +507,19 @@ torrent-file-card {
     font-size: 1.4em !important;
     &:hover { color: #6bec5d !important; }
   }
+  & .engine-rematch,
   & .engine-external {
-    margin-left: auto;
     font-size: 1.8em !important;
     opacity: 0.6;
     &:hover { opacity: 1; }
+  }
+  /* pushed to the right end; profiles with an age limit have no rematch button */
+  & .engine-rematch,
+  & .engine-external {
+    margin-left: auto;
+  }
+  & .engine-rematch + .engine-external {
+    margin-left: 0.3em;
   }
   &:hover {
     background-color: #6bec5d;

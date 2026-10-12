@@ -8,6 +8,7 @@ import {MediaFileCard} from "./MediaFileCard";
 import {playTorrentFile} from "./RemotePlayPicker";
 import {loggedInUser} from "../common/session";
 import {isLimited} from "../entity/User";
+import "./TitlePickerDialog";
 
 @customElement("torrent-file-card")
 export class TorrentFileCard extends LitElement {
@@ -15,6 +16,7 @@ export class TorrentFileCard extends LitElement {
     @property() public torrentFile: TorrentFile;
 
     @state() private engine: IEngineStatus | null = null;
+    @state() private showTitlePicker = false;
     private pollTimer: number | undefined;
 
     public createRenderRoot() {
@@ -77,6 +79,18 @@ export class TorrentFileCard extends LitElement {
     public openExternally(e: Event) {
         e.stopPropagation();
         IpcService.openExternal(this.torrentFile.magnet);
+    }
+
+    /** Opens the dialog that picks another title for a torrent matched to the wrong one. */
+    private openTitlePicker(e: Event) {
+        e.stopPropagation();
+        this.showTitlePicker = true;
+    }
+
+    private onMoved() {
+        this.showTitlePicker = false;
+        // the torrent is not in this details panel any more
+        this.dispatchEvent(new CustomEvent("torrent-rematched", {bubbles: true, composed: true}));
     }
 
     private play(e: Event) {
@@ -201,9 +215,16 @@ export class TorrentFileCard extends LitElement {
                 ${this.torrentFile.quality ? html`<div class="quality ${qTier}">${this.torrentFile.quality}</div>` : ""}
                 ${this.renderPeers()}
                 ${this.renderEngine()}
+                ${isLimited(loggedInUser()) ? "" : html`<i class="material-icons engine-rematch"
+                    title="Not this title? Pick the right one for this torrent" @click=${this.openTitlePicker}>find_replace</i>`}
                 <i class="material-icons engine-external" title="Open magnet in external app" @click=${this.openExternally}>open_in_new</i>
             </div>
             ${this.renderChunks()}
-        </div>`;
+        </div>
+        ${this.showTitlePicker
+            ? html`<title-picker-dialog .torrentFile=${this.torrentFile}
+                  @moved=${this.onMoved}
+                  @close=${() => (this.showTitlePicker = false)}></title-picker-dialog>`
+            : ""}`;
     }
 }

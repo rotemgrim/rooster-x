@@ -23,6 +23,26 @@ export interface IWatchProgress {
     updatedAt: number;
 }
 
+/** A TMDB title a torrent can be linked to. */
+export interface ITitleChoice {
+    tmdbId: number;
+    title: string;
+    originalTitle?: string;
+    year?: string;
+    poster?: string;
+    overview?: string;
+    /** the title the torrent has now */
+    isCurrent: boolean;
+}
+
+export interface ITitleChoices {
+    choices: ITitleChoice[];
+    /** the torrent's parsed name */
+    name: string;
+    /** how many other torrents with that name are on the same title; they move along */
+    siblings: number;
+}
+
 export interface IMediaFiles {
     mediaFiles?: MediaFile[];
     torrentFiles?: TorrentFile[];
@@ -209,6 +229,23 @@ export class IpcService {
      */
     public static refreshEpisodes(metaDataId: number): Promise<{missing: number, filled: number}> {
         return promiseIpc.send("refresh-episodes", {metaDataId});
+    }
+
+    /**
+     * Links a torrent that was matched to the wrong title to another one: the
+     * TMDB title tmdbId when given, otherwise one searched from the torrent's
+     * name. Resolves to the new title.
+     */
+    public static rematchTorrent(torrentId: number, tmdbId?: number): Promise<{title: string, moved: number}> {
+        return promiseIpc.send("rematch-torrent", {torrentId, tmdbId});
+    }
+
+    /**
+     * The TMDB titles a torrent can be linked to (series for a torrent of an
+     * episode, movies otherwise), searched by query or by the torrent's title.
+     */
+    public static searchTorrentTitles(torrentId: number, query: string): Promise<ITitleChoices> {
+        return promiseIpc.send("search-torrent-titles", {torrentId, query});
     }
 
     /** The trailer's URL, or empty when none was found. */

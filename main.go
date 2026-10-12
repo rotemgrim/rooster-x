@@ -165,6 +165,10 @@ func onReady() {
 	)
 	server.EnrichMetadataFn = gtmdb.EnrichOne
 	server.RefreshEpisodesFn = gtmdb.RefreshEpisodes
+	server.RematchTorrentFn = gtmdb.RematchTorrent
+	server.SearchTorrentTitlesFn = func(torrentId int64, query string) (interface{}, error) {
+		return gtmdb.SearchTitlesForTorrent(torrentId, query)
+	}
 	server.SetTmdbApiKey(cfg.TmdbApiKey)
 	server.SetXtreamConfig(cfg.Xtream.Username, cfg.Xtream.Password, cfg.Xtream.Server)
 
