@@ -113,7 +113,9 @@ func GetEpisodeFromTMDB(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, md *m.Meta
 	}
 	epDetail, err := tmdbClient.GetTVEpisodeDetails(int(md.TMDBID.Int64), tor.Season, tor.Episode, detailsOptions)
 	if err != nil {
-		return nil, err
+		// TMDB answers "code: 34 ... could not be found" for an episode the show doesn't have
+		return nil, fmt.Errorf("TMDB has no S%02dE%02d of %s (%d): %w", tor.Season, tor.Episode,
+			md.Title.String, md.Year.Int64, err)
 	}
 	epMd.MetaDataId = md.ID
 	epMd.ImdbSeriesId = md.ImdbId
@@ -149,9 +151,9 @@ func getSeriesMetaData(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID, exc
 		tmdbID = id
 	}
 
-	// check if metadata is not already id DB
+	// check if metadata is not already id DB; a movie can have the same TMDB id
 	ctx := context.Background()
-	md, err := m.MetaData(qm.Where("tmdbId = ?", tmdbID)).One(ctx, db.DB)
+	md, err := m.MetaData(qm.Where("tmdbId = ? AND series = 1", tmdbID)).One(ctx, db.DB)
 	if err == nil {
 		return md, nil, nil
 	}
@@ -375,9 +377,9 @@ func searchMovie(tmdbClient *tmdb.Client, title string, year int, exclude int64)
 }
 
 func getMovieMetaDataByID(tmdbClient *tmdb.Client, tor ptn.TorrentInfo, tmdbID int64) (*m.MetaDatum, []string, error) {
-	// check if metadata is not already id DB
+	// check if metadata is not already id DB; a series can have the same TMDB id
 	ctx := context.Background()
-	md, err := m.MetaData(qm.Where("tmdbId = ?", tmdbID)).One(ctx, db.DB)
+	md, err := m.MetaData(qm.Where("tmdbId = ? AND IFNULL(series, 0) = 0", tmdbID)).One(ctx, db.DB)
 	log.Printf("DB check completed, err: %v", err)
 	if err == nil {
 		return md, nil, nil

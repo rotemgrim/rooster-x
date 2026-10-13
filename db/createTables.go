@@ -71,14 +71,36 @@ func createTablesIfNotExist(db *sql.DB) {
 	if err := EnsureWatchProgressTable(db); err != nil {
 		log.Printf("Warning: watchProgress table creation failed: %v", err)
 	}
+
+	// Lets a movie and a series share a TMDB id, and unlinks what was linked
+	// to the wrong one of the two. Runs last: it rebuilds metaData with the
+	// columns the migrations above add, and what it unlinks is dropped only when
+	// no list or watch progress holds it.
+	if err := MigrateTmdbIdPerKind(db); err != nil {
+		log.Printf("Warning: tmdbId per kind migration failed: %v", err)
+	}
 }
 
 func createMetaDataTable(db *sql.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS metaData (
+	_, err := db.Exec(metaDataTableSQL("metaData") + `;
+		CREATE INDEX IF NOT EXISTS idx_type ON metaData(type);
+		CREATE INDEX IF NOT EXISTS idx_tmdbId ON metaData(tmdbId);
+		CREATE INDEX IF NOT EXISTS idx_imdbId ON metaData(imdbId);`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// metaDataTableSQL creates the metaData table under name. A TMDB id is unique
+// per kind only: movies and series are numbered apart, so movie 246 (Zatoichi)
+// and series 246 (Avatar: The Last Airbender) are different titles. The
+// unique index on (tmdbId, series) comes from MigrateTmdbIdPerKind.
+func metaDataTableSQL(name string) string {
+	return `CREATE TABLE IF NOT EXISTS ` + name + ` (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title VARCHAR(255) COLLATE NOCASE,
 		imdbId VARCHAR(40) UNIQUE,
-		tmdbId INTEGER UNIQUE,
+		tmdbId INTEGER,
 		languages TEXT,
 		country TEXT,
 		votes INTEGER,
@@ -104,13 +126,7 @@ func createMetaDataTable(db *sql.DB) {
 		ageRating VARCHAR(20),
 		enrichState VARCHAR(20),
 		enrichedAt INTEGER
-	);
-		CREATE INDEX IF NOT EXISTS idx_type ON metaData(type);
-		CREATE INDEX IF NOT EXISTS idx_tmdbId ON metaData(tmdbId);
-		CREATE INDEX IF NOT EXISTS idx_imdbId ON metaData(imdbId);`)
-	if err != nil {
-		log.Fatal(err)
-	}
+	)`
 }
 
 func createAliasTable(db *sql.DB) {

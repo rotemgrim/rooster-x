@@ -33,10 +33,17 @@ func RematchTorrent(torrentId, chosen int64) (title string, moved int, err error
 		return "", 0, fmt.Errorf("torrent %d not found: %w", torrentId, err)
 	}
 
+	tor, err := ptnutil.SafeParse(file.Raw.String)
+	if err != nil {
+		return "", 0, err
+	}
+
 	oldMetaId := file.MetaDataId.Int64
 	var exclude int64
 	if oldMetaId != 0 {
-		if old, err := m.MetaData(qm.Where("id = ?", oldMetaId)).One(ctx, db.DB); err == nil {
+		// a title of the other kind is not the one a search could find again:
+		// the series with its TMDB id is another title
+		if old, err := m.MetaData(qm.Where("id = ?", oldMetaId)).One(ctx, db.DB); err == nil && old.Series.Bool == isSeriesTorrent(*tor) {
 			exclude = old.TMDBID.Int64
 		}
 	}
@@ -77,7 +84,7 @@ func RematchTorrent(torrentId, chosen int64) (title string, moved int, err error
 		}
 	}
 
-	dropUnused(oldMetaId, oldEpisodes)
+	db.DropUnused(oldMetaId, oldEpisodes)
 	// the feeds list what the torrents are linked to
 	go db.RebuildFeeds()
 	return md.Title.String, moved, nil
@@ -150,7 +157,9 @@ func SearchTitlesForTorrent(torrentId int64, query string) (*TitleChoices, error
 	var current int64
 	siblings := 0
 	if file.MetaDataId.Valid && file.MetaDataId.Int64 != 0 {
-		if md, err := m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).One(ctx, db.DB); err == nil {
+		// the choices are of the torrent's kind, so a title of the other kind
+		// with the same TMDB id is none of them
+		if md, err := m.MetaData(qm.Where("id = ?", file.MetaDataId.Int64)).One(ctx, db.DB); err == nil && md.Series.Bool == isSeriesTorrent(*tor) {
 			current = md.TMDBID.Int64
 		}
 		if file.Title.String != "" {
@@ -204,56 +213,4 @@ func differentName(original, shown string) string {
 func yearOf(date string) string {
 	year, _, _ := strings.Cut(date, "-")
 	return year
-}
-
-// dropUnused deletes the episodes and the title that the wrong matches leave
-// behind when they were the only things linked to them. Whatever a user has
-// watched, marked or listed is kept, so is everything a file is still linked to.
-func dropUnused(metaDataId int64, episodeIds []int64) {
-	ctx := context.Background()
-	tx, err := db.DB.BeginTx(ctx, nil)
-	if err != nil {
-		log.Printf("could not drop what the wrong match left: %v", err)
-		return
-	}
-	defer tx.Rollback()
-
-	const unusedEpisode = `DELETE FROM episode WHERE id = ?
-		AND NOT EXISTS (SELECT 1 FROM mediaFile WHERE episodeId = episode.id)
-		AND NOT EXISTS (SELECT 1 FROM torrentFile WHERE episodeId = episode.id)
-		AND NOT EXISTS (SELECT 1 FROM userEpisode WHERE episodeId = episode.id)
-		AND NOT EXISTS (SELECT 1 FROM watchProgress WHERE kind = 'episode' AND ref_id = episode.id)`
-	for _, id := range episodeIds {
-		if id == 0 {
-			continue
-		}
-		if _, err := tx.ExecContext(ctx, unusedEpisode, id); err != nil {
-			log.Printf("could not drop episode %d: %v", id, err)
-			return
-		}
-	}
-
-	if metaDataId != 0 {
-		const unused = `NOT EXISTS (SELECT 1 FROM mediaFile WHERE metaDataId = ?)
-			AND NOT EXISTS (SELECT 1 FROM torrentFile WHERE metaDataId = ?)
-			AND NOT EXISTS (SELECT 1 FROM episode WHERE metaDataId = ?)
-			AND NOT EXISTS (SELECT 1 FROM listItem WHERE metaDataId = ?)
-			AND NOT EXISTS (SELECT 1 FROM userMetaData WHERE metaDataId = ?)
-			AND NOT EXISTS (SELECT 1 FROM watchProgress WHERE kind = 'movie' AND ref_id = ?)`
-		args := []interface{}{metaDataId, metaDataId, metaDataId, metaDataId, metaDataId, metaDataId, metaDataId}
-		for _, stmt := range []string{
-			`DELETE FROM alias WHERE metaDataId = ? AND ` + unused,
-			`DELETE FROM metaDataGenre WHERE metaDataId = ? AND ` + unused,
-			`DELETE FROM metaData WHERE id = ? AND ` + unused,
-		} {
-			if _, err := tx.ExecContext(ctx, stmt, args...); err != nil {
-				log.Printf("could not drop metadata %d: %v", metaDataId, err)
-				return
-			}
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		log.Printf("could not drop what the wrong match left: %v", err)
-	}
 }
