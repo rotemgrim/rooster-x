@@ -31,7 +31,7 @@ import (
 // filter is a list of strings that we want to filter out
 var dirFilter = []string{"sample", "samples", "moudles", "git", "subs"}
 var includeExtensions = []string{
-	"mkv", "avi", "3g2", "3gp", "aaf",
+	"mkv", "avi", "flv", "3g2", "3gp", "aaf",
 	"m2v", "m4p", "m4v", "mov", "mp2", "mp4", "mpe", "mpeg", "mpg",
 	//"mpv", "mxf", "nsv", "ogg", "ogv", "qt", "rm", "rmvb", "roq", "svi",
 	//"vob", "webm", "wmv",
