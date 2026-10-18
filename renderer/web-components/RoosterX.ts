@@ -29,6 +29,7 @@ import {
 } from "../common/library";
 import {PAGE_VIEWS, parseRoute, type Route, routePath, type View, viewAllowed} from "../common/routes";
 import {loggedInUser} from "../common/session";
+import {takeLinkedMagnet} from "../common/magnetLinks";
 
 // The data view each server "reload" message refreshes. These are commands,
 // so they are not shown in the status bar.
@@ -92,6 +93,10 @@ export class RoosterX extends LitElement {
         const route = allowedRoute(location.pathname);
         this.route = route ?? allowedRoute(`/${RoosterX.lastView()}`) ?? {view: "folders"};
         if (!route) {
+            // profiles without downloads land here from a magnet link (common/magnetLinks.ts)
+            if (takeLinkedMagnet()) {
+                this.showStatus("This profile can't add downloads");
+            }
             history.replaceState(this.route, "", routePath(this.route));
         }
         RoosterX.saveLastView(this.route.view);
@@ -410,7 +415,12 @@ export class RoosterX extends LitElement {
             }
             return;
         }
-        this.sweepStatus = msg;
+        this.showStatus(msg);
+    }
+
+    /** Shows text in the status bar for a few seconds. */
+    private showStatus(text: string) {
+        this.sweepStatus = text;
         clearTimeout(this.sweepStatusTimer);
         this.sweepStatusTimer = setTimeout(() => {
             this.sweepStatus = "";

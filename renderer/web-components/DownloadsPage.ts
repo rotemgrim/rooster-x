@@ -9,6 +9,7 @@ import {playTorrent} from "./TorrentFilePicker";
 import "./TorrentSettingsDialog";
 import "./AddLinksDialog";
 import {PHONE_QUERY} from "../common/layout";
+import {offersMagnetHandler, registerMagnetHandler, takeLinkedMagnet} from "../common/magnetLinks";
 
 type Torrent = IEngineStatus;
 
@@ -162,7 +163,7 @@ export class DownloadsPage extends LitElement {
     @state() private deleting: {hashes: string[]; label: string; deleteFiles: boolean} | null = null;
     @state() private showSettings = false;
     @state() private showAddLinks = false;
-    // why adding a .torrent file failed
+    // why adding a .torrent file or magnet link failed
     @state() private notice = "";
     // Phones get a card per torrent and a details sheet instead of the table.
     @state() private phone = false;
@@ -175,6 +176,7 @@ export class DownloadsPage extends LitElement {
 
     public connectedCallback() {
         super.connectedCallback();
+        this.addLinkedMagnet();
         this.refresh();
         document.addEventListener("pointerdown", this.closeMenuOutside);
         document.addEventListener("keydown", this.onKey);
@@ -407,6 +409,24 @@ export class DownloadsPage extends LitElement {
         }
     }
 
+    /** Adds the magnet link the browser opened the page with, if any. */
+    private addLinkedMagnet() {
+        const magnet = takeLinkedMagnet();
+        if (magnet) {
+            EngineService.add(magnet)
+                .then(hash => this.onAdded(hash))
+                .catch(err => (this.notice = `Could not add the magnet link: ${err}`));
+        }
+    }
+
+    /** Makes RoosterX the browser's magnet handler, or says why it can't. */
+    private handleMagnetLinks() {
+        const error = registerMagnetHandler();
+        if (error) {
+            this.notice = error;
+        }
+    }
+
     private onDrop(e: DragEvent) {
         if (e.dataTransfer?.files.length) {
             e.preventDefault();
@@ -441,6 +461,7 @@ export class DownloadsPage extends LitElement {
                 ${button("tb-resume", "play_arrow", "Resume", () => this.setPaused(list, false), list.some(t => t.paused))}
                 ${button("tb-pause", "stop", "Pause", () => this.setPaused(list, true), list.some(t => !t.paused))}`}
             <span class="tb-separator"></span>
+            ${offersMagnetHandler ? button("tb-settings", "open_in_browser", "Open magnet links in RoosterX", () => this.handleMagnetLinks()) : nothing}
             ${button("tb-settings", "settings", "BitTorrent settings", () => (this.showSettings = true))}
         </div>
         ${this.notice ? html`<div class="dl-notice">
