@@ -316,6 +316,15 @@ body.no-scroll .goTop {
   flex-direction: column;
 }
 
+/* chunksBar() from web-components/chunks.ts: a strip along the bottom of its positioned parent */
+.engine-chunks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5px;
+}
+
 /* spin animation */
 @keyframes spin {
   0% { transform: rotate(0deg); }

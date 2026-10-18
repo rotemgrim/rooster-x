@@ -26,7 +26,7 @@ export interface IEngineFile {
     length: number;
     completed: number;
     // 100 digits (0-9), how much of each 1% slice is downloaded; only from
-    // EngineService.status(hash), for the largest file
+    // EngineService.status(hash)
     chunks?: string;
 }
 
@@ -63,6 +63,18 @@ const VIDEO_EXT = /\.(mkv|mp4|m4v|avi|mov|webm|ts|wmv)$/i;
 
 export const isVideo = (f: IEngineFile) => VIDEO_EXT.test(f.path);
 
+/** Whether a torrent has anything to play. */
+export const hasVideo = (files: IEngineFile[] | null | undefined) => !!files?.some(isVideo);
+
+const byPath = new Intl.Collator(undefined, {numeric: true, sensitivity: "base"});
+
+/** A torrent's videos, the files it can play, in path order (episode 2 before 10). */
+export const videosOf = (files: IEngineFile[] | null | undefined) =>
+    (files ?? []).filter(isVideo).sort((a, b) => byPath.compare(a.path, b.path));
+
+/** How much of a file is downloaded, 0-1; an empty file counts as done. */
+export const fileProgress = (f: IEngineFile) => (f.length ? f.completed / f.length : 1);
+
 /** The biggest video in a torrent, usually the movie or episode itself. */
 export function largestVideo(files: IEngineFile[] | null | undefined): IEngineFile | undefined {
     return (files ?? []).filter(isVideo).reduce<IEngineFile | undefined>((a, b) => (!a || b.length > a.length ? b : a), undefined);
@@ -91,7 +103,7 @@ export class EngineService {
         return promiseIpc.send("engine-remove", {infoHash, deleteFiles});
     }
 
-    /** One torrent, including the chunk map of its largest file. */
+    /** One torrent, including the chunk map of each file. */
     public static status(infoHash: string): Promise<IEngineStatus> {
         return promiseIpc.send<IEngineStatus>("engine-status", {infoHash});
     }

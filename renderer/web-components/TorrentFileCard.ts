@@ -3,9 +3,10 @@ import {customElement, property, state} from "lit/decorators.js";
 import {type TorrentFile} from "../entity/TorrentFile";
 import {RoosterX} from "./RoosterX";
 import {IpcService} from "../services/ipc.service";
-import {EngineService, largestVideo, type IEngineStatus} from "../services/engine.service";
+import {EngineService, hasVideo, largestVideo, type IEngineStatus} from "../services/engine.service";
 import {MediaFileCard} from "./MediaFileCard";
-import {playTorrentFile} from "./RemotePlayPicker";
+import {chunksBar} from "./chunks";
+import {playTorrent} from "./TorrentFilePicker";
 import {loggedInUser} from "../common/session";
 import {isLimited} from "../entity/User";
 import "./TitlePickerDialog";
@@ -95,10 +96,7 @@ export class TorrentFileCard extends LitElement {
 
     private play(e: Event) {
         e.stopPropagation();
-        const video = largestVideo(this.engine?.files);
-        if (video) {
-            playTorrentFile(this.infoHash, video);
-        }
+        playTorrent(this.infoHash, this.engine?.files);
     }
 
     private togglePause(e: Event) {
@@ -144,24 +142,6 @@ export class TorrentFileCard extends LitElement {
         }
     }
 
-    private renderChunks() {
-        const chunks = this.engine?.files?.find(f => f.chunks)?.chunks;
-        if (!chunks) {
-            return "";
-        }
-        // one gradient stop pair per 1% slice; brightness = how complete it is
-        const step = 100 / chunks.length;
-        const stops = [...chunks].map((c, i) => {
-            const color = `rgba(107, 236, 93, ${(+c / 9).toFixed(2)})`;
-            return `${color} ${(i * step).toFixed(2)}% ${((i + 1) * step).toFixed(2)}%`;
-        });
-        const ready = chunks.search(/[^9]/);
-        const readyPct = ready === -1 ? 100 : ready;
-        return html`<div class="engine-chunks"
-            title="${readyPct}% downloaded from the start"
-            style="background: linear-gradient(to right, ${stops.join(", ")}), rgba(0, 0, 0, 0.45)"></div>`;
-    }
-
     private renderPeers() {
         const {seeders, leechers, peersUpdatedAt} = this.torrentFile;
         if (seeders == null) {
@@ -183,7 +163,7 @@ export class TorrentFileCard extends LitElement {
         }
         const pct = st.hasInfo && st.length ? Math.floor((st.completed / st.length) * 100) : 0;
         const label = st.paused ? `paused · ${pct}%` : st.hasInfo ? `${pct}%` : "fetching info…";
-        const canPlay = !!largestVideo(st.files);
+        const canPlay = hasVideo(st.files);
         return html`<div class="engine-status" title="${st.seeders} seeders connected">
             ${label} · ${st.peers} peers
             ${canPlay ? html`<i class="material-icons engine-play" title="Play" @click=${this.play}>play_circle</i>` : ""}
@@ -219,7 +199,7 @@ export class TorrentFileCard extends LitElement {
                     title="Not this title? Pick the right one for this torrent" @click=${this.openTitlePicker}>find_replace</i>`}
                 <i class="material-icons engine-external" title="Open magnet in external app" @click=${this.openExternally}>open_in_new</i>
             </div>
-            ${this.renderChunks()}
+            ${chunksBar(largestVideo(this.engine?.files)?.chunks)}
         </div>
         ${this.showTitlePicker
             ? html`<title-picker-dialog .torrentFile=${this.torrentFile}

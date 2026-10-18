@@ -13,8 +13,8 @@ type FileStatus struct {
 	Length    int64  `json:"length"`
 	Completed int64  `json:"completed"`
 	// Chunks maps the file onto chunkBuckets equal slices, one digit each:
-	// 0 = nothing verified .. 9 = fully verified. Only set by Get, for the
-	// largest file (the video), so the UI can show which parts are playable.
+	// 0 = nothing verified .. 9 = fully verified. Only set by Get, so the UI
+	// can show which parts of each file are playable.
 	Chunks string `json:"chunks,omitempty"`
 }
 
@@ -87,8 +87,8 @@ func List() []Status {
 	return out
 }
 
-// Get returns the status of one torrent, including the chunk map of its
-// largest file.
+// Get returns the status of one torrent, including the chunk map of each
+// file.
 func Get(hash string) (Status, error) {
 	if ses == nil {
 		return Status{}, errNotRunning
@@ -108,8 +108,7 @@ func Get(hash string) (Status, error) {
 		return Status{}, err
 	}
 	s := statusOf(st, entry)
-	if i := largestFile(s.Files); i >= 0 {
-		f := st.Files[i]
+	for i, f := range st.Files {
 		s.Files[i].Chunks = chunkMap(st.Pieces, st.PieceLength, f.Offset, f.Size)
 	}
 	return s, nil
@@ -176,18 +175,6 @@ func stateOf(st lt.Status) State {
 	default:
 		return StateStalled
 	}
-}
-
-// largestFile returns the index in files of the biggest file, or -1 when
-// there are none.
-func largestFile(files []FileStatus) int {
-	largest := -1
-	for i, f := range files {
-		if largest < 0 || f.Length > files[largest].Length {
-			largest = i
-		}
-	}
-	return largest
 }
 
 // chunkMap spreads a file over chunkBuckets slices by byte offset and

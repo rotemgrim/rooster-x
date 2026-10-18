@@ -44,7 +44,7 @@ func (s *Server) EngineAddTorrentFile(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, hash)
 }
 
-// EngineStatus returns one torrent, with the chunk map of its largest file.
+// EngineStatus returns one torrent, with the chunk map of each file.
 func (s *Server) EngineStatus(c *websocket.Conn, req PayloadRequest) {
 	data, _ := req.Data.(map[string]interface{})
 	hash, _ := data["infoHash"].(string)

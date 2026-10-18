@@ -445,13 +445,6 @@ torrent-file-card {
   /* Built-in torrent engine progress + actions */
   position: relative;
   overflow: hidden;
-  & .engine-chunks {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 5px;
-  }
   & .engine-status {
     display: flex;
     align-items: center;

@@ -1,10 +1,11 @@
 import {LitElement, html, nothing, type TemplateResult} from "lit";
 import {customElement, state} from "lit/decorators.js";
 import {repeat} from "lit/directives/repeat.js";
-import {EngineService, isVideo, largestVideo, type EngineState, type IEngineFile, type IEngineStatus} from "../services/engine.service";
+import {EngineService, fileProgress, hasVideo, isVideo, type EngineState, type IEngineFile, type IEngineStatus} from "../services/engine.service";
 import {formatBytes, formatDuration, formatSpeed, formatUnixDate} from "../common/commonUtils";
 import {modal} from "./dialog";
 import {playTorrentFile} from "./RemotePlayPicker";
+import {playTorrent} from "./TorrentFilePicker";
 import "./TorrentSettingsDialog";
 import "./AddLinksDialog";
 import {PHONE_QUERY} from "../common/layout";
@@ -413,11 +414,10 @@ export class DownloadsPage extends LitElement {
         }
     }
 
-    private play(t: Torrent, file = largestVideo(t.files)) {
+    /** Plays the torrent's video, asking which when it has several. */
+    private play(t: Torrent) {
         this.menu = null;
-        if (file) {
-            playTorrentFile(t.infoHash, file);
-        }
+        playTorrent(t.infoHash, t.files);
     }
 
     /** Add, remove, resume and pause buttons; the last three act on the
@@ -485,7 +485,7 @@ export class DownloadsPage extends LitElement {
             return nothing;
         }
         // only one torrent can play
-        const video = list.length === 1 ? largestVideo(list[0].files) : undefined;
+        const canPlay = list.length === 1 && hasVideo(list[0].files);
         return html`<ul class="dl-menu" style="left: ${menu.x}px; top: ${menu.y}px">
             ${list.some(t => t.paused)
                 ? html`<li @click=${() => this.setPaused(list, false)}><i class="material-icons">play_arrow</i>Resume</li>`
@@ -493,7 +493,7 @@ export class DownloadsPage extends LitElement {
             ${list.some(t => !t.paused)
                 ? html`<li @click=${() => this.setPaused(list, true)}><i class="material-icons">pause</i>Pause</li>`
                 : nothing}
-            <li class="${video ? "" : "disabled"}" @click=${() => video && this.play(list[0], video)}>
+            <li class="${canPlay ? "" : "disabled"}" @click=${() => canPlay && this.play(list[0])}>
                 <i class="material-icons">play_circle</i>Play
             </li>
             <li @click=${() => this.toggleSequential(list)}>
@@ -583,9 +583,9 @@ export class DownloadsPage extends LitElement {
                 ${t.files.map((f: IEngineFile) => html`<tr>
                     <td>${f.path}</td>
                     <td class="num">${formatBytes(f.length)}</td>
-                    <td class="num">${progressBar(f.length ? f.completed / f.length : 1)}</td>
+                    <td class="num">${progressBar(fileProgress(f))}</td>
                     <td>${isVideo(f)
-                        ? html`<i class="material-icons dl-play" title="Play" @click=${() => this.play(t, f)}>play_circle</i>`
+                        ? html`<i class="material-icons dl-play" title="Play" @click=${() => playTorrentFile(t.infoHash, f)}>play_circle</i>`
                         : nothing}</td>
                 </tr>`)}
             </tbody>

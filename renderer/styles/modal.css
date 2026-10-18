@@ -40,6 +40,22 @@
   }
 }
 
+/* Videos of a downloading torrent, from playTorrent() in web-components/TorrentFilePicker.ts */
+torrent-file-picker .modal.action-sheet {
+  width: min(560px, calc(100vw - 32px));
+  & .tfp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  & .tfp-list button { position: relative; flex-shrink: 0; overflow: hidden; }
+  & .tfp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  & .tfp-pct { color: #999; font-size: 0.85em; }
+  & .modal-buttons { margin-top: 0.8em; }
+}
+
 /* Poster actions, opened by a long press or right click on a library poster */
 .modal.action-sheet {
   display: flex;
