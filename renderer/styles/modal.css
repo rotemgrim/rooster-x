@@ -53,6 +53,14 @@ torrent-file-picker .modal.action-sheet {
   & .tfp-list button { position: relative; flex-shrink: 0; overflow: hidden; }
   & .tfp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   & .tfp-pct { color: #999; font-size: 0.85em; }
+  & .tfp-list button.tfp-season {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #1e1e1e;
+    font-weight: bold;
+    &:hover { background: #2a2a2a; }
+  }
   & .modal-buttons { margin-top: 0.8em; }
 }
 

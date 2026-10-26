@@ -1,5 +1,5 @@
 import {LitElement, html} from "lit";
-import {customElement, property} from "lit/decorators.js";
+import {customElement, property, state} from "lit/decorators.js";
 import {type IMediaFiles, IpcService} from "../services/ipc.service";
 import {formatClock} from "../common/commonUtils";
 import {isPhone} from "../common/layout";
@@ -55,6 +55,9 @@ export class VideoDetails extends LitElement {
         finished: boolean;
     }> = {};
     private episodesWatchProgressTimer: any = null;
+
+    // seasons folded on the series page, as "<metaDataId>-<season>"
+    @state() private collapsedSeasons = new Set<string>();
 
     private mainDetailsEl: HTMLElement;
 
@@ -366,6 +369,43 @@ export class VideoDetails extends LitElement {
                 .then(show)
                 .catch(console.log);
         }
+    }
+
+    private toggleSeason(key: string) {
+        const collapsed = new Set(this.collapsedSeasons);
+        if (!collapsed.delete(key)) {
+            collapsed.add(key);
+        }
+        this.collapsedSeasons = collapsed;
+    }
+
+    private episodeCard(ep: IEpisodeExtended) {
+        return html` <episode-card
+            @playMedia=${this.playMedia}
+            .episode=${ep}
+            .watchProgress=${this.episodesWatchProgress[ep.id] || null}
+            .videoDetails=${this}>
+        </episode-card>`;
+    }
+
+    /** The episode cards, under a header per season that folds it when there are several. */
+    private renderEpisodes() {
+        const seasons = _.groupBy(this._episodes, ep => ep.season ?? 0);
+        if (Object.keys(seasons).length < 2) {
+            return this._episodes.map(ep => this.episodeCard(ep));
+        }
+        // _episodes is newest season first, which the groups keep
+        return _.uniq(this._episodes.map(ep => ep.season ?? 0)).map(season => {
+            const key = `${this.video.id}-${season}`;
+            const open = !this.collapsedSeasons.has(key);
+            const eps = seasons[season];
+            return html`<button class="season-header" aria-expanded=${open} @click=${() => this.toggleSeason(key)}>
+                    <i class="material-icons">${open ? "expand_more" : "chevron_right"}</i>
+                    ${season === 0 ? "Specials" : `Season ${season}`}
+                    <span>${eps.length} episode${eps.length === 1 ? "" : "s"}</span>
+                </button>
+                ${open ? eps.map(ep => this.episodeCard(ep)) : ""}`;
+        });
     }
 
     set episodes(episodes: Episode[]) {
@@ -729,14 +769,7 @@ export class VideoDetails extends LitElement {
 
                     ${this.video.type === "series" && this._episodes && this._episodes.length > 0
                         ? html` <div class="episodes">
-                              ${this._episodes.map(ep => {
-                                  return html` <episode-card
-                                      @playMedia=${this.playMedia}
-                                      .episode=${ep}
-                                      .watchProgress=${this.episodesWatchProgress[ep.id] || null}
-                                      .videoDetails=${this}>
-                                  </episode-card>`;
-                              })}
+                              ${this.renderEpisodes()}
                           </div>
                           <div class="refresh-episodes">
                               <div class="add-to-list-btn" @click=${this.refreshEpisodes}

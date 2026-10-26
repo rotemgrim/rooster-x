@@ -279,6 +279,25 @@ video-details {
     display: flex;
     flex-wrap: wrap;
   }
+  & .season-header {
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    margin-bottom: -1rem;
+    padding: 0.3em 0;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid #444;
+    color: inherit;
+    font: inherit;
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-align: left;
+    cursor: pointer;
+    & span { margin-left: 0.4em; font-size: 0.8em; font-weight: normal; opacity: 0.6; }
+    &:hover, &:focus-visible { border-bottom-color: #aaa; }
+  }
   & .episode {
     width: var(--poster-width);
     position: relative;
