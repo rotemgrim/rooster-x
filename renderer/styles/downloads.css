@@ -343,8 +343,17 @@
     padding: 0.25em 0.5em;
     overflow-wrap: anywhere;
   }
-  & td:nth-child(3) { width: 120px; }
+  & td:first-child { width: 1.5em; }
+  & td:nth-child(4) { width: 120px; }
   & td:last-child { width: 2em; }
+  & tbody tr {
+    cursor: default;
+    user-select: none;
+    &:hover { background: rgba(255, 255, 255, 0.08); }
+    &.selected { background: rgba(176, 20, 20, 0.75); color: white; }
+    &.skipped td:not(:first-child) { opacity: 0.45; }
+  }
+  & input[type=checkbox] { margin: 0; vertical-align: middle; cursor: pointer; }
   & .dl-play {
     cursor: pointer;
     font-size: 1.4em;

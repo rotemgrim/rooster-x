@@ -12,6 +12,8 @@ type FileStatus struct {
 	Path      string `json:"path"` // without the .part suffix
 	Length    int64  `json:"length"`
 	Completed int64  `json:"completed"`
+	// Skipped files aren't downloaded (see SetFilesWanted).
+	Skipped bool `json:"skipped,omitempty"`
 	// Chunks maps the file onto chunkBuckets equal slices, one digit each:
 	// 0 = nothing verified .. 9 = fully verified. Only set by Get, so the UI
 	// can show which parts of each file are playable.
@@ -151,6 +153,7 @@ func statusOf(st lt.Status, e sessionEntry) Status {
 			Path:      strings.TrimSuffix(f.Path, partSuffix),
 			Length:    f.Size,
 			Completed: f.Done,
+			Skipped:   f.Priority == priorityDontDownload,
 		})
 	}
 	return s

@@ -66,7 +66,7 @@ export class TorrentFilePicker extends LitElement {
                 ${this.files.map(f => html`<button title=${f.path} @click=${() => this.play(f)}>
                     <i class="material-icons">play_circle</i>
                     <span class="tfp-name">${f.path.split("/").pop()}</span>
-                    <span class="tfp-pct">${Math.floor(fileProgress(f) * 100)}%</span>
+                    <span class="tfp-pct">${f.skipped ? "skipped" : `${Math.floor(fileProgress(f) * 100)}%`}</span>
                     ${chunksBar(f.chunks)}
                 </button>`)}
             </div>

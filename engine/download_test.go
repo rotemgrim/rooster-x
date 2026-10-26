@@ -2,6 +2,7 @@ package engine
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -85,4 +86,77 @@ func TestMagnetDownloadKeepsUnfinishedFilesHidden(t *testing.T) {
 	if s, _ := Get(hash); s.Name != "movie.mkv" || !s.Done || s.Files[0].Path != "movie.mkv" {
 		t.Errorf("status after download = %+v", s)
 	}
+}
+
+// Skipping the middle episode of a season pack: the others download and the
+// torrent finishes without it, it can still be streamed, and wanting it
+// again downloads the rest.
+func TestSkippedFilesAreNotDownloaded(t *testing.T) {
+	const p = testtorrent.PieceLength
+	seedDir := t.TempDir()
+	// e2 has pieces 3 and 4 to itself and shares 2 and 5 with e1 and e3
+	tt := testtorrent.WriteFiles(t, seedDir, "season", []testtorrent.File{
+		{Name: "e1.mkv", Size: 5 * p / 2}, {Name: "e2.mkv", Size: 3 * p}, {Name: "e3.mkv", Size: 3 * p / 2},
+	})
+	port := startSeeder(t, tt, seedDir)
+
+	startLoopback(t)
+	hash := addTorrentFile(t, tt, addOptions{})
+	if err := SetFilesWanted(hash, []int{1}, false); err != nil {
+		t.Fatal(err)
+	}
+	var lastConnect time.Time
+	connect := func() {
+		if time.Since(lastConnect) > time.Second {
+			_ = ses.ConnectPeer(hash, "127.0.0.1", port)
+			lastConnect = time.Now()
+		}
+	}
+	e1, e2, e3 := inData("season/e1.mkv"), inData("season/e2.mkv"), inData("season/e3.mkv")
+	var s Status
+	drainEvents(t, "the wanted files to download", func() bool {
+		connect()
+		s, _ = Get(hash)
+		return s.Done && fileExists(e1) && fileExists(e3)
+	})
+	if fileExists(e2) {
+		t.Error("the skipped file exists under its real name")
+	}
+	if !s.Files[1].Skipped || s.Files[0].Skipped || s.Length >= int64(len(tt.Data)) || s.Files[1].Completed >= 3*p {
+		t.Errorf("status with e2 skipped: length %d, files %+v", s.Length, s.Files)
+	}
+	for path, want := range map[string][]byte{e1: tt.Data[:5*p/2], e3: tt.Data[11*p/2:]} {
+		if got, err := os.ReadFile(path); err != nil || !bytes.Equal(got, want) {
+			t.Errorf("%s differs from the seeded one (err %v)", path, err)
+		}
+	}
+	if !fileExists(inData("." + hash + ".parts")) {
+		t.Error("no part file for the pieces e2 shares")
+	}
+
+	// streaming the skipped episode fetches what is played
+	connect()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	buf := make([]byte, p)
+	if n, err := ses.ReadPiece(ctx, hash, 3, buf); err != nil || !bytes.Equal(buf[:n], tt.Data[3*p:4*p]) {
+		t.Errorf("reading a piece of the skipped file: %d bytes, err %v", n, err)
+	}
+
+	if err := SetFilesWanted(hash, []int{1}, true); err != nil {
+		t.Fatal(err)
+	}
+	drainEvents(t, "the file wanted again to download", func() bool {
+		connect()
+		s, _ = Get(hash)
+		return s.Done && fileExists(e2)
+	})
+	if got, err := os.ReadFile(e2); err != nil || !bytes.Equal(got, tt.Data[5*p/2:][:3*p]) {
+		t.Errorf("e2 differs from the seeded one (err %v)", err)
+	}
+
+	if err := Remove(hash, false); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "the part file to be deleted", func() bool { return !fileExists(inData("." + hash + ".parts")) })
 }

@@ -25,6 +25,8 @@ export interface IEngineFile {
     path: string;
     length: number;
     completed: number;
+    // not downloaded (EngineService.setFilesWanted)
+    skipped?: boolean;
     // 100 digits (0-9), how much of each 1% slice is downloaded; only from
     // EngineService.status(hash)
     chunks?: string;
@@ -93,6 +95,11 @@ export class EngineService {
 
     public static setSequential(infoHash: string, sequential: boolean): Promise<boolean> {
         return promiseIpc.send<boolean>("engine-set-sequential", {infoHash, sequential});
+    }
+
+    /** Downloads or skips some of a torrent's files, by index. */
+    public static setFilesWanted(infoHash: string, files: number[], wanted: boolean): Promise<boolean> {
+        return promiseIpc.send<boolean>("engine-set-files-wanted", {infoHash, files, wanted});
     }
 
     public static setPaused(infoHash: string, paused: boolean): Promise<boolean> {

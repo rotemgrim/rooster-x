@@ -280,9 +280,13 @@ func Remove(hash string, deleteFiles bool) error {
 	if ses == nil {
 		return errNotRunning
 	}
+	hash = strings.ToLower(hash)
 	var paths []string
-	if deleteFiles {
-		if st, err := ses.Status(hash, false); err == nil {
+	if st, err := ses.Status(hash, false); err == nil {
+		// libtorrent's part file holds the pieces skipped files share with
+		// wanted ones, of no use without the torrent
+		paths = append(paths, filepath.Join(st.SavePath, "."+hash+".parts"))
+		if deleteFiles {
 			for _, f := range st.Files {
 				paths = append(paths, filepath.Join(st.SavePath, filepath.FromSlash(f.Path)))
 			}
@@ -291,7 +295,6 @@ func Remove(hash string, deleteFiles bool) error {
 	if err := ses.Remove(hash); err != nil {
 		return err
 	}
-	hash = strings.ToLower(hash)
 	mu.Lock()
 	delete(sessions, hash)
 	dirty = true
@@ -299,9 +302,7 @@ func Remove(hash string, deleteFiles bool) error {
 	_ = os.Remove(resumePath(hash))
 	_ = os.Remove(torrentPath(hash))
 
-	if len(paths) > 0 {
-		go deleteWithRetry(paths)
-	}
+	go deleteWithRetry(paths)
 	return nil
 }
 

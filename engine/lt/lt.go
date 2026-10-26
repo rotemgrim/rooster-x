@@ -70,6 +70,8 @@ type File struct {
 	Size   int64  `json:"size"`
 	Offset int64  `json:"offset"` // within the torrent's pieces
 	Done   int64  `json:"done"`
+	// 0 = don't download .. 7, 4 = normal
+	Priority int `json:"priority"`
 }
 
 type Status struct {
@@ -269,6 +271,21 @@ func (s *Session) SetPiecePriorities(hash string, pieces []int, priority int) er
 	}
 	return s.onTorrent(hash, func(p *C.lt_session, h *C.char) *C.char {
 		return C.lt_set_piece_priorities(p, h, &cp[0], C.int(len(cp)), C.int(priority))
+	})
+}
+
+// SetFilePriorities sets the priority (0 = don't download .. 7, 4 = normal)
+// of the files, which resets the priorities of their pieces to follow them.
+func (s *Session) SetFilePriorities(hash string, files []int, priority int) error {
+	if len(files) == 0 {
+		return nil
+	}
+	cf := make([]C.int, len(files))
+	for i, v := range files {
+		cf[i] = C.int(v)
+	}
+	return s.onTorrent(hash, func(p *C.lt_session, h *C.char) *C.char {
+		return C.lt_set_file_priorities(p, h, &cf[0], C.int(len(cf)), C.int(priority))
 	})
 }
 

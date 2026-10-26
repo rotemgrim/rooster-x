@@ -85,6 +85,25 @@ func (s *Server) EnginePause(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, paused)
 }
 
+// EngineSetFilesWanted downloads or skips some of a torrent's files.
+func (s *Server) EngineSetFilesWanted(c *websocket.Conn, req PayloadRequest) {
+	data, _ := req.Data.(map[string]interface{})
+	hash, _ := data["infoHash"].(string)
+	wanted, _ := data["wanted"].(bool)
+	list, _ := data["files"].([]interface{})
+	var files []int
+	for _, f := range list {
+		if i, ok := f.(float64); ok {
+			files = append(files, int(i))
+		}
+	}
+	if err := engine.SetFilesWanted(hash, files, wanted); err != nil {
+		transmitPromiseReject(c, req, err.Error())
+		return
+	}
+	transmitPromiseResponse(c, req, wanted)
+}
+
 // EngineGetSettings returns the torrent client settings.
 func (s *Server) EngineGetSettings(c *websocket.Conn, req PayloadRequest) {
 	transmitPromiseResponse(c, req, engine.GetSettings())

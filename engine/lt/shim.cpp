@@ -336,6 +336,7 @@ void status_json(std::string& o, lt::torrent_handle const& h, bool with_pieces)
 		json_field(o, "pieceLength", std::int64_t(ti->piece_length()));
 		std::vector<std::int64_t> progress;
 		h.file_progress(progress);
+		std::vector<lt::download_priority_t> const prio = h.get_file_priorities();
 		json_field(o, "files");
 		o += '[';
 		for (lt::file_index_t i : fs.file_range())
@@ -347,7 +348,9 @@ void status_json(std::string& o, lt::torrent_handle const& h, bool with_pieces)
 			json_field(o, "path", fs.file_path(i));
 			json_field(o, "size", std::int64_t(fs.file_size(i)));
 			json_field(o, "offset", std::int64_t(fs.file_offset(i)));
-			json_field(o, "done", progress[static_cast<std::size_t>(static_cast<int>(i))]);
+			std::size_t const pi = static_cast<std::size_t>(static_cast<int>(i));
+			json_field(o, "done", progress[pi]);
+			json_field(o, "priority", std::int64_t(pi < prio.size() ? static_cast<std::uint8_t>(prio[pi]) : 4));
 			o += '}';
 		}
 		o += ']';
@@ -524,6 +527,17 @@ char* lt_set_piece_priorities(lt_session* s, char const* hash, int const* pieces
 		for (int i = 0; i < n; ++i)
 			v.emplace_back(lt::piece_index_t(pieces[i]), lt::download_priority_t(std::uint8_t(priority)));
 		h.prioritize_pieces(v);
+	});
+}
+
+char* lt_set_file_priorities(lt_session* s, char const* hash, int const* files, int n, int priority)
+{
+	return with_torrent(s, hash, [=](lt::torrent_handle const& h) {
+		std::vector<lt::download_priority_t> prio = h.get_file_priorities();
+		for (int i = 0; i < n; ++i)
+			if (files[i] >= 0 && std::size_t(files[i]) < prio.size())
+				prio[std::size_t(files[i])] = lt::download_priority_t(std::uint8_t(priority));
+		h.prioritize_files(prio);
 	});
 }
 

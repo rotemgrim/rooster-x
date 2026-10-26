@@ -16,9 +16,11 @@ func TestEdgePieces(t *testing.T) {
 		files []lt.File
 		want  []int
 	}{
-		{"big file: 4 pieces each end", []lt.File{{Offset: 0, Size: 100 * piece}}, []int{0, 99, 1, 98, 2, 97, 3, 96}},
-		{"small file: every piece once", []lt.File{{Offset: 0, Size: 3 * piece}}, []int{0, 2, 1}},
-		{"largest file, not the first", []lt.File{{Offset: 0, Size: piece}, {Offset: piece, Size: 10 * piece}}, []int{1, 10, 2, 9, 3, 8, 4, 7}},
+		{"big file: 4 pieces each end", []lt.File{{Offset: 0, Size: 100 * piece, Priority: 4}}, []int{0, 99, 1, 98, 2, 97, 3, 96}},
+		{"small file: every piece once", []lt.File{{Offset: 0, Size: 3 * piece, Priority: 4}}, []int{0, 2, 1}},
+		{"largest file, not the first", []lt.File{{Offset: 0, Size: piece, Priority: 4}, {Offset: piece, Size: 10 * piece, Priority: 4}}, []int{1, 10, 2, 9, 3, 8, 4, 7}},
+		{"largest wanted file", []lt.File{{Offset: 0, Size: 10 * piece, Priority: 4}, {Offset: 10 * piece, Size: 20 * piece}}, []int{0, 9, 1, 8, 2, 7, 3, 6}},
+		{"only skipped files", []lt.File{{Offset: 0, Size: 10 * piece}}, nil},
 		{"no files", nil, nil},
 	}
 	for _, tt := range tests {

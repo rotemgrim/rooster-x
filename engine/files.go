@@ -15,8 +15,9 @@ import (
 const edgeBytes = 16 << 20
 
 const (
-	priorityNormal = 4
-	priorityTop    = 7
+	priorityDontDownload = 0
+	priorityNormal       = 4
+	priorityTop          = 7
 )
 
 // onMetadata runs once a torrent's file list is known: it applies the
@@ -145,15 +146,45 @@ func applySequential(hash string, on bool) error {
 	return ses.SetPiecePriorities(hash, edgePieces(st.Files, st.PieceLength), priority)
 }
 
+// SetFilesWanted downloads or skips some of a torrent's files (the episodes
+// of a season pack, say). A skipped file only gets the pieces it shares with
+// wanted files, kept in libtorrent's part file, and keeps what it already
+// had; the torrent is finished once the wanted files are.
+func SetFilesWanted(hash string, files []int, wanted bool) error {
+	if ses == nil {
+		return errNotRunning
+	}
+	mu.Lock()
+	e, err := entryLocked(hash)
+	sequential := err == nil && e.Sequential
+	mu.Unlock()
+	if err != nil {
+		return err
+	}
+	priority := priorityDontDownload
+	if wanted {
+		priority = priorityNormal
+	}
+	if err := ses.SetFilePriorities(hash, files, priority); err != nil {
+		return err
+	}
+	// file priorities reset the piece priorities, raised edges included, and
+	// the largest wanted video may be another one now
+	if sequential {
+		return applySequential(hash, true)
+	}
+	return nil
+}
+
 // edgePieces returns the pieces holding the first and last edgeBytes of the
-// largest file.
+// largest wanted file.
 func edgePieces(files []lt.File, pieceLen int64) []int {
-	if len(files) == 0 || pieceLen <= 0 {
+	if pieceLen <= 0 {
 		return nil
 	}
-	video := files[0]
-	for _, f := range files[1:] {
-		if f.Size > video.Size {
+	var video lt.File
+	for _, f := range files {
+		if f.Priority != priorityDontDownload && f.Size > video.Size {
 			video = f
 		}
 	}

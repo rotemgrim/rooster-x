@@ -66,6 +66,9 @@ char* lt_set_upload_mode(lt_session* s, const char* hash, int on);
 char* lt_set_max_connections(lt_session* s, const char* hash, int n);
 // Sets the priority (0-7, 4 = default) of the listed pieces.
 char* lt_set_piece_priorities(lt_session* s, const char* hash, const int* pieces, int n, int priority);
+// Sets the priority (0 = don't download .. 7, 4 = default) of the listed
+// files. This resets the priorities of their pieces to follow the files.
+char* lt_set_file_priorities(lt_session* s, const char* hash, const int* files, int n, int priority);
 char* lt_rename_file(lt_session* s, const char* hash, int file, const char* name);
 char* lt_force_recheck(lt_session* s, const char* hash);
 

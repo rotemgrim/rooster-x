@@ -34,6 +34,7 @@ func (s *Server) SetRoutes() {
 	s.onUnlimited("engine-remove", s.EngineRemove)
 	s.on("engine-pause", s.EnginePause)
 	s.on("engine-set-sequential", s.EngineSetSequential)
+	s.on("engine-set-files-wanted", s.EngineSetFilesWanted)
 	s.onUnlimited("engine-get-settings", s.EngineGetSettings)
 	s.onUnlimited("engine-save-settings", s.EngineSaveSettings)
 	s.on("set-watched", s.SetWatched)

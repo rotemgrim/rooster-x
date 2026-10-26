@@ -160,6 +160,10 @@ export class DownloadsPage extends LitElement {
     @state() private prefs: Prefs = loadPrefs();
     @state() private tab: "general" | "content" = "general";
     @state() private menu: {x: number; y: number; hashes: string[]} | null = null;
+    // the shown torrent's files the file menu acts on, and the anchor for
+    // shift-click
+    @state() private fileSelection: {hash: string; files: ReadonlySet<number>; anchor: number} = {hash: "", files: new Set(), anchor: -1};
+    @state() private fileMenu: {x: number; y: number; hash: string; files: number[]} | null = null;
     @state() private deleting: {hashes: string[]; label: string; deleteFiles: boolean} | null = null;
     @state() private showSettings = false;
     @state() private showAddLinks = false;
@@ -326,15 +330,60 @@ export class DownloadsPage extends LitElement {
         this.menu = {x: Math.min(e.clientX, window.innerWidth - 230), y: Math.min(e.clientY, window.innerHeight - 200), hashes};
     }
 
+    /** The shown torrent's selected files. */
+    private selectedFiles(t: Torrent): ReadonlySet<number> {
+        return this.fileSelection.hash === t.infoHash ? this.fileSelection.files : new Set();
+    }
+
+    /** Click selects one file; Ctrl adds or removes one, Shift a range. */
+    private clickFile(e: MouseEvent, t: Torrent, f: IEngineFile) {
+        const current = this.selectedFiles(t);
+        const anchor = this.fileSelection.hash === t.infoHash ? this.fileSelection.anchor : -1;
+        const add = e.ctrlKey || e.metaKey;
+        if (e.shiftKey && anchor >= 0) {
+            const rows = (t.files ?? []).map(x => x.index);
+            const from = rows.indexOf(anchor);
+            const to = rows.indexOf(f.index);
+            const range = rows.slice(Math.min(from, to), Math.max(from, to) + 1);
+            // the anchor stays put
+            this.fileSelection = {hash: t.infoHash, files: new Set(add ? [...current, ...range] : range), anchor};
+            return;
+        }
+        const files = new Set(add ? current : []);
+        if (!add || !files.delete(f.index)) {
+            files.add(f.index);
+        }
+        this.fileSelection = {hash: t.infoHash, files, anchor: f.index};
+    }
+
+    /** The file menu acts on the selected files, or on just f when it isn't one of them. */
+    private openFileMenu(e: MouseEvent, t: Torrent, f: IEngineFile) {
+        e.preventDefault();
+        if (!this.selectedFiles(t).has(f.index)) {
+            this.fileSelection = {hash: t.infoHash, files: new Set([f.index]), anchor: f.index};
+        }
+        const files = (t.files ?? []).map(x => x.index).filter(i => this.fileSelection.files.has(i));
+        this.fileMenu = {x: Math.min(e.clientX, window.innerWidth - 230), y: Math.min(e.clientY, window.innerHeight - 150), hash: t.infoHash, files};
+    }
+
+    private setFilesWanted(t: Torrent, files: number[], wanted: boolean) {
+        this.fileMenu = null;
+        EngineService.setFilesWanted(t.infoHash, files, wanted)
+            .catch(err => console.error("could not change which files download", err))
+            .finally(() => this.refresh());
+    }
+
     private closeMenuOutside = (e: PointerEvent) => {
-        if (this.menu && !(e.target as HTMLElement).closest(".dl-menu")) {
+        if ((this.menu || this.fileMenu) && !(e.target as HTMLElement).closest(".dl-menu")) {
             this.menu = null;
+            this.fileMenu = null;
         }
     };
 
     private onKey = (e: KeyboardEvent) => {
         if (e.key === "Escape") {
             this.menu = null;
+            this.fileMenu = null;
             this.deleting = null;
             return;
         }
@@ -527,6 +576,32 @@ export class DownloadsPage extends LitElement {
         </ul>`;
     }
 
+    private renderFileMenu() {
+        const menu = this.fileMenu;
+        const t = menu && this.torrents.find(x => x.infoHash === menu.hash);
+        const files = menu && t?.files ? t.files.filter(f => menu.files.includes(f.index)) : [];
+        if (!menu || !t || !files.length) {
+            return nothing;
+        }
+        const count = (list: number[]) => (list.length > 1 ? ` ${list.length} files` : "");
+        const skipped = files.filter(f => f.skipped).map(f => f.index);
+        const wanted = files.filter(f => !f.skipped).map(f => f.index);
+        const video = files.length === 1 && isVideo(files[0]) ? files[0] : undefined;
+        return html`<ul class="dl-menu" style="left: ${menu.x}px; top: ${menu.y}px">
+            <li class="${skipped.length ? "" : "disabled"}" @click=${() => skipped.length && this.setFilesWanted(t, skipped, true)}>
+                <i class="material-icons">download</i>Download${count(skipped)}
+            </li>
+            <li class="${wanted.length ? "" : "disabled"}" @click=${() => wanted.length && this.setFilesWanted(t, wanted, false)}>
+                <i class="material-icons">block</i>Do not download${count(wanted)}
+            </li>
+            ${video ? html`<li class="separator"></li>
+                <li @click=${() => {
+                    this.fileMenu = null;
+                    playTorrentFile(t.infoHash, video);
+                }}><i class="material-icons">play_circle</i>Play</li>` : nothing}
+        </ul>`;
+    }
+
     private renderDeleteDialog() {
         const deleting = this.deleting;
         if (!deleting) {
@@ -598,15 +673,24 @@ export class DownloadsPage extends LitElement {
         if (!t.files?.length) {
             return html`<div class="dl-empty">Waiting for torrent metadata…</div>`;
         }
+        const selected = this.selectedFiles(t);
         return html`<table class="dl-files">
-            <thead><tr><th>Name</th><th class="num">Size</th><th class="num">Progress</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Name</th><th class="num">Size</th><th class="num">Progress</th><th></th></tr></thead>
             <tbody>
-                ${t.files.map((f: IEngineFile) => html`<tr>
+                ${t.files.map((f: IEngineFile) => html`<tr class="${selected.has(f.index) ? "selected" : ""} ${f.skipped ? "skipped" : ""}"
+                    @click=${(e: MouseEvent) => this.clickFile(e, t, f)}
+                    @contextmenu=${(e: MouseEvent) => this.openFileMenu(e, t, f)}>
+                    <td><input type="checkbox" title=${f.skipped ? "Not downloading" : "Downloading"} .checked=${!f.skipped}
+                        @click=${(e: Event) => e.stopPropagation()}
+                        @change=${(e: Event) => this.setFilesWanted(t, [f.index], (e.target as HTMLInputElement).checked)} /></td>
                     <td>${f.path}</td>
                     <td class="num">${formatBytes(f.length)}</td>
                     <td class="num">${progressBar(fileProgress(f))}</td>
                     <td>${isVideo(f)
-                        ? html`<i class="material-icons dl-play" title="Play" @click=${() => playTorrentFile(t.infoHash, f)}>play_circle</i>`
+                        ? html`<i class="material-icons dl-play" title="Play" @click=${(e: Event) => {
+                            e.stopPropagation();
+                            playTorrentFile(t.infoHash, f);
+                        }}>play_circle</i>`
                         : nothing}</td>
                 </tr>`)}
             </tbody>
@@ -675,6 +759,7 @@ export class DownloadsPage extends LitElement {
             </div>
             ${this.renderSheet()}
             ${this.renderMenu()}
+            ${this.renderFileMenu()}
             ${this.renderDeleteDialog()}
             ${this.renderDialogs()}
         </div>`;
@@ -721,6 +806,7 @@ export class DownloadsPage extends LitElement {
             </div>
             ${this.renderDetails()}
             ${this.renderMenu()}
+            ${this.renderFileMenu()}
             ${this.renderDeleteDialog()}
             ${this.renderDialogs()}
         </div>`;
