@@ -8,12 +8,20 @@ package ptnutil
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 
 	ptn "github.com/middelink/go-parse-torrent-name"
 )
 
+// longEpisode matches S01E100 / 1x100. The upstream episode pattern takes
+// exactly two digits, so episodes past 99 come back as 0.
+var longEpisode = regexp.MustCompile(`(?i)\bs?([0-9]{1,2})[ex]([0-9]{3,4})(?:[^0-9]|$)`)
+
 // SafeParse calls ptn.Parse and recovers from any panic, returning it as
-// an error instead. Behaves exactly like ptn.Parse on the happy path.
+// an error instead. It also reads three- and four-digit episode numbers,
+// which ptn.Parse misses.
 func SafeParse(name string) (info *ptn.TorrentInfo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -21,5 +29,13 @@ func SafeParse(name string) (info *ptn.TorrentInfo, err error) {
 			err = fmt.Errorf("ptn.Parse panicked on %q: %v", name, r)
 		}
 	}()
-	return ptn.Parse(name)
+	info, err = ptn.Parse(name)
+	if err != nil {
+		return info, err
+	}
+	if m := longEpisode.FindStringSubmatch(strings.ReplaceAll(name, "_", " ")); m != nil {
+		info.Season, _ = strconv.Atoi(m[1])
+		info.Episode, _ = strconv.Atoi(m[2])
+	}
+	return info, nil
 }

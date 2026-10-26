@@ -79,6 +79,12 @@ func createTablesIfNotExist(db *sql.DB) {
 	if err := MigrateTmdbIdPerKind(db); err != nil {
 		log.Printf("Warning: tmdbId per kind migration failed: %v", err)
 	}
+
+	// Matches the files of episodes past 99 again, which used to be parsed as
+	// movies.
+	if err := MigrateLongEpisodes(db); err != nil {
+		log.Printf("Warning: long episodes migration failed: %v", err)
+	}
 }
 
 func createMetaDataTable(db *sql.DB) {
