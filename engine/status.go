@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"go-poc/engine/lt"
+	"go-poc/ptnutil"
 )
 
 type FileStatus struct {
@@ -18,6 +19,9 @@ type FileStatus struct {
 	// 0 = nothing verified .. 9 = fully verified. Only set by Get, so the UI
 	// can show which parts of each file are playable.
 	Chunks string `json:"chunks,omitempty"`
+	// Season is the season of an episode file (ptnutil.Season), 0 if it has
+	// none. Only set by Get, for the episode picker.
+	Season int `json:"season,omitempty"`
 }
 
 const chunkBuckets = 100
@@ -89,8 +93,8 @@ func List() []Status {
 	return out
 }
 
-// Get returns the status of one torrent, including the chunk map of each
-// file.
+// Get returns the status of one torrent, including the chunk map and season
+// of each file.
 func Get(hash string) (Status, error) {
 	if ses == nil {
 		return Status{}, errNotRunning
@@ -112,6 +116,7 @@ func Get(hash string) (Status, error) {
 	s := statusOf(st, entry)
 	for i, f := range st.Files {
 		s.Files[i].Chunks = chunkMap(st.Pieces, st.PieceLength, f.Offset, f.Size)
+		s.Files[i].Season = ptnutil.Season(s.Files[i].Path)
 	}
 	return s, nil
 }

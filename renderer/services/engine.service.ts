@@ -30,6 +30,9 @@ export interface IEngineFile {
     // 100 digits (0-9), how much of each 1% slice is downloaded; only from
     // EngineService.status(hash)
     chunks?: string;
+    // the season of an episode file, absent if none; only from
+    // EngineService.status(hash)
+    season?: number;
 }
 
 export interface IEngineStatus {

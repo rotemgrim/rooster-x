@@ -32,3 +32,29 @@ func TestSafeParseEpisodes(t *testing.T) {
 		}
 	}
 }
+
+func TestSeason(t *testing.T) {
+	tests := []struct {
+		path   string
+		season int
+	}{
+		{"Show/Show.S01E02.1080p.mkv", 1},
+		{"Show/show_s04e01.mkv", 4},
+		{"Show/Show 2x05 720p.mkv", 2},
+		{"Show/Show.S01E100.mkv", 1},
+		{"Show/Season 3/ep 01.mkv", 3},
+		{"Show/The Show Season 12/01.mkv", 12},
+		{"Show/S02/03.mkv", 2},
+		{`Show\Season 3\ep 01.mkv`, 3},
+		{"Show/Season 3/Show.S04E01.mkv", 4},
+		{"Show/Movie.1920x1080.x264.mkv", 0},
+		{"Show/extras/making of.mkv", 0},
+		{"Show.S03.1080p/03.mkv", 0},
+		{"", 0},
+	}
+	for _, tt := range tests {
+		if got := Season(tt.path); got != tt.season {
+			t.Errorf("Season(%q) = %d, want %d", tt.path, got, tt.season)
+		}
+	}
+}

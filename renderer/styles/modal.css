@@ -53,7 +53,8 @@ torrent-file-picker .modal.action-sheet {
   & .tfp-list button { position: relative; flex-shrink: 0; overflow: hidden; }
   & .tfp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   & .tfp-pct { color: #999; font-size: 0.85em; }
-  & .tfp-list button.tfp-season {
+  /* from seasonList() in web-components/season-groups.ts */
+  & .tfp-list button.season-header {
     position: sticky;
     top: 0;
     z-index: 1;
@@ -61,6 +62,8 @@ torrent-file-picker .modal.action-sheet {
     font-weight: bold;
     &:hover { background: #2a2a2a; }
   }
+  & .season-name { flex: 1; }
+  & .season-count { color: #999; font-size: 0.85em; font-weight: normal; }
   & .modal-buttons { margin-top: 0.8em; }
 }
 

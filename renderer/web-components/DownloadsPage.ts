@@ -486,7 +486,7 @@ export class DownloadsPage extends LitElement {
     /** Plays the torrent's video, asking which when it has several. */
     private play(t: Torrent) {
         this.menu = null;
-        playTorrent(t.infoHash, t.files);
+        playTorrent(t.infoHash);
     }
 
     /** Add, remove, resume and pause buttons; the last three act on the

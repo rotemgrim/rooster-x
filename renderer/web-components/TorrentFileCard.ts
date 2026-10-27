@@ -96,7 +96,7 @@ export class TorrentFileCard extends LitElement {
 
     private play(e: Event) {
         e.stopPropagation();
-        playTorrent(this.infoHash, this.engine?.files);
+        playTorrent(this.infoHash);
     }
 
     private togglePause(e: Event) {

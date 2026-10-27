@@ -39,3 +39,32 @@ func SafeParse(name string) (info *ptn.TorrentInfo, err error) {
 	}
 	return info, nil
 }
+
+// The folders named for their season: "Season 2", and just "S02".
+var seasonFolders = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)\bseason[ ._-]?([0-9]{1,2})\b`),
+	regexp.MustCompile(`(?i)^s([0-9]{1,2})$`),
+}
+
+// Season reads the season of an episode file from its path: "S02E05" or
+// "2x05" in its name, else the nearest "Season 2" or "S02" folder; 0 if it
+// has none. The name's season counts only with an episode beside it, as
+// without one upstream reads a resolution like 1920x1080 as season 20.
+func Season(path string) int {
+	parts := strings.FieldsFunc(path, func(r rune) bool { return r == '/' || r == '\\' })
+	if len(parts) == 0 {
+		return 0
+	}
+	if info, err := SafeParse(parts[len(parts)-1]); err == nil && info.Episode > 0 && info.Season > 0 {
+		return info.Season
+	}
+	for i := len(parts) - 2; i >= 0; i-- {
+		for _, folder := range seasonFolders {
+			if m := folder.FindStringSubmatch(parts[i]); m != nil {
+				n, _ := strconv.Atoi(m[1])
+				return n
+			}
+		}
+	}
+	return 0
+}
