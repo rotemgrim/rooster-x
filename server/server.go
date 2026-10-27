@@ -3,8 +3,6 @@ package server
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -119,7 +117,7 @@ func (s *Server) Start() {
 
 		http.HandleFunc("/ws", s.wsHandler)
 		http.HandleFunc("/stream/", streamProxyHandler)
-		http.HandleFunc("/stream-ts/", streamSegmentHandler)
+		http.HandleFunc("/stream-ts/", streamRemoteHandler)
 		http.HandleFunc("/api/progress", progressHandler)
 		// Serve local MediaFile bytes over HTTP (with Range support) so a
 		// phone on the LAN can hand the URL to VLC / Infuse / nPlayer.
@@ -257,119 +255,4 @@ func (s Server) BroadcastMessage(message string) {
 		}
 		log.Printf("broadcasted message: %s\n", message)
 	}
-}
-
-var streamClient = &http.Client{
-	Transport: &http.Transport{
-		MaxConnsPerHost: 2,
-	},
-}
-
-// streamNoRedirectClient captures redirect targets without following them
-var streamNoRedirectClient = &http.Client{
-	CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	},
-}
-
-// streamGet fetches url for the player's request r and gives up when the
-// player does. streamClient allows only two connections to the provider, so
-// a segment the player abandoned (timed out, or the stream restarted) would
-// otherwise hold one until the provider finished sending it, starving the
-// segments the player is now waiting for.
-func streamGet(client *http.Client, r *http.Request, url string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	return client.Do(req)
-}
-
-// streamProxyHandler proxies .m3u8 manifest requests to the Xtream server.
-// The Xtream server redirects to a different host; we follow the redirect,
-// then rewrite segment URLs to route through /stream-ts/.
-func streamProxyHandler(w http.ResponseWriter, r *http.Request) {
-	remotePath := strings.TrimPrefix(r.URL.Path, "/stream/")
-	if remotePath == "" {
-		http.Error(w, "invalid stream path", http.StatusBadRequest)
-		return
-	}
-
-	targetURL := fmt.Sprintf("%s/%s", xtreamServer, remotePath)
-
-	// Get the initial response (may be a redirect)
-	resp, err := streamGet(streamNoRedirectClient, r, targetURL)
-	if err != nil {
-		log.Println("Stream proxy error:", err)
-		http.Error(w, "failed to fetch stream", http.StatusBadGateway)
-		return
-	}
-
-	// Follow redirect to capture the actual stream host
-	finalHost := ""
-	if location := resp.Header.Get("Location"); location != "" && (resp.StatusCode >= 300 && resp.StatusCode < 400) {
-		resp.Body.Close()
-		resp, err = streamGet(streamClient, r, location)
-		if err != nil {
-			log.Println("Stream proxy redirect error:", err)
-			http.Error(w, "failed to follow redirect", http.StatusBadGateway)
-			return
-		}
-		if resp.Request != nil && resp.Request.URL != nil {
-			finalHost = resp.Request.URL.Host
-		}
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("Stream proxy read error:", err)
-		http.Error(w, "failed to read stream", http.StatusBadGateway)
-		return
-	}
-
-	// Rewrite segment URLs to go through our /stream-ts/ proxy
-	lines := strings.Split(string(body), "\n")
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
-			continue
-		}
-		if strings.Contains(trimmed, "://") {
-			trimmed = strings.TrimPrefix(trimmed, "http://")
-			trimmed = strings.TrimPrefix(trimmed, "https://")
-			lines[i] = "/stream-ts/" + trimmed
-		} else if finalHost != "" {
-			lines[i] = "/stream-ts/" + finalHost + trimmed
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write([]byte(strings.Join(lines, "\n")))
-}
-
-// streamSegmentHandler proxies .ts segment requests to the actual stream host.
-func streamSegmentHandler(w http.ResponseWriter, r *http.Request) {
-	remotePath := strings.TrimPrefix(r.URL.Path, "/stream-ts/")
-	if remotePath == "" {
-		http.Error(w, "invalid segment path", http.StatusBadRequest)
-		return
-	}
-
-	resp, err := streamGet(streamClient, r, "http://"+remotePath)
-	if err != nil {
-		log.Println("Segment proxy error:", err)
-		http.Error(w, "failed to fetch segment", http.StatusBadGateway)
-		return
-	}
-	defer resp.Body.Close()
-
-	for key, values := range resp.Header {
-		for _, value := range values {
-			w.Header().Add(key, value)
-		}
-	}
-	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
 }
