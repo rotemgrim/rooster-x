@@ -57,7 +57,7 @@ export class VideoDetails extends LitElement {
     }> = {};
     private episodesWatchProgressTimer: any = null;
 
-    private foldedSeasons = new FoldedSeasons(this);
+    private foldedSeasons = new FoldedSeasons(this, () => `series:${this.video?.id}`);
 
     private mainDetailsEl: HTMLElement;
 

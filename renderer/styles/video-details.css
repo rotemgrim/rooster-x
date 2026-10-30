@@ -298,6 +298,8 @@ video-details {
     cursor: pointer;
     & .season-count { margin-left: 0.4em; font-size: 0.8em; font-weight: normal; opacity: 0.6; }
     &:hover, &:focus-visible { border-bottom-color: #aaa; }
+    /* a folded last season has no episodes to pull up, and .episodes would clip it */
+    &:last-child { margin-bottom: 0; }
   }
   & .episode {
     width: var(--poster-width);

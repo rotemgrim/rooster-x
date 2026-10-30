@@ -1,19 +1,41 @@
 import {html} from "lit";
 
-/** The seasons an element shows folded. */
-export class FoldedSeasons {
-    private folded = new Set<number>();
+const STORAGE_KEY = "rooster.foldedSeasons";
 
-    public constructor(private readonly host: {requestUpdate(): void}) {}
+/** The folded seasons of every series and torrent, by their key. */
+const saved: Record<string, number[]> = (() => {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    } catch (_) {
+        return {};
+    }
+})();
+
+/**
+ * The seasons an element shows folded, remembered in the browser under the
+ * key of what it shows (a series, a torrent).
+ */
+export class FoldedSeasons {
+    public constructor(private readonly host: {requestUpdate(): void}, private readonly key: () => string) {}
 
     public has(season: number) {
-        return this.folded.has(season);
+        return saved[this.key()]?.includes(season) ?? false;
     }
 
     public toggle(season: number) {
-        if (!this.folded.delete(season)) {
-            this.folded.add(season);
+        const key = this.key();
+        const folded = (saved[key] ?? []).filter(s => s !== season);
+        if (!this.has(season)) {
+            folded.push(season);
         }
+        if (folded.length) {
+            saved[key] = folded;
+        } else {
+            delete saved[key];
+        }
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+        } catch (_) {}
         this.host.requestUpdate();
     }
 }

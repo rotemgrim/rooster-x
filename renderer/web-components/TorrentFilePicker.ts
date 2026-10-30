@@ -31,7 +31,7 @@ export class TorrentFilePicker extends LitElement {
 
     @property({attribute: false}) public infoHash = "";
     @property({attribute: false}) public files: IEngineFile[] = [];
-    private folded = new FoldedSeasons(this);
+    private folded = new FoldedSeasons(this, () => `torrent:${this.infoHash}`);
     private pollTimer: number | undefined;
 
     public createRenderRoot() {
